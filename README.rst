@@ -47,6 +47,7 @@ Nlxplain (read "nellxplain") builds on top of the transformers library. The libr
 * SHAP (partition approximation)
 
 Feature we expect to include:
+* GPU based inference
 * TBD
 
 Credits
