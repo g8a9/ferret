@@ -1,1 +1,9 @@
-torch
+transformers
+datasets
+captum
+einops
+shap
+seaborn
+matplotlib
+scikit-image
+lime
