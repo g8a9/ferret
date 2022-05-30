@@ -22,8 +22,10 @@ A python package for NLP explainability.
 * Free software: MIT license
 * Documentation: https://nlxplain.readthedocs.io.
 
+^^^
 Usage
 ^^^
+
 .. code-block:: python
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
         from nlxplain import Explainer
