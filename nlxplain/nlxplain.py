@@ -491,10 +491,10 @@ class Explainer:
         normalized_p_shap /= normalized_p_shap.norm(dim=-1, p=1)
 
         # SOC
-        soc_kwargs = kwargs.get("soc_kwargs", dict())
-        soc = self.get_soc(
-            idx, **soc_kwargs
-        )  # target is always for class = 1 (? see implementation)
+        # soc_kwargs = kwargs.get("soc_kwargs", dict())
+        # soc = self.get_soc(
+        #     idx, **soc_kwargs
+        # )  # target is always for class = 1 (? see implementation)
 
         d = {
             "tokens": tokens,
@@ -510,10 +510,13 @@ class Explainer:
 
         return table
 
-    def compute_occlusion_importance(self, idx, target=1):
+    def compute_occlusion_importance(self, idx, target=1, remove_first_last=True):
         item = self._get_item(idx)
         input_len = item["attention_mask"].sum().item()
-        input_ids = item["input_ids"][0][:input_len].tolist()[1:-1]
+        input_ids = item["input_ids"][0][:input_len].tolist()
+
+        if remove_first_last == True:
+            input_ids = input_ids[1:-1]
 
         outputs = self._forward(idx)
         logits = outputs.logits[0]
@@ -533,4 +536,5 @@ class Explainer:
 
         logits = outputs.logits.softmax(-1)[:, target]
         occlusion_importance = logits - baseline
+
         return occlusion_importance
