@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from captum.attr import KernelShap, Saliency, IntegratedGradients, InputXGradient
-from shap import Explainer
+from shap import Explainer as ShapExplainer
 from transformers import pipeline
 import copy
 
@@ -174,7 +174,7 @@ class Explainer:
 
         return attr
 
-    def get_transformer_shap(self, idx, target=1):
+    def get_shap(self, idx, target=1):
         if isinstance(idx, int):
             # no tokenization - raw data
             text = self.raw_data[[idx]]["text"]
@@ -191,8 +191,7 @@ class Explainer:
             return_all_scores=True,
         )
 
-        explainer_partition = Explainer(pred)
-
+        explainer_partition = ShapExplainer(pred)
         shap_values = explainer_partition(text)
         return shap_values.values[0][:, target]
 
@@ -487,7 +486,7 @@ class Explainer:
         # k_shap = self.get_kernel_shap(idx, target=target)
 
         # SHAP library - SHAP Partition with transformer
-        p_shap = self.get_transformer_shap(idx, target=target)
+        p_shap = self.get_shap(idx, target=target)
         normalized_p_shap = torch.tensor(p_shap)
         normalized_p_shap /= normalized_p_shap.norm(dim=-1, p=1)
 
