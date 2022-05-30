@@ -13,6 +13,7 @@ from captum.attr import KernelShap, Saliency, IntegratedGradients, InputXGradien
 from shap import Explainer as ShapExplainer
 from transformers import pipeline
 import copy
+from lime.lime_text import LimeTextExplainer
 
 # # SOC
 # from hiex.soc_api import SamplingAndOcclusionExplain
@@ -440,6 +441,81 @@ class Explainer:
 
         return grad_input, normalized_grad
 
+    
+    def get_lime_explanation(self, idx, target=1):
+        
+        if isinstance(idx, int):
+            # no tokenization - raw data (a single str)
+            text = self.raw_data[[idx]]["text"][0]
+        elif isinstance(idx, str):
+            # no tokenization - the input sentence (str)
+            text = idx
+        else:
+            raise ValueError(f"{idx} is of unknown type")
+
+        #https://github.com/copenlu/xai-benchmark/blob/1cb264c21fb2c0b036127cf3bb8e035c5c5e95da/saliency_gen/interpret_lime.py
+        def fn_prediction_token_ids(token_ids_sentences):
+            token_ids = [[int(i) for i in instance_ids.split(' ') if i != ''] for
+                                instance_ids in token_ids_sentences]
+            max_batch_id = max([len(_l) for _l in token_ids])
+            padded_batch_ids = [
+                _l + [self.tokenizer.pad_token_id] * (max_batch_id - len(_l))
+                for _l in token_ids]
+            tokens_tensor = torch.tensor(padded_batch_ids)
+            logits = self.model(tokens_tensor, attention_mask=tokens_tensor.long() > 0).logits.softmax(-1).detach().cpu().numpy()
+            return logits
+
+
+
+        from lime.lime_text import LimeTextExplainer
+        lime_explainer = LimeTextExplainer()
+        token_ids = self.tokenizer.encode(text)
+
+        np.random.seed(42)        
+        expl = lime_explainer.explain_instance(
+                " ".join([str(i) for i in token_ids]), fn_prediction_token_ids,
+                labels = [target],
+                num_features=len(token_ids), num_samples=10)
+            
+            
+        token_scores = list(dict(sorted(expl.local_exp[target])).values())
+        
+        return token_scores
+
+    """ Explanation at the word level - unused """
+
+
+    def get_lime_explanation_word(self, idx, target=1):
+        
+        if isinstance(idx, int):
+            # no tokenization - raw data (a single str)
+            text = self.raw_data[[idx]]["text"][0]
+        elif isinstance(idx, str):
+            # no tokenization - the input sentence (str)
+            text = idx
+        else:
+            raise ValueError(f"{idx} is of unknown type")
+
+        def fn_prediction(sentences):
+            inputs = self.tokenizer(sentences, return_tensors="pt", padding="longest")
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+
+            logits = outputs.logits.softmax(-1).detach().cpu().numpy()
+            return logits
+
+        from lime.lime_text import LimeTextExplainer
+        lime_explainer = LimeTextExplainer()
+        token_ids = self.tokenizer.encode(text)
+
+        np.random.seed(42)
+        expl = lime_explainer.explain_instance(
+                            text, fn_prediction,
+                            labels = [target],
+                            num_features=len(token_ids))
+        expl_scores = list(dict(sorted(expl.local_exp[target])).values())
+        return expl_scores
+    
     def classify(self, idx):
         text = idx if isinstance(idx, str) else self.raw_data[idx]["text"]
 
@@ -490,6 +566,11 @@ class Explainer:
         normalized_p_shap = torch.tensor(p_shap)
         normalized_p_shap /= normalized_p_shap.norm(dim=-1, p=1)
 
+        # LIME
+        lime_expl = self.get_lime_explanation(idx, target=target)
+        normalized_lime = torch.tensor(lime_expl)
+        normalized_lime /= normalized_lime.norm(dim=-1, p=1)
+
         # SOC
         # soc_kwargs = kwargs.get("soc_kwargs", dict())
         # soc = self.get_soc(
@@ -503,6 +584,7 @@ class Explainer:
             "IG": ig,
             "SHAP": normalized_p_shap,
             # "SOC": soc,
+            "LIME": normalized_lime
         }
 
         table = pd.DataFrame(d).set_index("tokens").T
