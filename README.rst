@@ -22,9 +22,6 @@ A python package for NLP explainability.
 * Free software: MIT license
 * Documentation: https://nlxplain.readthedocs.io.
 
-^^^
-Usage
-^^^
 
 .. code-block:: python
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -38,17 +35,18 @@ Usage
         exp.compute_table("You look stunning!")
 
 
-
 Features
 --------
 
 Nlxplain (read "nellxplain") builds on top of the transformers library. The library supports explanations using:
+
 * Gradients
 * Integrated Gradinets
 * Gradient x Input word embeddings
 * SHAP (partition approximation)
 
 Feature we expect to include:
+
 * GPU based inference
 * TBD
 
