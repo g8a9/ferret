@@ -19,6 +19,7 @@ requirements = [
     "seaborn",
     "matplotlib",
     "scikit-image",
+    "lime"
 ]
 
 test_requirements = []
