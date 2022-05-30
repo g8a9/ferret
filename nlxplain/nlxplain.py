@@ -21,11 +21,12 @@ import copy
 
 
 class Explainer:
-    def __init__(self, model, tokenizer, raw_data, proc_data):
+    def __init__(self, model, tokenizer, raw_data=None, proc_data=None):
         self.model = model
+        self.tokenizer = tokenizer
+
         self.raw_data = raw_data
         self.proc_data = proc_data
-        self.tokenizer = tokenizer
 
     def _get_item(self, idx):
         if isinstance(idx, int):
@@ -97,9 +98,7 @@ class Explainer:
         input_len = item["attention_mask"].sum()
         return self.tokenizer.convert_ids_to_tokens(item["input_ids"][0][:input_len])
 
-    def get_hta(self, idx, **kwargs):
-        layer = kwargs.get("layer", 10)
-
+    def get_hta(self, idx, layer=10):
         item = self._get_item(idx)
         input_len = item["attention_mask"].sum()
 
