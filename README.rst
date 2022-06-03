@@ -40,7 +40,8 @@ Features
 * SHAP
 * LIME
 
-Feature we expect to include:
+
+**TODOs**
 
 * Possibility to run on select device ("cpu", "cuda")
 * Sample-And-Occlusion explanations
