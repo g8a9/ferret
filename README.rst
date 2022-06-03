@@ -38,11 +38,12 @@ Features
 * Integrated Gradinets
 * Gradient x Input word embeddings
 * SHAP (partition approximation)
+* LIME
 
 Feature we expect to include:
 
-* GPU based inference
-* TBD
+* Possibility to run on select device ("cpu", "cuda")
+* Sample-And-Occlusion explanations
 
 Credits
 -------
