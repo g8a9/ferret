@@ -37,7 +37,7 @@ Features
 * Gradients
 * Integrated Gradinets
 * Gradient x Input word embeddings
-* SHAP (partition approximation)
+* SHAP
 * LIME
 
 Feature we expect to include:
