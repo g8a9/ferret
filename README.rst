@@ -45,7 +45,7 @@ Features
 
 * Possibility to run on select device ("cpu", "cuda")
 * Sample-And-Occlusion explanations
-* Discretized Integrated Gradients (https://arxiv.org/abs/2108.13654
+* Discretized Integrated Gradients: https://arxiv.org/abs/2108.13654
 
 Credits
 -------
