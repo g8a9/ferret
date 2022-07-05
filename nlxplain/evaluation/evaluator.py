@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from sklearn.metrics import auc, precision_recall_curve
-
+from typing import List
 
 # As in Attention is not explanation
 # https://github.com/successar/AttentionExplanation/blob/425a89a49a8b3bffc3f5e8338287e2ecd0cf1fa2/common_code/kendall_top_k.py
@@ -72,8 +72,6 @@ class Evalutator:
             ex: mean([s[1] for s in v.values()]) if v is not None else np.nan
             for ex, v in scores.items()
         }
-
-    from typing import List
 
     def get_true_rational_tokens(
         self, original_tokens: List[str], rationale_original_tokens: List[int]
@@ -293,6 +291,7 @@ class Evalutator:
         style_df=True,
         target=1,
         underline_rationale=False,
+        top_k_hard_rationale=5,
         **kwargs,
     ):
 
@@ -300,6 +299,8 @@ class Evalutator:
         suff = {}
         kendall_distances = {}
         auprc_soft_plausibility = {}
+        token_f1_plausibility = {}
+        token_iou_plausibility = {}
 
         df_eval = copy.deepcopy(explanations)
 
@@ -356,10 +357,31 @@ class Evalutator:
                 ] = self._compute_auprc_soft_scoring(
                     true_rationale, soft_score_explanation, only_pos=only_pos
                 )
+
+                token_f1_plausibility[explainer_type] = self._token_f1_hard_rationales(
+                    true_rationale,
+                    soft_score_explanation,
+                    only_pos=only_pos,
+                    top_k_hard_rationale=top_k_hard_rationale,
+                )
+
+                token_iou_plausibility[
+                    explainer_type
+                ] = self._token_iou_hard_rationales(
+                    true_rationale,
+                    soft_score_explanation,
+                    only_pos=only_pos,
+                    top_k_hard_rationale=top_k_hard_rationale,
+                )
+
         df_eval["taud_loo"] = [kendall_distances[e] for e in df_eval.index]
         if true_rationale is not None:
 
             df_eval["auprc_plau"] = [auprc_soft_plausibility[e] for e in df_eval.index]
+            df_eval["token_f1_plau"] = [token_f1_plausibility[e] for e in df_eval.index]
+            df_eval["token_iou_plau"] = [
+                token_iou_plausibility[e] for e in df_eval.index
+            ]
 
         if len(thresholds) > 1:
 
@@ -432,7 +454,13 @@ class Evalutator:
             )
 
         # Higher is better
-        show_higher_cols = [f"compr_{th}", "aopc_compr", "auprc_plau"]
+        show_higher_cols = [
+            f"compr_{th}",
+            "aopc_compr",
+            "auprc_plau",
+            "token_f1_plau",
+            "token_iou_plau",
+        ]
         show_higher_cols = [i for i in show_higher_cols if i in df_eval.columns]
         palette = sns.diverging_palette(150, 275, s=80, l=55, n=9, as_cmap=True)
         df_st.background_gradient(
@@ -474,13 +502,19 @@ class Evalutator:
             "aopc_suff",
             "taud_loo",
         ]
-        plausibility_metrics = ["auprc_plau"]
+        plausibility_metrics = ["auprc_plau", "token_f1_plau", "token_iou_plau"]
         from scipy import stats
 
         cols = list(df_eval.columns)
 
         # Higher is better
-        show_higher_cols = [f"compr_{th}", "aopc_compr", "auprc_plau"]
+        show_higher_cols = [
+            f"compr_{th}",
+            "aopc_compr",
+            "auprc_plau",
+            "token_f1_plau",
+            "token_iou_plau",
+        ]
         show_higher_cols = [i for i in show_higher_cols if i in df_eval.columns]
         for c in show_higher_cols:
             df_eval[f"{c}_r"] = (
@@ -544,3 +578,166 @@ class Evalutator:
         axs[1].set_title("Sufficiency (close to 0 is better)")
         plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left")
         return fig
+
+    # Token fpr - hard rationale predictions. token-level F1 scores
+    # WIP
+    def _token_f1_hard_rationales(
+        self, rationale, soft_score_explanation, only_pos=True, top_k_hard_rationale=5
+    ):
+
+        if only_pos:
+            # Only positive terms of explanations.
+            # https://github.com/hate-alert/HateXplain/blob/daa7955afbe796b00e79817f16621469a38820e0/testing_with_lime.py#L276
+            soft_score_explanation = [v if v > 0 else 0 for v in soft_score_explanation]
+
+        topk_indices = sorted(
+            range(len(soft_score_explanation)), key=lambda i: soft_score_explanation[i]
+        )[-top_k_hard_rationale:]
+        topk_indices.sort()
+
+        # One hot encoding: 1 if the token is in the rationale, 0 otherwise
+        # i hate you [0, 1, 1]
+
+        topk_score_explanations = [
+            1 if i in topk_indices else 0 for i in range(len(soft_score_explanation))
+        ]
+
+        scores = score_hard_rationale_predictions_dataset(
+            [rationale], [topk_score_explanations]
+        )
+
+        return scores["micro"]["f1"]
+
+    # Token IOU - hard rationale predictions. token-level intersection over union scores
+    # WIP
+    def _token_iou_hard_rationales(
+        self, rationale, soft_score_explanation, only_pos=True, top_k_hard_rationale=5
+    ):
+
+        """From ERASER
+        'We define IOU on a token level:  for two spans,
+        it is the size of the overlap of the tokens they cover divided by the size of their union.''
+
+        Same process as in _token_f1_hard_rationales
+        rationale: one hot encoding of the rationale
+        soft_score_explanation: soft scores, len = #tokens, floats
+        """
+
+        # Preprocess as in _token_f1_hard_rationales
+        if only_pos:
+            # Only positive terms of explanations.
+            # https://github.com/hate-alert/HateXplain/blob/daa7955afbe796b00e79817f16621469a38820e0/testing_with_lime.py#L276
+            soft_score_explanation = [v if v > 0 else 0 for v in soft_score_explanation]
+
+        topk_indices = sorted(
+            range(len(soft_score_explanation)), key=lambda i: soft_score_explanation[i]
+        )[-top_k_hard_rationale:]
+        topk_indices.sort()
+
+        # One hot encoding: 1 if the token is in the rationale, 0 otherwise
+        # i hate you [0, 1, 1]
+
+        topk_score_explanations = [
+            1 if i in topk_indices else 0 for i in range(len(soft_score_explanation))
+        ]
+
+        return _token_iou(rationale, topk_score_explanations)
+
+
+def score_hard_rationale_predictions_dataset(list_true_expl, list_pred_expl):
+
+    """Computes instance micro/macro averaged F1s
+    ERASER: https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L168
+
+    """
+
+    """ Each explanations is provided as one hot encoding --> True if the word is in the explanation, False otherwise
+    I hate you --> --> [0, 1, 1]
+    One for each instance.
+    """
+    tot_tp, tot_pos, tot_pred_pos = 0, 0, 0
+    macro_prec_sum, macro_rec_sum, macro_f1_sum = 0, 0, 0
+
+    for true_expl, pred_expl in zip(list_true_expl, list_pred_expl):
+
+        true_expl = np.array(true_expl)
+        pred_expl = np.array(pred_expl)
+
+        assert true_expl.shape[0] == pred_expl.shape[0]
+
+        tp = (true_expl & pred_expl).sum()
+        pos = (true_expl).sum()
+        pred_pos = (pred_expl).sum()
+
+        """
+        Alternative, in the case the rationales are representate by the positional id
+        e.g., "i hate you" --> [1,2]
+        
+        true_expl = set(true_expl)
+        pred_expl = set(pred_expl)
+
+        tp =  len(true_expl & pred_expl)
+        pos = len(true_expl)
+        pred_pos = len(pred_expl)
+        """
+
+        # Update
+        tot_tp += tp
+        tot_pos += pos
+        tot_pred_pos += pred_pos
+
+        instance_prec, instance_rec, instance_f1 = _precision_recall_fmeasure(
+            tp, pos, pred_pos
+        )
+
+        # Update
+        macro_prec_sum += instance_prec
+        macro_rec_sum += instance_rec
+        macro_f1_sum += instance_f1
+
+    micro_prec, micro_rec, micro_f1 = _precision_recall_fmeasure(
+        tot_tp, tot_pos, tot_pred_pos
+    )
+
+    micro = {"p": micro_prec, "r": micro_rec, "f1": micro_f1}
+
+    n_explanations = len(list_true_expl)
+    macro = {
+        "p": macro_prec_sum / n_explanations,
+        "r": macro_rec_sum / n_explanations,
+        "f1": macro_f1_sum / n_explanations,
+    }
+    return {"micro": micro, "macro": macro}
+
+
+def _f1(_p, _r):
+    if _p == 0 or _r == 0:
+        return 0
+    return 2 * _p * _r / (_p + _r)
+
+
+def _precision_recall_fmeasure(tp, positive, pred_positive):
+    precision = tp / pred_positive
+    recall = tp / positive
+    fmeasure = _f1(precision, recall)
+    return precision, recall, fmeasure
+
+
+def _token_iou(true_expl, pred_expl):
+    """From ERASER
+    We define IOU on a token level:  for two spans,
+        it is the size of the overlap of the tokens they cover divided by the size of their union.
+    """
+
+    if type(true_expl) is list:
+        true_expl = np.array(true_expl)
+    if type(pred_expl) is list:
+        pred_expl = np.array(pred_expl)
+
+    assert true_expl.shape[0] == pred_expl.shape[0]
+
+    num = (true_expl & pred_expl).sum()
+    denom = (true_expl | pred_expl).sum()
+
+    iou = 0 if denom == 0 else num / denom
+    return iou
