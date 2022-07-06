@@ -24,6 +24,10 @@ def color_nan_white_background(val):
 
 
 def kendalltau_distance(x, y):
+    """
+    It returns a distance: 0 for identical lists and 1 if completely different.
+    """
+    # https://github.com/successar/AttentionExplanation/blob/425a89a49a8b3bffc3f5e8338287e2ecd0cf1fa2/common_code/kendall_top_k.py#L23
     if x.size != y.size:
         raise NameError("The two arrays need to have same lengths")
     return 1 - (stats.kendalltau(x, y)[0] / 2 + 0.5)
@@ -48,8 +52,8 @@ class Evalutator:
             ]
         else:
             id_top_k = np.array(soft_score_explanation).argsort()[-k:][::-1]
-        if len(id_top_k) != k:
-            return None
+        # if len(id_top_k) != k:
+        #    return None
         return id_top_k
 
     def _get_id_tokens_percentage(
@@ -105,20 +109,20 @@ class Evalutator:
         text,
         soft_score_explanation,
         thresholds,
-        based_on="th",
+        based_on="perc",
         target=1,
         only_pos=True,
         remove_first_last=True,
         remove_tokens=True,
     ):
 
-        # Get token ids of text. If remove_first_last, first and last token id (CLS and ) are removed
+        # Get token ids of text.
         item = self.explanator._get_item(text)
 
         # Get token ids of the sentence
         input_len = item["attention_mask"].sum().item()
         input_ids = item["input_ids"][0][:input_len].tolist()
-
+        # If remove_first_last, first and last token id (CLS and ) are removed
         if remove_first_last == True:
             input_ids = input_ids[1:-1]
 
@@ -130,6 +134,14 @@ class Evalutator:
         discrete_expl_ths = []
         id_tops = []
 
+        """
+        We currently support multiple approaches to define the hard rationale from
+        soft score rationales, based on:
+        - th : token greater than a threshold
+        - perc : more than x% of the tokens
+        - k: top k values
+        """
+
         get_discrete_rationale_function = self._check_and_define_get_id_function(
             based_on
         )
@@ -140,6 +152,11 @@ class Evalutator:
             id_top = get_discrete_rationale_function(
                 soft_score_explanation, v, only_pos
             )
+
+            # We do not reevaluate the same deletion in the case of percentages.
+            # if len(id_tops) > 0 and (id_tops[-1] == id_top):
+            #    id_top = None
+
             id_tops.append(id_top)
 
             if id_top is None:
@@ -188,7 +205,7 @@ class Evalutator:
         text,
         soft_score_explanation,
         thresholds,
-        based_on="th",
+        based_on="perc",
         target=1,
         only_pos=True,
         remove_first_last=True,
@@ -204,7 +221,6 @@ class Evalutator:
 
         if remove_first_last == True:
             input_ids = input_ids[1:-1]
-
         # Get prediction probability of the input sencence for the target
         outputs = self.explanator._forward(text)
         logits = outputs.logits[0]
@@ -223,6 +239,11 @@ class Evalutator:
             id_top = get_discrete_rationale_function(
                 soft_score_explanation, v, only_pos
             )
+
+            # We do not reevaluate the same deletion. TBD
+            # if len(id_tops) > 0 and (id_tops[-1] == id_top):
+            #    id_top = None
+
             id_tops.append(id_top)
 
             if id_top is None:
@@ -282,9 +303,9 @@ class Evalutator:
         self,
         text,
         explanations,
-        thresholds,
+        thresholds=[0.01, 0.05, 0.1, 0.2, 0.5],
         true_rationale=None,
-        based_on="th",
+        based_on="perc",
         show_all_th=False,
         rank_explainer=True,
         show_i=0,
@@ -301,6 +322,7 @@ class Evalutator:
         auprc_soft_plausibility = {}
         token_f1_plausibility = {}
         token_iou_plausibility = {}
+        kendall_correlation = {}
 
         df_eval = copy.deepcopy(explanations)
 
@@ -344,6 +366,13 @@ class Evalutator:
                 occl_importance, soft_score_explanation
             )
 
+            # Faithfulness - Kendall correlation w.r.t. leave one out
+            from scipy.stats import kendalltau
+
+            kendall_correlation[explainer_type] = kendalltau(
+                occl_importance, soft_score_explanation
+            )[0]
+
             if true_rationale is not None:
                 # We can compute the plausibility metrics.
 
@@ -375,6 +404,7 @@ class Evalutator:
                 )
 
         df_eval["taud_loo"] = [kendall_distances[e] for e in df_eval.index]
+        df_eval["taucorr_loo"] = [kendall_correlation[e] for e in df_eval.index]
         if true_rationale is not None:
 
             df_eval["auprc_plau"] = [auprc_soft_plausibility[e] for e in df_eval.index]
@@ -457,6 +487,7 @@ class Evalutator:
         show_higher_cols = [
             f"compr_{th}",
             "aopc_compr",
+            "taucorr_loo",
             "auprc_plau",
             "token_f1_plau",
             "token_iou_plau",
@@ -501,6 +532,7 @@ class Evalutator:
             f"suff_{th}",
             "aopc_suff",
             "taud_loo",
+            "taucorr_loo",
         ]
         plausibility_metrics = ["auprc_plau", "token_f1_plau", "token_iou_plau"]
         from scipy import stats
@@ -511,6 +543,7 @@ class Evalutator:
         show_higher_cols = [
             f"compr_{th}",
             "aopc_compr",
+            "taucorr_loo",
             "auprc_plau",
             "token_f1_plau",
             "token_iou_plau",
@@ -530,7 +563,9 @@ class Evalutator:
         # Just to show the columns in order
         # First the scores, then faithfulness_metrics, plausibility_metrics and then the others.
         show_cols = []
+
         for metric_show in faithfulness_metrics + plausibility_metrics:
+
             if metric_show in show_higher_cols + show_lower_cols:
                 show_cols.extend([metric_show, f"{metric_show}_r"])
 
@@ -542,7 +577,7 @@ class Evalutator:
         return df_eval[output_cols]
 
     def compute_and_plot_compr_suff(
-        self, text, explanations, thresholds, based_on="th", target=1, **kwargs
+        self, text, explanations, thresholds, based_on="perc", target=1, **kwargs
     ):
 
         compr = {}
