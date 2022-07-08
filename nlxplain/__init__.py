@@ -8,3 +8,4 @@ __version__ = "0.1.0"
 from .evaluation.evaluator import Evalutator
 
 from .explainers.shap import SHAPExplainer
+from .explainers.dummy import DummyExplainer
