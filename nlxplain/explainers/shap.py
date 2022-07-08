@@ -18,7 +18,7 @@ class SHAPExplainer(BaseExplainer):
             "text-classification",
             model=self.model,
             tokenizer=self.tokenizer,
-            return_all_scores=True,
+            top_k=1,
         )
         explainer_partition = ShapExplainer(pipe, **init_args)
         shap_values = explainer_partition([text], **call_args)
