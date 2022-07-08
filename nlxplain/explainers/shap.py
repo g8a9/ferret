@@ -21,5 +21,5 @@ class SHAPExplainer(BaseExplainer):
             return_all_scores=True,
         )
         explainer_partition = ShapExplainer(pipe, **init_args)
-        shap_values = explainer_partition(text, **call_args)
+        shap_values = explainer_partition([text], **call_args)
         return shap_values.values[0][:, target]
