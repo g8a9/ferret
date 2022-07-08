@@ -524,7 +524,7 @@ class Explainer:
         # https://github.com/copenlu/xai-benchmark/blob/1cb264c21fb2c0b036127cf3bb8e035c5c5e95da/saliency_gen/interpret_lime.py
         def fn_prediction_token_ids(token_ids_sentences):
             token_ids = [
-                [int(i) for i in instance_ids.split(" ") if i != ""]
+                [int(i) for i in instance_ids.split(" ") if i != "" and i != "UNKWORDZ"]
                 for instance_ids in token_ids_sentences
             ]
             max_batch_id = max([len(_l) for _l in token_ids])
@@ -544,7 +544,8 @@ class Explainer:
 
         from lime.lime_text import LimeTextExplainer
 
-        lime_explainer = LimeTextExplainer()
+        # Same word has a different relevance according to its position
+        lime_explainer = LimeTextExplainer(bow=False)
         token_ids = self.tokenizer.encode(text)
 
         np.random.seed(42)
@@ -583,7 +584,7 @@ class Explainer:
 
         from lime.lime_text import LimeTextExplainer
 
-        lime_explainer = LimeTextExplainer()
+        lime_explainer = LimeTextExplainer(bow=False)
         token_ids = self.tokenizer.encode(text)
 
         np.random.seed(42)
