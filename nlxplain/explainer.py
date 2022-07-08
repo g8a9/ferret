@@ -15,10 +15,16 @@ from transformers import pipeline
 import copy
 from lime.lime_text import LimeTextExplainer
 
-# # SOC
-# from hiex.soc_api import SamplingAndOcclusionExplain
-# from utils.config import configs
-# from soc import Processor
+# SOC
+from .explainers.soc.soc_api import SamplingAndOcclusionExplain, is_lm_trained
+from .explainers.soc.train_lm import do_train_lm
+from .explainers.soc.processor import Processor
+from .explainers.soc.config import configs
+
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Explainer:
@@ -250,48 +256,111 @@ class Explainer:
         norm_attr = self._normalize_input_attributions(attr.detach())
         return norm_attr
 
-    # def get_soc(self, idx, lm_dir, data_dir=None, train_file=None, valid_file=None):
-    #     # update SOC configs
-    #     configs.hiex = False
-    #     configs.lm_dir = lm_dir
-    #     configs.data_dir = data_dir
-    #     configs.hiex_tree_height = 5
-    #     configs.hiex_add_itself = False
-    #     configs.hiex_abs = False
+    def train_soc_lm(
+        self,
+        lm_dir,
+        train_texts,
+        train_labels,
+        valid_texts,
+        valid_labels,
+        device="cpu",
+        epochs=20,
+    ):
+        # update SOC configs
+        configs.hiex = False
+        configs.hiex_tree_height = 5
+        configs.hiex_add_itself = False
+        configs.hiex_abs = False
+        configs.lm_dir = lm_dir
 
-    #     processor = Processor(
-    #         configs,
-    #         tokenizer=self.tokenizer,
-    #         train_file=train_file,
-    #         valid_file=valid_file,
-    #     )
+        from .explainers.soc.lm import BiGRULanguageModel
 
-    #     explainer = SamplingAndOcclusionExplain(
-    #         model=self.model,
-    #         configs=configs,
-    #         tokenizer=self.tokenizer,
-    #         output_path="hiex_output",  # shouldn't be used
-    #         device="cuda:0",
-    #         lm_dir=lm_dir,
-    #         train_dataloader=processor.get_dataloader("train"),
-    #         dev_dataloader=processor.get_dataloader("dev"),
-    #         vocab=self.tokenizer.vocab,
-    #     )
+        model = BiGRULanguageModel(
+            configs, vocab=self.tokenizer.vocab, device=device
+        ).to(device)
+        processor = Processor(
+            self.tokenizer, train_texts, train_labels, valid_texts, valid_labels
+        )
 
-    #     item = self._get_item(idx)
+        do_train_lm(
+            model,
+            lm_dir=lm_dir,
+            lm_epochs=epochs,
+            train_iter=processor.get_train_dataloader(),
+            dev_iter=processor.get_valid_dataloader(),
+        )
 
-    #     self.model.to("cuda")
-    #     scores = explainer.word_level_explanation_bert(
-    #         item["input_ids"].to("cuda"),
-    #         item["attention_mask"].to("cuda"),
-    #         item["token_type_ids"].to("cuda"),
-    #     )
+    def get_soc(
+        self,
+        idx,
+        lm_dir=None,
+        data_dir=None,
+        train_file=None,
+        valid_file=None,
+        device="cpu",
+    ):
+        # update SOC configs
+        configs.hiex = False
+        configs.data_dir = data_dir
+        configs.hiex_tree_height = 5
+        configs.hiex_add_itself = False
+        configs.hiex_abs = False
 
-    #     self.model.to("cpu")
+        if lm_dir is None:
+            logger.info("No directory for LM specified. Using ./soc_bigrulm")
+            lm_dir = "./soc_bigrulm"
 
-    #     scores = torch.tensor(scores)
-    #     scores /= scores.norm(dim=-1, p=1)
-    #     return scores
+            # sanity checks
+            if not is_lm_trained(lm_dir) and (train_file is None or valid_file is None):
+                logging.warn(
+                    "BiGRU LM is not trained. You have to specify a training and validation sets or set a valid lm_dir. Returning None."
+                )
+                return None
+
+        configs.lm_dir = lm_dir
+
+        if not is_lm_trained(lm_dir):
+            processor = Processor(
+                configs,
+                tokenizer=self.tokenizer,
+                train_file=train_file,
+                valid_file=valid_file,
+            )
+            train_dataloader = processor.get_dataloader("train")
+            dev_dataloader = processor.get_dataloader("dev")
+
+        else:
+            train_dataloader = None
+            dev_dataloader = None
+
+        explainer = SamplingAndOcclusionExplain(
+            model=self.model,
+            configs=configs,
+            tokenizer=self.tokenizer,
+            output_path="hiex_output",  # shouldn't be used
+            device=device,
+            lm_dir=lm_dir,
+            train_dataloader=train_dataloader,
+            dev_dataloader=dev_dataloader,
+            vocab=self.tokenizer.vocab,
+        )
+
+        item = self._get_item(idx)
+
+        curr_device = self.model.device
+
+        self.model.to(device)
+        scores = explainer.word_level_explanation_bert(
+            item["input_ids"].to(device),
+            item["attention_mask"].to(device),
+            item["token_type_ids"].to(device),
+        )
+
+        self.model.to(curr_device)
+
+        scores = torch.tensor(scores)
+        scores /= scores.norm(dim=-1, p=1)
+        return scores
 
     def show_attention(self, idx, head, **kwargs):
         layer = kwargs.get("layer", 10)
@@ -441,9 +510,8 @@ class Explainer:
 
         return grad_input, normalized_grad
 
-    
     def get_lime_explanation(self, idx, target=1):
-        
+
         if isinstance(idx, int):
             # no tokenization - raw data (a single str)
             text = self.raw_data[[idx]]["text"][0]
@@ -453,40 +521,49 @@ class Explainer:
         else:
             raise ValueError(f"{idx} is of unknown type")
 
-        #https://github.com/copenlu/xai-benchmark/blob/1cb264c21fb2c0b036127cf3bb8e035c5c5e95da/saliency_gen/interpret_lime.py
+        # https://github.com/copenlu/xai-benchmark/blob/1cb264c21fb2c0b036127cf3bb8e035c5c5e95da/saliency_gen/interpret_lime.py
         def fn_prediction_token_ids(token_ids_sentences):
-            token_ids = [[int(i) for i in instance_ids.split(' ') if i != ''] for
-                                instance_ids in token_ids_sentences]
+            token_ids = [
+                [int(i) for i in instance_ids.split(" ") if i != ""]
+                for instance_ids in token_ids_sentences
+            ]
             max_batch_id = max([len(_l) for _l in token_ids])
             padded_batch_ids = [
                 _l + [self.tokenizer.pad_token_id] * (max_batch_id - len(_l))
-                for _l in token_ids]
+                for _l in token_ids
+            ]
             tokens_tensor = torch.tensor(padded_batch_ids)
-            logits = self.model(tokens_tensor, attention_mask=tokens_tensor.long() > 0).logits.softmax(-1).detach().cpu().numpy()
+            logits = (
+                self.model(tokens_tensor, attention_mask=tokens_tensor.long() > 0)
+                .logits.softmax(-1)
+                .detach()
+                .cpu()
+                .numpy()
+            )
             return logits
 
-
-
         from lime.lime_text import LimeTextExplainer
+
         lime_explainer = LimeTextExplainer()
         token_ids = self.tokenizer.encode(text)
 
-        np.random.seed(42)        
+        np.random.seed(42)
         expl = lime_explainer.explain_instance(
-                " ".join([str(i) for i in token_ids]), fn_prediction_token_ids,
-                labels = [target],
-                num_features=len(token_ids), num_samples=10)
-            
-            
+            " ".join([str(i) for i in token_ids]),
+            fn_prediction_token_ids,
+            labels=[target],
+            num_features=len(token_ids),
+            num_samples=10,
+        )
+
         token_scores = list(dict(sorted(expl.local_exp[target])).values())
-        
+
         return token_scores
 
     """ Explanation at the word level - unused """
 
-
     def get_lime_explanation_word(self, idx, target=1):
-        
+
         if isinstance(idx, int):
             # no tokenization - raw data (a single str)
             text = self.raw_data[[idx]]["text"][0]
@@ -505,17 +582,17 @@ class Explainer:
             return logits
 
         from lime.lime_text import LimeTextExplainer
+
         lime_explainer = LimeTextExplainer()
         token_ids = self.tokenizer.encode(text)
 
         np.random.seed(42)
         expl = lime_explainer.explain_instance(
-                            text, fn_prediction,
-                            labels = [target],
-                            num_features=len(token_ids))
+            text, fn_prediction, labels=[target], num_features=len(token_ids)
+        )
         expl_scores = list(dict(sorted(expl.local_exp[target])).values())
         return expl_scores
-    
+
     def classify(self, idx):
         text = idx if isinstance(idx, str) else self.raw_data[idx]["text"]
 
@@ -584,7 +661,7 @@ class Explainer:
             "IG": ig,
             "SHAP": normalized_p_shap,
             # "SOC": soc,
-            "LIME": normalized_lime
+            "LIME": normalized_lime,
         }
 
         table = pd.DataFrame(d).set_index("tokens").T
