@@ -6,7 +6,7 @@ from transformers import pipeline
 
 
 class SHAPExplainer(BaseExplainer):
-    NAME = "SHAP"
+    NAME = "Partition SHAP"
 
     def __init__(self, model, tokenizer):
         super().__init__(model, tokenizer)
