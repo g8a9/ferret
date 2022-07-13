@@ -20,6 +20,20 @@ class Model:
         class_prob = logits.softmax(-1)[target].item()
         return class_prob
 
+    def _get_tokenizer(self, tokenizer=None):
+        tokenizer = tokenizer if tokenizer else self.tokenizer
+        if tokenizer is None:
+            raise ValueError("Tokenizer is not specified")
+        return tokenizer
+
+    def get_predicted_label(self, text, tokenizer=None):
+        tokenizer = self._get_tokenizer(tokenizer)
+        outputs = self._forward(text, tokenizer)
+        logits = outputs.logits
+
+        prediction = logits.argmax(-1).item()
+        return prediction
+
     # TODO - Uniformate
     def _get_class_predicted_probabilities_texts(self, texts, tokenizer, target):
         # TODO
