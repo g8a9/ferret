@@ -1,4 +1,5 @@
 import copy
+from multiprocessing.pool import INIT
 import numpy as np
 import pandas as pd
 from typing import List
@@ -14,6 +15,11 @@ from nlxplain.evaluation.plausibility_measures import (
     AUPRC_PlausibilityEvaluation,
     Tokenf1_PlausibilityEvaluation,
     TokenIOU_PlausibilityEvaluation,
+)
+
+from nlxplain.evaluation.classes_evaluation_measures import (
+    AOPC_Comprehensiveness_Evaluation_by_class,
+    AOPC_Sufficiency_Evaluation_by_class,
 )
 from nlxplain.evaluation import BaseEvaluator
 
@@ -38,7 +44,8 @@ class ExplanationEvalutator:
         self.tokenizer = tokenizer
         self.faithfulness_metrics = []
         self.plausibility_metrics = []
-        self.other_measures = []
+        self.class_metrics = []
+        self.other_metrics = []
 
         if evaluation_metrics is None:
             # We use all the default evaluation metrics.
@@ -59,6 +66,16 @@ class ExplanationEvalutator:
             )
             self.faithfulness_metrics.append(tau_eval)
 
+            class_compr_eval = AOPC_Comprehensiveness_Evaluation_by_class(
+                aopc_compr_eval=compr_eval
+            )
+            self.class_metrics.append(class_compr_eval)
+
+            class_suff_eval = AOPC_Sufficiency_Evaluation_by_class(
+                aopc_suff_eval=suff_eval
+            )
+            self.class_metrics.append(class_suff_eval)
+
             use_plausibility_metrics = kwargs.get("use_plausibility_metrics", True)
 
             if use_plausibility_metrics:
@@ -78,15 +95,21 @@ class ExplanationEvalutator:
                 self.plausibility_metrics.append(tokeniou_eval)
 
         else:
+            # TODO class measures
             for evaluation_metric in evaluation_metrics:
-                if isinstance(evaluation_metric, BaseEvaluator):
+                if (
+                    isinstance(evaluation_metric, BaseEvaluator) == False
+                    and evaluation_metric.TYPE_METRIC != "class_faithfulness"
+                ):
                     raise ValueError(f"{evaluation_metric} not supported")
                 if evaluation_metric.TYPE_METRIC == "faithfulness":
                     self.faithfulness_metrics.append(evaluation_metric)
                 elif evaluation_metric.TYPE_METRIC == "plausibility":
                     self.plausibility_metrics.append(evaluation_metric)
+                elif evaluation_metric.TYPE_METRIC == "class_faithfulness":
+                    self.class_metrics.append(evaluation_metric)
                 else:
-                    self.other_measures.append(evaluation_metric)
+                    self.other_metrics.append(evaluation_metric)
 
     def get_true_rational_tokens(
         self, original_tokens: List[str], rationale_original_tokens: List[int]
@@ -112,6 +135,7 @@ class ExplanationEvalutator:
         rank_explainer=True,
         style_df=True,
         target=1,
+        explanations_by_target=None,
         **evaluation_args,
     ):
         evaluation_scores = {}
@@ -161,7 +185,7 @@ class ExplanationEvalutator:
                         **evaluation_args,
                     )
 
-            for other_measure in self.other_measures:
+            for other_measure in self.other_metrics:
                 if other_measure.SHORT_NAME not in evaluation_scores:
                     evaluation_scores[other_measure.SHORT_NAME] = {}
 
@@ -171,6 +195,19 @@ class ExplanationEvalutator:
                     text,
                     soft_score_explanation,
                     target=target,
+                    **evaluation_args,
+                )
+
+        if explanations_by_target is not None:
+            for class_measure in self.class_metrics:
+
+                if class_measure.SHORT_NAME not in evaluation_scores:
+                    evaluation_scores[class_measure.SHORT_NAME] = {}
+                evaluation_scores[
+                    class_measure.SHORT_NAME
+                ] = class_measure.evaluate_class_explanation(
+                    text,
+                    explanations_by_target,
                     **evaluation_args,
                 )
 
@@ -194,7 +231,10 @@ class ExplanationEvalutator:
         df_st = df_eval.style.background_gradient(axis=1, cmap=palette, vmin=-1, vmax=1)
 
         evaluation_measures = (
-            self.faithfulness_metrics + self.plausibility_metrics + self.other_measures
+            self.faithfulness_metrics
+            + self.plausibility_metrics
+            + self.class_metrics
+            + self.other_metrics
         )
 
         # Higher is better
@@ -250,7 +290,10 @@ class ExplanationEvalutator:
         cols = list(df_eval.columns)
 
         evaluation_measures = (
-            self.faithfulness_metrics + self.plausibility_metrics + self.other_measures
+            self.faithfulness_metrics
+            + self.plausibility_metrics
+            + self.class_metrics
+            + self.other_metrics
         )
 
         # Higher is better
@@ -277,7 +320,7 @@ class ExplanationEvalutator:
             df_eval[f"{c}_r"] = stats.rankdata(df_eval[c], method="dense")
 
         # Just to show the columns in order
-        # First the scores, then faithfulness_metrics, plausibility_metrics and then the others.
+        # First the scores, then faithfulness_metrics, plausibility_metrics, class_metrics and then the others.
         show_cols = []
 
         for metric_show in [m.SHORT_NAME for m in evaluation_measures]:
@@ -291,3 +334,141 @@ class ExplanationEvalutator:
             + [c for c in cols if c not in list(score_cols) + show_cols]
         )
         return df_eval[output_cols]
+
+    def evaluate_explainers_globally(
+        self,
+        explainer_obj,
+        texts,
+        true_rationales=None,
+        rank_explainer=True,
+        style_df=True,
+        classes=[0, 1],
+        **evaluation_args,
+    ):
+        evaluation_args["accumulate_result"] = True
+
+        accumulated_results = {}
+        explanations_by_target = {}
+
+        for e, text in enumerate(texts):
+            true_rationale = None if true_rationales is None else true_rationales[e]
+
+            target = self.modelw.get_predicted_label(text, self.tokenizer)
+            for class_name in classes:
+                explanations_by_target[class_name] = explainer_obj.compute_table(
+                    text, target=class_name
+                )
+            explanations = explanations_by_target[target]
+
+            for explainer_type in explanations.index:
+                if explainer_type not in accumulated_results:
+                    accumulated_results[explainer_type] = {}
+
+                soft_score_explanation = explanations.loc[explainer_type].values
+
+                for faithfulness_measure in self.faithfulness_metrics:
+                    if (
+                        faithfulness_measure.SHORT_NAME
+                        not in accumulated_results[explainer_type]
+                    ):
+                        accumulated_results[explainer_type][
+                            faithfulness_measure.SHORT_NAME
+                        ] = copy.deepcopy(faithfulness_measure.INIT_VALUE)
+
+                    accumulated_results[explainer_type][
+                        faithfulness_measure.SHORT_NAME
+                    ] += faithfulness_measure.evaluate_explanation(
+                        text,
+                        soft_score_explanation,
+                        target=target,
+                        **evaluation_args,
+                    )
+
+                if true_rationale is not None and len(self.plausibility_metrics) > 0:
+                    # We can compute the plausibility metrics.
+
+                    for plausibility_measure in self.plausibility_metrics:
+
+                        if (
+                            plausibility_measure.SHORT_NAME
+                            not in accumulated_results[explainer_type]
+                        ):
+                            accumulated_results[explainer_type][
+                                plausibility_measure.SHORT_NAME
+                            ] = copy.deepcopy(plausibility_measure.INIT_VALUE)
+
+                        accumulated_results[explainer_type][
+                            plausibility_measure.SHORT_NAME
+                        ] += plausibility_measure.evaluate_explanation(
+                            text,
+                            soft_score_explanation,
+                            true_rationale,
+                            **evaluation_args,
+                        )
+
+                for other_measure in self.other_metrics:
+                    if (
+                        other_measure.SHORT_NAME
+                        not in accumulated_results[explainer_type]
+                    ):
+                        accumulated_results[explainer_type][
+                            other_measure.SHORT_NAME
+                        ] = copy.deepcopy(other_measure.INIT_VALUE)
+
+                    accumulated_results[explainer_type][
+                        other_measure.SHORT_NAME
+                    ] += other_measure.evaluate_explanation(
+                        text,
+                        soft_score_explanation,
+                        target=target,
+                        **evaluation_args,
+                    )
+
+            for class_measure in self.class_metrics:
+                for explainer_type in explanations.index:
+                    if (
+                        class_measure.SHORT_NAME
+                        not in accumulated_results[explainer_type]
+                    ):
+                        accumulated_results[explainer_type][
+                            class_measure.SHORT_NAME
+                        ] = copy.deepcopy(class_measure.INIT_VALUE)
+
+                result_by_explainer = class_measure.evaluate_class_explanation(
+                    text,
+                    explanations_by_target,
+                    **evaluation_args,
+                )
+                for explainer_name, score in result_by_explainer.items():
+                    accumulated_results[explainer_name][
+                        class_measure.SHORT_NAME
+                    ] += score
+
+        # TODO
+
+        evaluated_measures = copy.deepcopy(self.faithfulness_metrics)
+        if true_rationales is not None and len(self.plausibility_metrics) > 0:
+            evaluated_measures.extend(self.plausibility_metrics)
+        evaluated_measures.extend(self.other_metrics + self.class_metrics)
+
+        average_score = {}
+
+        n_explanations = len(texts)
+        for explainer_type, measure_score in accumulated_results.items():
+            if explainer_type not in average_score:
+                average_score[explainer_type] = {}
+            for e, (measure, score) in enumerate(measure_score.items()):
+                assert evaluated_measures[e].SHORT_NAME == measure
+                average_score[explainer_type][measure] = evaluated_measures[
+                    e
+                ].aggregate_score(score, n_explanations, average="macro")
+
+        average_score_df = pd.DataFrame(average_score).T
+
+        if rank_explainer:
+            average_score_df = self._rank_explainers(average_score_df, [])
+
+        if style_df:
+            df_style = self._style_result(average_score_df)
+
+        return average_score_df, df_style

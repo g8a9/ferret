@@ -5,6 +5,9 @@ from typing import List, Any
 
 
 class BaseEvaluator(ABC):
+
+    INIT_VALUE = 0
+
     @property
     @abstractmethod
     def NAME(self):
@@ -35,6 +38,9 @@ class BaseEvaluator(ABC):
 
     def __call__(self, text: str = None, score_explanation: List[float] = []):
         return self.evaluate_explanation(text, score_explanation)
+
+    def aggregate_score(self, score, total, **aggregation_args):
+        return score / total
 
     @abstractmethod
     def evaluate_explanation(

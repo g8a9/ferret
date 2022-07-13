@@ -160,6 +160,9 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
 
         return _compute_aopc(removal_importance)
 
+    def aggregate_score(self, score, total, **aggregation_args):
+        return super().aggregate_score(score, total, **aggregation_args)
+
 
 class AOPC_Sufficiency_Evaluation(BaseEvaluator):
     NAME = "aopc_sufficiency"
@@ -306,6 +309,9 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
 
         return _compute_aopc(removal_importance)
 
+    def aggregate_score(self, score, total, **aggregation_args):
+        return super().aggregate_score(score, total, **aggregation_args)
+
 
 class TauLOO_Evaluation(BaseEvaluator):
     NAME = "tau_leave-one-out"
@@ -412,3 +418,6 @@ class TauLOO_Evaluation(BaseEvaluator):
             kendalltau_score = self._kendalltau_distance(loo_scores, score_explanation)
 
         return kendalltau_score
+
+    def aggregate_score(self, score, total, **aggregation_args):
+        return super().aggregate_score(score, total, **aggregation_args)

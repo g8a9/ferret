@@ -16,3 +16,6 @@ from .evaluation.plausibility_measures import (
     Tokenf1_PlausibilityEvaluation,
     TokenIOU_PlausibilityEvaluation,
 )
+from .evaluation.classes_evaluation_measures import (
+    AOPC_Comprehensiveness_Evaluation_by_class,
+)

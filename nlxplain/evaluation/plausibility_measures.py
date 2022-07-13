@@ -68,6 +68,9 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
         )
         return auprc_soft_plausibility
 
+    def aggregate_score(self, score, total, **aggregation_args):
+        return super().aggregate_score(score, total, **aggregation_args)
+
 
 class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
     NAME = "token_f1_hard_plausibility"
@@ -75,21 +78,47 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
     # Higher is better
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "plausibility"
+    INIT_VALUE = np.zeros(6)
 
     def __init__(self, model: Model, tokenizer):
         super().__init__(model, tokenizer)
 
-    def _score_hard_rationale_predictions_dataset(self, list_true_expl, list_pred_expl):
-        def _f1(_p, _r):
-            if _p == 0 or _r == 0:
-                return 0
-            return 2 * _p * _r / (_p + _r)
+    def _instance_tp_pos_pred_pos(self, true_expl, pred_expl):
 
-        def _precision_recall_fmeasure(tp, positive, pred_positive):
-            precision = tp / pred_positive
-            recall = tp / positive
-            fmeasure = _f1(precision, recall)
-            return precision, recall, fmeasure
+        true_expl = np.array(true_expl)
+        pred_expl = np.array(pred_expl)
+
+        assert true_expl.shape[0] == pred_expl.shape[0]
+
+        tp = (true_expl & pred_expl).sum()
+        pos = (true_expl).sum()
+        pred_pos = (pred_expl).sum()
+
+        """
+        Alternative, in the case the rationales are representate by the positional id
+        e.g., "i hate you" --> [1,2]
+        
+        true_expl = set(true_expl)
+        pred_expl = set(pred_expl)
+
+        tp =  len(true_expl & pred_expl)
+        pos = len(true_expl)
+        pred_pos = len(pred_expl)
+        """
+        return tp, pos, pred_pos
+
+    def _precision_recall_fmeasure(self, tp, positive, pred_positive):
+        precision = tp / pred_positive
+        recall = tp / positive
+        fmeasure = self._f1(precision, recall)
+        return precision, recall, fmeasure
+
+    def _f1(self, _p, _r):
+        if _p == 0 or _r == 0:
+            return 0
+        return 2 * _p * _r / (_p + _r)
+
+    def _score_hard_rationale_predictions_dataset(self, list_true_expl, list_pred_expl):
 
         """Computes instance micro/macro averaged F1s
         ERASER: https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L168
@@ -104,47 +133,23 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         macro_prec_sum, macro_rec_sum, macro_f1_sum = 0, 0, 0
 
         for true_expl, pred_expl in zip(list_true_expl, list_pred_expl):
+            tp, pos, pred_pos = self._instance_tp_pos_pred_pos(true_expl, pred_expl)
 
-            true_expl = np.array(true_expl)
-            pred_expl = np.array(pred_expl)
-
-            assert true_expl.shape[0] == pred_expl.shape[0]
-
-            tp = (true_expl & pred_expl).sum()
-            pos = (true_expl).sum()
-            pred_pos = (pred_expl).sum()
-
-            """
-            Alternative, in the case the rationales are representate by the positional id
-            e.g., "i hate you" --> [1,2]
-            
-            true_expl = set(true_expl)
-            pred_expl = set(pred_expl)
-
-            tp =  len(true_expl & pred_expl)
-            pos = len(true_expl)
-            pred_pos = len(pred_expl)
-            """
-
-            # Update
-            tot_tp += tp
-            tot_pos += pos
-            tot_pred_pos += pred_pos
-
-            instance_prec, instance_rec, instance_f1 = _precision_recall_fmeasure(
+            instance_prec, instance_rec, instance_f1 = self._precision_recall_fmeasure(
                 tp, pos, pred_pos
             )
 
-            # Update
+            # Update for macro computation
             macro_prec_sum += instance_prec
             macro_rec_sum += instance_rec
             macro_f1_sum += instance_f1
 
-        micro_prec, micro_rec, micro_f1 = _precision_recall_fmeasure(
-            tot_tp, tot_pos, tot_pred_pos
-        )
+            # Update for micro computation
+            tot_tp += tp
+            tot_pos += pos
+            tot_pred_pos += pred_pos
 
-        micro = {"p": micro_prec, "r": micro_rec, "f1": micro_f1}
+        # Macro computation
 
         n_explanations = len(list_true_expl)
         macro = {
@@ -152,7 +157,36 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
             "r": macro_rec_sum / n_explanations,
             "f1": macro_f1_sum / n_explanations,
         }
+
+        # Micro computation
+
+        micro_prec, micro_rec, micro_f1 = self._precision_recall_fmeasure(
+            tot_tp, tot_pos, tot_pred_pos
+        )
+        micro = {"p": micro_prec, "r": micro_rec, "f1": micro_f1}
+
         return {"micro": micro, "macro": macro}
+
+    def _score_hard_rationale_predictions_accumulate(self, true_expl, pred_expl):
+
+        """Computes instance micro/macro averaged F1s
+        ERASER: https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L168
+
+        """
+
+        """ Each explanations is provided as one hot encoding --> True if the word is in the explanation, False otherwise
+        I hate you --> --> [0, 1, 1]
+        One for each instance.
+        """
+
+        # For macro computation
+        tp, pos, pred_pos = self._instance_tp_pos_pred_pos(true_expl, pred_expl)
+
+        # For micro computation
+        instance_prec, instance_rec, instance_f1 = self._precision_recall_fmeasure(
+            tp, pos, pred_pos
+        )
+        return instance_prec, instance_rec, instance_f1, tp, pos, pred_pos
 
     def evaluate_explanations(
         self,
@@ -178,12 +212,13 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         scores = self._score_hard_rationale_predictions_dataset(
             human_rationales, discrete_explanations
         )
+
+        # Micro and macro f1, precision, recall
         return scores
 
     def evaluate_explanation(
         self, text, score_explanation, human_rationale, target=1, **evaluation_args
     ):
-
         # Token fpr - hard rationale predictions. token-level F1 scores
         only_pos = evaluation_args.get("only_pos", False)
         top_k_hard_rationale = evaluation_args.get("top_k_rationale", 5)
@@ -192,11 +227,54 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
             score_explanation, top_k_hard_rationale, only_pos=only_pos
         )
 
-        scores = self._score_hard_rationale_predictions_dataset(
-            [human_rationale], [topk_score_explanations]
+        tp, pos, pred_pos = self._instance_tp_pos_pred_pos(
+            human_rationale, topk_score_explanations
         )
 
-        return scores["micro"]["f1"]
+        (
+            instance_prec,
+            instance_rec,
+            instance_f1_micro,
+        ) = self._precision_recall_fmeasure(tp, pos, pred_pos)
+
+        accumulate_result = evaluation_args.get("accumulate_result", False)
+
+        if accumulate_result:
+            return tp, pos, pred_pos, instance_prec, instance_rec, instance_f1_micro
+        else:
+            return instance_f1_micro
+
+    def aggregate_score(self, score, total, **aggregation_args):
+        average = aggregation_args.get("average", "macro")
+        (
+            total_tp,
+            total_pos,
+            total_pred_pos,
+            macro_prec_sum,
+            macro_rec_sum,
+            macro_f1_sum,
+        ) = tuple(score)
+
+        # Macro computation
+        macro = {
+            "p": macro_prec_sum / total,
+            "r": macro_rec_sum / total,
+            "f1": macro_f1_sum / total,
+        }
+
+        # Micro computation
+
+        micro_prec, micro_rec, micro_f1 = self._precision_recall_fmeasure(
+            total_tp, total_pos, total_pred_pos
+        )
+        micro = {"p": micro_prec, "r": micro_rec, "f1": micro_f1}
+
+        if average == "macro":
+            return macro["f1"]
+        elif average == "micro":
+            return micro["f1"]
+        else:
+            raise ValueError()
 
 
 class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
@@ -275,3 +353,6 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         # https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L222        # Average of aucs
         average_score, std = np.average(scores), np.std(scores)
         return average_score, std
+
+    def aggregate_score(self, score, total, **aggregation_args):
+        return super().aggregate_score(score, total, **aggregation_args)
