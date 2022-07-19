@@ -18,6 +18,7 @@ requirements = [
     "shap",
     "seaborn",
     "matplotlib",
+    "numpy",
     "pandas",
     "tqdm",
     "scikit-image",
