@@ -21,6 +21,7 @@ requirements = [
     "pandas",
     "tqdm",
     "scikit-image",
+    "opencv-python",
     "lime",
 ]
 
