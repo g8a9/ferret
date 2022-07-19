@@ -8,9 +8,6 @@ from transformers import pipeline
 class SHAPExplainer(BaseExplainer):
     NAME = "Partition SHAP"
 
-    def __init__(self, model, tokenizer):
-        super().__init__(model, tokenizer)
-
     def compute_feature_importance(self, text, target=1, **explainer_args):
         init_args, call_args = parse_explainer_args(explainer_args)
 

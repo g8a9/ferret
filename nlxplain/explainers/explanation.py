@@ -14,6 +14,6 @@ class Explanation:
 
 @dataclass
 class ExplanationWithRationale(Explanation):
-    """Specific explanation to contain the golden rationale"""
+    """Specific explanation to contain the gold rationale"""
 
     rationale: np.array

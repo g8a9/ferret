@@ -1,13 +1,18 @@
 """Client Interface Module"""
 
 from typing import List
-from . import SHAPExplainer, GradientExplainer, IntegratedGradientExplainer
+
+from . import (
+    SHAPExplainer,
+    GradientExplainer,
+    IntegratedGradientExplainer,
+    LIMEExplainer,
+)
 from .explainers.explanation import Explanation
 from copy import copy
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
 import seaborn as sns
 
 
@@ -17,7 +22,7 @@ SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 def normalize(explanations, ord=1):
     """Run Lp noramlization of explanation attribution scores"""
 
-    # TODO can vectorize
+    # TODO vectorize to improve perf
     new_exps = list()
     for exp in explanations:
         new_exp = copy(exp)
@@ -39,12 +44,13 @@ class Benchmark:
                 SHAPExplainer,
                 GradientExplainer,
                 IntegratedGradientExplainer,
+                LIMEExplainer,
             ]
             self.explainers = [
                 e(self.model, self.tokenizer) for e in self._used_explainers
             ]
 
-    def explain(self, text, progress_bar: bool = True):
+    def explain(self, text, progress_bar: bool = True) -> List[Explanation]:
         """Compute explanations."""
 
         if progress_bar:
@@ -62,13 +68,13 @@ class Benchmark:
         explanations = normalize(explanations)
         return explanations
 
-    def get_dataframe(self, explanations):
+    def get_dataframe(self, explanations) -> pd.DataFrame:
         scores = {e.explainer: e.scores for e in explanations}
         scores["Token"] = explanations[0].tokens
         table = pd.DataFrame(scores).set_index("Token").T
         return table
 
-    def show_table(self, explanations, apply_style: bool = True):
+    def show_table(self, explanations, apply_style: bool = True) -> pd.DataFrame:
         """Format explanations scores into a colored table."""
         table = self.get_dataframe(explanations)
 
