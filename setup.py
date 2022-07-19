@@ -29,7 +29,7 @@ test_requirements = []
 setup(
     author="Giuseppe Attanasio",
     author_email="giuseppeattanasio6@gmail.com",
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",

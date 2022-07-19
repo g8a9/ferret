@@ -1,9 +1,9 @@
-nlxplain
+ferret
 ========
 
 |pypi badge| |docs badge|
 
-.. |pypi badge| image:: https://img.shields.io/pypi/v/nlxplain.svg
+.. |pypi badge| image:: https://img.shields.io/pypi/v/ferret.svg
     :target: https://pypi.python.org/pypi/nlxplain
     :alt: Latest PyPI version
 
@@ -12,10 +12,10 @@ nlxplain
     :scale: 100%
     :target: https://nlxplain.readthedocs.io/en/latest/?version=latest
 
-A python package for NLP explainability.
+A python package for benchmarking interpretability techniques.
 
 * Free software: MIT license
-* Documentation: https://nlxplain.readthedocs.io.
+* Documentation: https://ferret.readthedocs.io.
 
 .. code-block:: python
 
@@ -51,7 +51,7 @@ Features
 Credits
 -------
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+This package was created with Cookiecutter and the *audreyr/cookiecutter-pypackage* project template.
 
 - Cookiecutter: https://github.com/audreyr/cookiecutter
 - `audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
