@@ -1,4 +1,4 @@
-"""Top-level package for nlxplain."""
+"""Top-level package for ferret."""
 
 __author__ = """Giuseppe Attanasio"""
 __email__ = "giuseppeattanasio6@gmail.com"

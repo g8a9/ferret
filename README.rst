@@ -20,7 +20,7 @@ A python package for NLP explainability.
 .. code-block:: python
 
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
-    from nlxplain import Benchmark
+    from ferret import Benchmark
 
     model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased")
     tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
@@ -33,7 +33,7 @@ A python package for NLP explainability.
 Features
 --------
 
-**Nlxplain** (read "nellxplain") builds on top of the transformers library. The library supports explanations using:
+**ferret** builds on top of the transformers library. The library supports explanations using:
 
 * Gradients
 * Integrated Gradinets

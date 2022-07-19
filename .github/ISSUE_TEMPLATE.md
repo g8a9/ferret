@@ -1,4 +1,4 @@
-* nlxplain version:
+* ferret version:
 * Python version:
 * Operating System:
 

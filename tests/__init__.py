@@ -1,1 +1,1 @@
-"""Unit test package for nlxplain."""
+"""Unit test package for ferret."""
