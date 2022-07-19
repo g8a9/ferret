@@ -3,8 +3,8 @@ ferret
 
 |pypi badge| |docs badge|
 
-.. |pypi badge| image:: https://img.shields.io/pypi/v/ferret.svg
-    :target: https://pypi.python.org/pypi/nlxplain
+.. |pypi badge| image:: https://img.shields.io/pypi/v/ferret-xai.svg
+    :target: https://pypi.python.org/pypi/ferret-xai
     :alt: Latest PyPI version
 
 .. |Docs Badge| image:: https://readthedocs.org/projects/ferret/badge/?version=latest
