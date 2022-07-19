@@ -1,6 +1,6 @@
 from . import BaseEvaluator
 import copy
-from nlxplain.modelw import Model
+from ..modelw import Model
 import numpy as np
 import torch
 from typing import List

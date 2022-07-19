@@ -1,5 +1,5 @@
 from cmath import exp
-from nlxplain.evaluation.faithfulness_measures import (
+from .faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,
     AOPC_Sufficiency_Evaluation,
 )

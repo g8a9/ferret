@@ -4,24 +4,24 @@ import numpy as np
 import pandas as pd
 from typing import List
 
-from nlxplain.modelw import Model
+from ..modelw import Model
 
-from nlxplain.evaluation.faithfulness_measures import (
+from .faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,
     AOPC_Sufficiency_Evaluation,
     TauLOO_Evaluation,
 )
-from nlxplain.evaluation.plausibility_measures import (
+from .plausibility_measures import (
     AUPRC_PlausibilityEvaluation,
     Tokenf1_PlausibilityEvaluation,
     TokenIOU_PlausibilityEvaluation,
 )
 
-from nlxplain.evaluation.classes_evaluation_measures import (
+from .classes_evaluation_measures import (
     AOPC_Comprehensiveness_Evaluation_by_class,
     AOPC_Sufficiency_Evaluation_by_class,
 )
-from nlxplain.evaluation import BaseEvaluator
+from ..evaluation import BaseEvaluator
 
 
 def color_nan_black(val):

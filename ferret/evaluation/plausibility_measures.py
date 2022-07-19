@@ -1,9 +1,9 @@
 from pickle import FALSE
 from . import BaseEvaluator
-from nlxplain.modelw import Model
+from ..modelw import Model
 import numpy as np
 from typing import List
-from nlxplain.evaluation.utils_from_soft_to_discrete import (
+from .utils_from_soft_to_discrete import (
     get_discrete_explanation_topK,
 )
 
