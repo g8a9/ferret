@@ -20,13 +20,14 @@ A python package for NLP explainability.
 .. code-block:: python
 
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
-    from nlxplain import Explainer
+    from nlxplain import Benchmark
 
     model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased")
     tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
 
-    exp = Explainer(model, tokenizer)
-    exp.compute_table("You look stunning!")
+    bench = Benchmark(model, tokenizer)
+    explanations = bench.explain("You look stunning!")
+    bench.show_table(explanations)
 
 
 Features
