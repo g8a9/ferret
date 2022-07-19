@@ -21,14 +21,16 @@ class BaseExplainer(ABC):
     def __call__(self, text: str, target: int = 1):
         return self.compute_feature_importance(text, target)
 
-    def tokenize(self, text):
-        return self.tokenizer(text, return_tensors="pt")
-
     def get_input_embeds(self, text):
-        item = self.tokenize(text)
+        item = self.tokenizer(text, return_tensors="pt")
         embeddings = self._get_input_embeds_from_ids(item["input_ids"][0])
         embeddings = rearrange(embeddings, "s h -> () s h")
         return embeddings
+
+    def get_tokens(self, text):
+        item = self.tokenizer(text, return_tensors="pt")
+        input_len = item["attention_mask"].sum()
+        return self.tokenizer.convert_ids_to_tokens(item["input_ids"][0][:input_len])
 
     def _get_input_embeds_from_ids(self, ids):
         embeddings = self.model.get_input_embeddings()(ids)
