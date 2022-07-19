@@ -4,7 +4,15 @@ __author__ = """Giuseppe Attanasio"""
 __email__ = "giuseppeattanasio6@gmail.com"
 __version__ = "0.1.0"
 
-from .explainer import Explainer
+
+from .explainers.shap import SHAPExplainer
+from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
+from .explainers.lime import LIMEExplainer
+from .explainers.dummy import DummyExplainer
+
+from .benchmark import Benchmark
+
+
 from .evaluation.explanation_evaluation import ExplanationEvalutator
 from .evaluation.faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,

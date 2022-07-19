@@ -14,6 +14,7 @@ from shap import Explainer as ShapExplainer
 from transformers import pipeline
 import copy
 from lime.lime_text import LimeTextExplainer
+from typing import List
 
 # SOC
 from .explainers.soc.soc_api import SamplingAndOcclusionExplain, is_lm_trained
@@ -21,10 +22,10 @@ from .explainers.soc.train_lm import do_train_lm
 from .explainers.soc.processor import Processor
 from .explainers.soc.config import configs
 
-
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 
 class Explainer:
