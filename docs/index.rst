@@ -1,4 +1,4 @@
-Welcome to nlxplain's documentation!
+Welcome to ferret's documentation!
 ======================================
 
 .. toctree::

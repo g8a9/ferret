@@ -7,10 +7,10 @@ ferret
     :target: https://pypi.python.org/pypi/nlxplain
     :alt: Latest PyPI version
 
-.. |Docs Badge| image:: https://readthedocs.org/projects/nlxplain/badge/?version=latest
+.. |Docs Badge| image:: https://readthedocs.org/projects/ferret/badge/?version=latest
     :alt: Documentation Status
     :scale: 100%
-    :target: https://nlxplain.readthedocs.io/en/latest/?version=latest
+    :target: https://ferret.readthedocs.io/en/latest/?version=latest
 
 A python package for benchmarking interpretability techniques.
 
