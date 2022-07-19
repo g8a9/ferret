@@ -18,8 +18,10 @@ requirements = [
     "shap",
     "seaborn",
     "matplotlib",
+    "pandas",
+    "tqdm",
     "scikit-image",
-    "lime"
+    "lime",
 ]
 
 test_requirements = []

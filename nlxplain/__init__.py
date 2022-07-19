@@ -11,4 +11,4 @@ from .explainers.shap import SHAPExplainer
 from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
 from .explainers.dummy import DummyExplainer
 
-from .explainer import Explainer
+from .benchmark import Benchmark
