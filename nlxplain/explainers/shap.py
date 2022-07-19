@@ -1,6 +1,6 @@
 from . import BaseExplainer
 from .utils import parse_explainer_args
-
+from .explanation import Explanation
 from shap import Explainer as ShapExplainer
 from transformers import pipeline
 
@@ -22,4 +22,7 @@ class SHAPExplainer(BaseExplainer):
         )
         explainer_partition = ShapExplainer(pipe, **init_args)
         shap_values = explainer_partition([text], **call_args)
-        return shap_values.values[0][:, target]
+        attr = shap_values.values[0][:, target]
+
+        output = Explanation(text, self.get_tokens(text), attr, self.NAME)
+        return output

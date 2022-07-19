@@ -1,6 +1,7 @@
 from functools import partial
 from cv2 import multiply
 from . import BaseExplainer
+from .explanation import Explanation
 from .utils import parse_explainer_args
 from captum.attr import Saliency, IntegratedGradients, InputXGradient
 import torch
@@ -38,10 +39,14 @@ class GradientExplainer(BaseExplainer):
 
         inputs = self.get_input_embeds(text)
         attr = dl.attribute(inputs, **call_args)
-        attr = attr[0, :input_len, :]
+        attr = attr[0, :input_len, :].detach()
 
+        # pool over hidden size
+        attr = attr.sum(-1)
+
+        output = Explanation(text, self.get_tokens(text), attr, self.NAME)
         # norm_attr = self._normalize_input_attributions(attr.detach())
-        return attr
+        return output
 
 
 class IntegratedGradientExplainer(BaseExplainer):
@@ -79,7 +84,11 @@ class IntegratedGradientExplainer(BaseExplainer):
         baselines = self._generate_baselines(input_len)
 
         attr = dl.attribute(inputs, baselines=baselines, **call_args)
-        attr = attr[0, :input_len, :]
+        attr = attr[0, :input_len, :].detach()
+
+        # pool over hidden size
+        attr = attr.sum(-1)
 
         # norm_attr = self._normalize_input_attributions(attr.detach())
-        return attr
+        output = Explanation(text, self.get_tokens(text), attr, self.NAME)
+        return output
