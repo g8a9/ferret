@@ -157,6 +157,7 @@ class Benchmark:
             explanation.tokens,
             explanation.scores,
             explanation.explainer,
+            explanation.target,
             rationale,
         )
 
