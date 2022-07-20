@@ -36,8 +36,8 @@ A python package for NLP explainability.
     from ferret import HateXplainDataset
     hatexdata = HateXplainDataset(tokenizer)
     dataset_explanations = bench.generate_dataset_explanations(hatexdata)
-    dataset_average_evaluation_scores = bench.evaluate_dataset_explanations(dataset_explanations)
-    bench.show_dataset_evaluation_table(dataset_average_evaluation_scores)
+    dataset_evaluations = bench.evaluate_dataset_explanations(dataset_explanations)
+    bench.show_dataset_evaluation_table(dataset_evaluations)
 
 
 Features
@@ -54,12 +54,14 @@ Features
 and evaluate explanations via:
 
 Faithfulness measures.
+
 * AOPC Comprehensiveness
 * AOPC Sufficiency
 * Kendall’s tau correlation with leave-one-feature out
 
 
 Plausibility measures.
+
 * AUPRC soft score plausibility
 * Token f1 hard score plausibility
 * Token IOU hard score plausibility
