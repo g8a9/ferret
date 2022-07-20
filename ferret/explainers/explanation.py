@@ -10,7 +10,7 @@ class Explanation:
     tokens: str
     scores: np.array
     explainer: str
-
+    target: int
 
 @dataclass
 class ExplanationWithRationale(Explanation):

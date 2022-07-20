@@ -16,6 +16,6 @@ class DummyExplainer(BaseExplainer):
     def compute_feature_importance(self, text, target=1, **explainer_args):
         tokens = self.tokenizer(text)
         output = Explanation(
-            text, self.get_tokens(text), np.random.randn(len(tokens)), self.NAME
+            text, self.get_tokens(text), np.random.randn(len(tokens)), self.NAME, target
         )
         return output

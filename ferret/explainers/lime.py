@@ -49,5 +49,7 @@ class LIMEExplainer(BaseExplainer):
         )
 
         token_scores = list(dict(sorted(expl.local_exp[target])).values())
-        output = Explanation(text, self.get_tokens(text), token_scores, self.NAME)
+        output = Explanation(
+            text, self.get_tokens(text), token_scores, self.NAME, target
+        )
         return output

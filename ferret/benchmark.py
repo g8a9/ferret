@@ -90,7 +90,7 @@ class Benchmark:
                 ev(model_wrapper, self.tokenizer) for ev in self._used_evaluators
             ]
 
-    def explain(self, text, progress_bar: bool = True) -> List[Explanation]:
+    def explain(self, text, target=1, progress_bar: bool = True) -> List[Explanation]:
         """Compute explanations."""
 
         if progress_bar:
@@ -98,7 +98,7 @@ class Benchmark:
 
         explanations = list()
         for exp in self.explainers:
-            explanations.append(exp(text))
+            explanations.append(exp(text, target))
             if progress_bar:
                 pbar.update(1)
 

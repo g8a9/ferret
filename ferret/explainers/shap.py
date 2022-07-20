@@ -21,5 +21,5 @@ class SHAPExplainer(BaseExplainer):
         shap_values = explainer_partition([text], **call_args)
         attr = shap_values.values[0][:, target]
 
-        output = Explanation(text, self.get_tokens(text), attr, self.NAME)
+        output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
         return output
