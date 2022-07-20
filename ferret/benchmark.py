@@ -31,11 +31,13 @@ from .explainers.explanation import Explanation, ExplanationWithRationale
 from .modelw import Model
 import copy
 
+import dataclasses
+import json
 import numpy as np
 import pandas as pd
+import torch
 from tqdm.auto import tqdm
 import seaborn as sns
-
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 EVALUATION_PALETTE_HIGHER_BETTER = sns.light_palette("purple", as_cmap=True)
@@ -111,7 +113,7 @@ class Benchmark:
         explanation: Union[Explanation, ExplanationWithRationale],
         target,
         human_rationale=None,
-        **evaluation_args
+        **evaluation_args,
     ) -> ExplanationEvaluation:
 
         evaluations = list()
@@ -160,10 +162,10 @@ class Benchmark:
 
     def evaluate_explanations(
         self,
-        explanations: List[Explanation],
+        explanations: List[Union[Explanation, ExplanationWithRationale]],
         target,
         human_rationale=None,
-        **evaluation_args
+        **evaluation_args,
     ) -> List[ExplanationEvaluation]:
         explanation_evaluations = list()
         for explanation in explanations:
@@ -182,7 +184,7 @@ class Benchmark:
         if isinstance(data, BaseDataset) == False:
             raise ValueError("Type of data should be BaseDataset")
         dataset_explanations = list()
-        for i in range(0, 2):  # len(data)):
+        for i in range(0, len(data)):
             instance = data[i]
             text = instance["text"]
             explanations = self.explain(text)
@@ -198,7 +200,7 @@ class Benchmark:
         self,
         dataset_explanations: List[List[Union[Explanation, ExplanationWithRationale]]],
         target=1,
-        **evaluation_args
+        **evaluation_args,
     ):
         # We want to accumulate the results.
         evaluation_args["accumulate_result"] = True
@@ -301,7 +303,7 @@ class Benchmark:
         dataset_evaluation_average_scores,
         apply_style: bool = True,
     ) -> pd.DataFrame:
-        """Format explanations and evaluations scores into a colored table."""
+        """Format dataset average evaluations scores into a colored table."""
 
         table = pd.DataFrame(dataset_evaluation_average_scores).T
 
@@ -347,3 +349,50 @@ class Benchmark:
                 subset=show_lower_cols,
             )
         return table_style
+
+    def _jsonify_explanations(
+        self,
+        explanations: List[Union[Explanation, ExplanationWithRationale]],
+    ):
+        def jsonify(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, torch.Tensor):
+                return obj.numpy().tolist()
+            return obj
+
+        explanations_json = []
+        for explanation in explanations:
+
+            dict_explanation = dataclasses.asdict(explanation)
+            dict_explanation = {k: jsonify(v) for k, v in dict_explanation.items()}
+            explanations_json.append(dict_explanation)
+
+        return explanations_json
+
+    def store_explanations(
+        self,
+        explanations: List[Union[Explanation, ExplanationWithRationale]],
+        output: str,
+    ):
+        explanation_json_format = self._jsonify_explanations(explanations)
+        with open(f"{output}.json", "w") as f:
+            json.dump(explanation_json_format, f)
+
+    def store_dataset_explanations(
+        self,
+        dataset_explanations: List[List[Union[Explanation, ExplanationWithRationale]]],
+        output: str,
+    ):
+        dataset_explanations_json_format = {}
+        for idx, explanations in enumerate(dataset_explanations):
+            dataset_explanations_json_format[idx] = self._jsonify_explanations(
+                explanations
+            )
+        with open(f"{output}.json", "w") as f:
+            json.dump(dataset_explanations_json_format, f)
+
+    def read_dataset_explanations(self, input):
+        with open(f"{input}.json", "r") as f:
+            dataset_explanations = json.load(f)
+        return dataset_explanations
