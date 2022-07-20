@@ -1,5 +1,6 @@
 """Client Interface Module"""
 
+from signal import raise_signal
 from typing import List, Union
 
 from ferret.datasets import BaseDataset
@@ -24,6 +25,8 @@ from .evaluators.plausibility_measures import (
     Tokenf1_PlausibilityEvaluation,
     TokenIOU_PlausibilityEvaluation,
 )
+
+from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_class
 
 from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
@@ -61,7 +64,12 @@ class Benchmark:
     """Generic interface to compute multiple explanations."""
 
     def __init__(
-        self, model, tokenizer, explainers: List = None, evaluators: List = None
+        self,
+        model,
+        tokenizer,
+        explainers: List = None,
+        evaluators: List = None,
+        class_based_evaluators: List = None,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -89,6 +97,13 @@ class Benchmark:
             self.evaluators = [
                 ev(model_wrapper, self.tokenizer) for ev in self._used_evaluators
             ]
+        if not class_based_evaluators:
+            self._used_class_evaluators = [AOPC_Comprehensiveness_Evaluation_by_class]
+            model_wrapper = Model(self.model)
+            self.class_based_evaluators = [
+                class_ev(model_wrapper, self.tokenizer)
+                for class_ev in self._used_class_evaluators
+            ]
 
     def explain(self, text, target=1, progress_bar: bool = True) -> List[Explanation]:
         """Compute explanations."""
@@ -113,9 +128,17 @@ class Benchmark:
         explanation: Union[Explanation, ExplanationWithRationale],
         target,
         human_rationale=None,
+        class_explanation: List[Union[Explanation, ExplanationWithRationale]] = None,
         **evaluation_args,
     ) -> ExplanationEvaluation:
 
+        """
+        explanation: Explanation to evaluate.
+        target: target class for which we evaluate the explanation
+        human rationale: List in one-hot-encoding indicating if the token is in the rationale (1) or not (i)
+        class_explanation: list of explanations. The explanation in position 'i' is computed using as target class the class 'i'.
+                            len = #target classes. If available, class-based scores are computed
+        """
         evaluations = list()
 
         add_first_last = evaluation_args.get("add_first_last", True)
@@ -133,6 +156,13 @@ class Benchmark:
                 evaluation is not None
             ):  # return None for plausibility measure if rationale is not available
                 evaluations.append(evaluation)
+
+        if class_explanation is not None:
+            for class_based_evaluator in self.class_based_evaluators:
+                class_based_evaluation = class_based_evaluator.compute_evaluation(
+                    class_explanation, **evaluation_args
+                )
+                evaluations.append(class_based_evaluation)
         explanation_eval = ExplanationEvaluation(explanation, evaluations)
         return explanation_eval
 
@@ -161,18 +191,46 @@ class Benchmark:
             rationale,
         )
 
+    def _get_class_explanations_by_explainer(self, class_explanations):
+        """
+        We convert from #target, #explainer to #explainer, #target
+        """
+        class_explanations_by_explainer = None
+        if class_explanations is not None:
+            n_explainers = len(class_explanations[0])
+            n_targets = len(class_explanations)
+            class_explanations_by_explainer = [
+                [class_explanations[i][explainer_type] for i in range(n_targets)]
+                for explainer_type in range(n_explainers)
+            ]
+        return class_explanations_by_explainer
+
     def evaluate_explanations(
         self,
         explanations: List[Union[Explanation, ExplanationWithRationale]],
         target,
         human_rationale=None,
+        class_explanations=None,
         **evaluation_args,
     ) -> List[ExplanationEvaluation]:
         explanation_evaluations = list()
-        for explanation in explanations:
+
+        class_explanations_by_explainer = self._get_class_explanations_by_explainer(
+            class_explanations
+        )
+
+        for i, explanation in enumerate(explanations):
+            class_explanation = None
+            if class_explanations_by_explainer is not None:
+                class_explanation = class_explanations_by_explainer[i]
+
             explanation_evaluations.append(
                 self.evaluate_explanation(
-                    explanation, target, human_rationale, **evaluation_args
+                    explanation,
+                    target,
+                    human_rationale,
+                    class_explanation,
+                    **evaluation_args,
                 )
             )
         return explanation_evaluations
@@ -185,7 +243,7 @@ class Benchmark:
         if isinstance(data, BaseDataset) == False:
             raise ValueError("Type of data should be BaseDataset")
         dataset_explanations = list()
-        for i in range(0, len(data)):
+        for i in range(0, 2):  # len(data)):
             instance = data[i]
             text = instance["text"]
             explanations = self.explain(text)
@@ -323,7 +381,7 @@ class Benchmark:
         )
         show_higher_cols, show_lower_cols = list(), list()
         # Highlight with two different palettes
-        for evaluation_measure in self.evaluators:
+        for evaluation_measure in self.evaluators + self.class_based_evaluators:
             if evaluation_measure.SHORT_NAME in table.columns:
                 if evaluation_measure.BEST_SORTING_ASCENDING == False:
                     # Higher is better
