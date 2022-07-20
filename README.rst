@@ -29,6 +29,16 @@ A python package for NLP explainability.
     explanations = bench.explain("You look stunning!")
     bench.show_table(explanations)
 
+    evaluations = bench.evaluate_explanations(explanations)
+    bench.show_evaluation_table(evaluations)
+
+
+    from ferret import HateXplainDataset
+    hatexdata = HateXplainDataset(tokenizer)
+    dataset_explanations = bench.generate_dataset_explanations(hatexdata)
+    dataset_average_evaluation_scores = bench.evaluate_dataset_explanations(dataset_explanations)
+    bench.show_dataset_evaluation_table(dataset_average_evaluation_scores)
+
 
 Features
 --------
@@ -41,6 +51,18 @@ Features
 * SHAP
 * LIME
 
+and evaluate explanations via:
+
+Faithfulness measures.
+* AOPC Comprehensiveness
+* AOPC Sufficiency
+* Kendall’s tau correlation with leave-one-feature out
+
+
+Plausibility measures.
+* AUPRC soft score plausibility
+* Token f1 hard score plausibility
+* Token IOU hard score plausibility
 
 **TODOs**
 
