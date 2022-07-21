@@ -32,7 +32,7 @@ from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
 
 from .modelw import Model
-from .datasets.datamanagers import HateXplainDataset
+from .datasets.datamanagers import HateXplainDataset, MovieReviews
 import copy
 
 import dataclasses
@@ -90,7 +90,7 @@ class Benchmark:
             self._used_evaluators = [
                 AOPC_Comprehensiveness_Evaluation,
                 AOPC_Sufficiency_Evaluation,
-                TauLOO_Evaluation,
+                # TauLOO_Evaluation,
                 AUPRC_PlausibilityEvaluation,
                 Tokenf1_PlausibilityEvaluation,
                 TokenIOU_PlausibilityEvaluation,
@@ -131,6 +131,7 @@ class Benchmark:
         target,
         human_rationale=None,
         class_explanation: List[Union[Explanation, ExplanationWithRationale]] = None,
+        progress_bar=True,
         **evaluation_args,
     ) -> ExplanationEvaluation:
 
@@ -143,6 +144,14 @@ class Benchmark:
         """
         evaluations = list()
 
+        if progress_bar:
+            total_evaluators = (
+                len(self.evaluators) + len(self.class_based_evaluators)
+                if class_explanation is not None
+                else len(self.evaluators)
+            )
+            pbar = tqdm(total=total_evaluators, desc="Evaluator")
+
         add_first_last = evaluation_args.get("add_first_last", True)
         explanation = (
             self._add_rationale(explanation, human_rationale, add_first_last)
@@ -151,6 +160,7 @@ class Benchmark:
         )
 
         for evaluator in self.evaluators:
+            print(evaluator.NAME)
             evaluation = evaluator.compute_evaluation(
                 explanation, target, **evaluation_args
             )
@@ -158,6 +168,9 @@ class Benchmark:
                 evaluation is not None
             ):  # return None for plausibility measure if rationale is not available
                 evaluations.append(evaluation)
+            if progress_bar:
+                pbar.update(1)
+            print("end")
 
         if class_explanation is not None:
             for class_based_evaluator in self.class_based_evaluators:
@@ -165,7 +178,13 @@ class Benchmark:
                     class_explanation, **evaluation_args
                 )
                 evaluations.append(class_based_evaluation)
+                if progress_bar:
+                    pbar.update(1)
+
+        if progress_bar:
+            pbar.close()
         explanation_eval = ExplanationEvaluation(explanation, evaluations)
+
         return explanation_eval
 
     def _add_rationale(
@@ -461,6 +480,8 @@ class Benchmark:
     def load_dataset(self, dataset_name: str):
         if dataset_name == "hatexplain":
             data = HateXplainDataset(self.tokenizer)
+        elif dataset_name == "movie_rationales":
+            data = MovieReviews(self.tokenizer)
         else:
             try:
                 data = datasets.load_dataset(dataset_name)
