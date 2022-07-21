@@ -1,4 +1,4 @@
-nlxplain
+ferret
 ========
 
 |pypi badge| |docs badge|
@@ -33,8 +33,7 @@ A python package for NLP explainability.
     bench.show_evaluation_table(evaluations)
 
 
-    from ferret import HateXplainDataset
-    hatexdata = HateXplainDataset(tokenizer)
+    hatexdata = bench.load_dataset("hatexplain")
     dataset_explanations = bench.generate_dataset_explanations(hatexdata)
     dataset_evaluations = bench.evaluate_dataset_explanations(dataset_explanations)
     bench.show_dataset_evaluation_table(dataset_evaluations)

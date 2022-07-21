@@ -32,9 +32,11 @@ from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
 
 from .modelw import Model
+from .datasets.datamanagers import HateXplainDataset
 import copy
 
 import dataclasses
+import datasets
 import json
 import numpy as np
 import pandas as pd
@@ -455,3 +457,13 @@ class Benchmark:
         with open(f"{input}.json", "r") as f:
             dataset_explanations = json.load(f)
         return dataset_explanations
+
+    def load_dataset(self, dataset_name: str):
+        if dataset_name == "hatexplain":
+            data = HateXplainDataset(self.tokenizer)
+        else:
+            try:
+                data = datasets.load_dataset(dataset_name)
+            except:
+                raise ValueError(f"Dataset {dataset_name} is not supported")
+        return data
