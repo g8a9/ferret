@@ -84,7 +84,11 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             id_top = get_discrete_rationale_function(score_explanation, v, only_pos)
 
             # If the rationale is the same, we do not include it. In this way, we will not consider in the average the same omission.
-            if last_id_top is not None and set(id_top) == last_id_top:
+            if (
+                id_top is not None
+                and last_id_top is not None
+                and set(id_top) == last_id_top
+            ):
                 id_top = None
 
             id_tops.append(id_top)
@@ -199,7 +203,11 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             id_top = get_discrete_rationale_function(score_explanation, v, only_pos)
 
             # If the rationale is the same, we do not include it. In this way, we will not consider in the average the same omission.
-            if last_id_top is not None and set(id_top) == last_id_top:
+            if (
+                id_top is not None
+                and last_id_top is not None
+                and set(id_top) == last_id_top
+            ):
                 id_top = None
 
             id_tops.append(id_top)
