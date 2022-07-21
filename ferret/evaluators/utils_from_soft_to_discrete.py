@@ -23,7 +23,7 @@ def _get_id_tokens_top_k(soft_score_explanation, k, only_pos=True):
 def _get_id_tokens_percentage(soft_score_explanation, percentage, only_pos=True):
     v = int(percentage * len(soft_score_explanation))
     # Only if we remove at least instance. TBD
-    if v > 0 and v < len(soft_score_explanation):
+    if v > 0 and v <= len(soft_score_explanation):
         return _get_id_tokens_top_k(soft_score_explanation, v, only_pos=only_pos)
     else:
         return None
