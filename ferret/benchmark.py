@@ -90,7 +90,7 @@ class Benchmark:
             self._used_evaluators = [
                 AOPC_Comprehensiveness_Evaluation,
                 AOPC_Sufficiency_Evaluation,
-                # TauLOO_Evaluation,
+                TauLOO_Evaluation,
                 AUPRC_PlausibilityEvaluation,
                 Tokenf1_PlausibilityEvaluation,
                 TokenIOU_PlausibilityEvaluation,
@@ -160,7 +160,6 @@ class Benchmark:
         )
 
         for evaluator in self.evaluators:
-            print(evaluator.NAME)
             evaluation = evaluator.compute_evaluation(
                 explanation, target, **evaluation_args
             )
@@ -170,7 +169,6 @@ class Benchmark:
                 evaluations.append(evaluation)
             if progress_bar:
                 pbar.update(1)
-            print("end")
 
         if class_explanation is not None:
             for class_based_evaluator in self.class_based_evaluators:
