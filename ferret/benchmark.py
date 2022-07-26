@@ -483,8 +483,6 @@ class Benchmark:
             data = HateXplainDataset(self.tokenizer)
         elif dataset_name == "movie_rationales":
             data = MovieReviews(self.tokenizer)
-        elif dataset_name == "sst":
-            data = SSTDataset(self.tokenizer, **kwargs)
         else:
             try:
                 data = datasets.load_dataset(dataset_name)
