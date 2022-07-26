@@ -62,4 +62,4 @@ This package was created with Cookiecutter and the *audreyr/cookiecutter-pypacka
 - Cookiecutter: https://github.com/audreyr/cookiecutter
 - `audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
 
-Logo and graphical assets made by `Luca Attanasio`: https://www.behance.net/attanasiol624d .
+Logo and graphical assets made by [Luca Attanasio]( https://www.behance.net/attanasiol624d).
