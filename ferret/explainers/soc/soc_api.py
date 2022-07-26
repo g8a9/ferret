@@ -1,6 +1,6 @@
 from builtins import breakpoint
 
-from nlxplain.explainers.soc.processor import Processor
+from ferret.explainers.soc.processor import Processor
 from .soc_algo import _SamplingAndOcclusionAlgo
 from .lm import BiGRULanguageModel
 from .train_lm import do_train_lm
@@ -207,7 +207,7 @@ class SamplingAndOcclusionExplain:
                             return_variable=True,
                             additional_mask=nw_positions,
                         )
-                    score = self.configs.reg_strength * (score**2)
+                    score = self.configs.reg_strength * (score ** 2)
 
                     if do_backprop:
                         score.backward()

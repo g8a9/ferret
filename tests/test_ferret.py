@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
-"""Tests for `nlxplain` package."""
+"""Tests for `ferret` package."""
 
 
 import unittest
 
-from nlxplain import nlxplain
+from ferret import ferret
 
 
-class TestNlxplain(unittest.TestCase):
-    """Tests for `nlxplain` package."""
+class Testferret(unittest.TestCase):
+    """Tests for `ferret` package."""
 
     def setUp(self):
         """Set up test fixtures, if any."""

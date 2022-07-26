@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use nlxplain in a project::
+To use ferret in a project::
 
-    import nlxplain
+    import ferret
