@@ -71,7 +71,7 @@ Plausibility measures.
 * Discretized Integrated Gradients: https://arxiv.org/abs/2108.13654
 
 Visualization
--------
+-------------
 
 .. code-block:: python
 
@@ -85,7 +85,7 @@ Visualization
 
 
 Datasets evaluations
--------
+--------------------
 
 .. code-block:: python
 
