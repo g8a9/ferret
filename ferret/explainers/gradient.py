@@ -23,11 +23,8 @@ class GradientExplainer(BaseExplainer):
         input_len = item["attention_mask"].sum().item()
 
         def func(input_embeds):
-            outputs = self.model(
-                inputs_embeds=input_embeds,
-                attention_mask=item["attention_mask"],
-                token_type_ids=item["token_type_ids"],
-            )
+            item.pop("input_ids")
+            outputs = self.model(inputs_embeds=input_embeds, **item)
             scores = outputs.logits[0]
             return scores[target].unsqueeze(0)
 
@@ -69,11 +66,8 @@ class IntegratedGradientExplainer(BaseExplainer):
         input_len = item["attention_mask"].sum().item()
 
         def func(input_embeds):
-            outputs = self.model(
-                inputs_embeds=input_embeds,
-                attention_mask=item["attention_mask"],
-                token_type_ids=item["token_type_ids"],
-            )
+            item.pop("input_ids")
+            outputs = self.model(inputs_embeds=input_embeds, **item)
             scores = outputs.logits[0]
             return scores[target].unsqueeze(0)
 

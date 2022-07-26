@@ -61,8 +61,7 @@ class Model:
                 embeddings = self._get_input_embeds(idx)
                 outputs = self.model(
                     inputs_embeds=embeddings,
-                    attention_mask=item["attention_mask"],
-                    token_type_ids=item["token_type_ids"],
+                    **item,
                     output_hidden_states=True,
                 )
 
