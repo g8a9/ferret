@@ -254,15 +254,17 @@ class Benchmark:
             )
         return explanation_evaluations
 
-    def generate_dataset_explanations(self, data: BaseDataset, target=None):
+    def generate_dataset_explanations(self, data: BaseDataset, target=None, n=None):
         """
         Data
         Target: if target is none, the explanation is with respect the predicted class
         """
         if isinstance(data, BaseDataset) == False:
             raise ValueError("Type of data should be BaseDataset")
+        if n is None:
+            n = len(data)
         dataset_explanations = list()
-        for i in range(0, 2):  # len(data)):
+        for i in range(0, n):
             instance = data[i]
             text = instance["text"]
             explanations = self.explain(text)
