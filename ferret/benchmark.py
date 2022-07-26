@@ -4,6 +4,7 @@ from signal import raise_signal
 from typing import List, Union
 
 from ferret.datasets import BaseDataset
+from ferret.datasets.sst_loader import SSTDataset
 
 from . import (
     SHAPExplainer,
@@ -477,11 +478,13 @@ class Benchmark:
             dataset_explanations = json.load(f)
         return dataset_explanations
 
-    def load_dataset(self, dataset_name: str):
+    def load_dataset(self, dataset_name: str, **kwargs):
         if dataset_name == "hatexplain":
             data = HateXplainDataset(self.tokenizer)
         elif dataset_name == "movie_rationales":
             data = MovieReviews(self.tokenizer)
+        elif dataset_name == "sst":
+            data = SSTDataset(self.tokenizer, **kwargs)
         else:
             try:
                 data = datasets.load_dataset(dataset_name)
