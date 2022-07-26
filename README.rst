@@ -33,7 +33,9 @@ A python package for benchmarking interpretability techniques.
 
     bench = Benchmark(model, tokenizer)
     explanations = bench.explain("You look stunning!")
-    bench.show_table(explanations)
+    evaluations = bench.evaluate_explanations(explanations)
+
+    print(evaluations)
 
 
 Features
@@ -47,12 +49,53 @@ Features
 * SHAP
 * LIME
 
+and evaluate explanations via:
+
+Faithfulness measures.
+
+* AOPC Comprehensiveness
+* AOPC Sufficiency
+* Kendall’s tau correlation with leave-one-feature out
+
+
+Plausibility measures.
+
+* AUPRC soft score plausibility
+* Token f1 hard score plausibility
+* Token IOU hard score plausibility
 
 **TODOs**
 
 * Possibility to run on select device ("cpu", "cuda")
 * Sample-And-Occlusion explanations
 * Discretized Integrated Gradients: https://arxiv.org/abs/2108.13654
+
+Visualization
+-------
+
+.. code-block:: python
+
+    bench = Benchmark(...)
+
+    explanations = ...
+    bench.show_table(explanations)
+
+    evaluations = bench.evaluate_explanations(explanations)
+    bench.show_evaluation_table(evaluations)
+
+
+Datasets evaluations
+-------
+
+.. code-block:: python
+
+    bench = Benchmark(...)
+
+    hatexdata = bench.load_dataset("hatexplain")
+    dataset_explanations = bench.generate_dataset_explanations(hatexdata)
+    dataset_evaluations = bench.evaluate_dataset_explanations(dataset_explanations)
+    bench.show_dataset_evaluation_table(dataset_evaluations)
+
 
 Credits
 -------

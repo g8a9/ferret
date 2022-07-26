@@ -41,7 +41,7 @@ class GradientExplainer(BaseExplainer):
         # pool over hidden size
         attr = attr.sum(-1)
 
-        output = Explanation(text, self.get_tokens(text), attr, self.NAME)
+        output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
         # norm_attr = self._normalize_input_attributions(attr.detach())
         return output
 
@@ -84,5 +84,5 @@ class IntegratedGradientExplainer(BaseExplainer):
         attr = attr.sum(-1)
 
         # norm_attr = self._normalize_input_attributions(attr.detach())
-        output = Explanation(text, self.get_tokens(text), attr, self.NAME)
+        output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
         return output

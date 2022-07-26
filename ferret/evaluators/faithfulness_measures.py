@@ -1,12 +1,15 @@
-from . import BaseEvaluator
 import copy
-from ..modelw import Model
+from scipy.stats import kendalltau
 import numpy as np
-import torch
+
+from . import BaseEvaluator
+from ..modelw import Model
+from ..explainers.explanation import Explanation, ExplanationWithRationale
 from typing import List
 from .utils_from_soft_to_discrete import (
     _check_and_define_get_id_discrete_rationale_function,
 )
+from .evaluation import Evaluation
 
 
 def _compute_aopc(scores):
@@ -22,39 +25,14 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "faithfulness"
 
-    def __init__(self, model: Model, tokenizer):
-        super().__init__(model, tokenizer)
-
-    def evaluate_explanations(
-        self,
-        texts: List[str],
-        score_explanations: List[List[float]],
-        targets,
-        **evaluation_args
-    ):
-
-        """
-        Compute the aggregate evaluation score for a list of score explanations.
-        Return the aggregate evaluation score as average and standard deviation of aopc_comprehensiveness
-        """
-        scores = []
-        for text, score_explanation, target in zip(texts, score_explanations, targets):
-            scores.append(
-                self.evaluate_explanation(
-                    text, score_explanation, target=target, **evaluation_args
-                )
-            )
-        # https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L263
-        # Average of the average score AOPC
-        average_score, std = np.average(scores), np.std(scores)
-        return average_score, std
-
-    def evaluate_explanation(
-        self, text, score_explanation, target=1, **evaluation_args
-    ):
+    def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
         remove_first_last = evaluation_args.get("remove_first_last", True)
         only_pos = evaluation_args.get("only_pos", False)
 
+        text = explanation.text
+        score_explanation = explanation.scores
+
+        # TO DO - use tokens
         # Get prediction probability of the input sencence for the target
         baseline = self.model._get_class_predicted_probability(
             text, self.tokenizer, target
@@ -70,6 +48,8 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
         # If remove_first_last, first and last token id (CLS and ) are removed
         if remove_first_last == True:
             input_ids = input_ids[1:-1]
+            if self.tokenizer.cls_token == explanation.tokens[0]:
+                score_explanation = score_explanation[1:-1]
 
         # Defaul parameters
         removal_args = {
@@ -102,11 +82,15 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
         last_id_top = None
         for v in thresholds:
 
-            # Get rationale
+            # Get rationale from score explanation
             id_top = get_discrete_rationale_function(score_explanation, v, only_pos)
 
             # If the rationale is the same, we do not include it. In this way, we will not consider in the average the same omission.
-            if last_id_top is not None and set(id_top) == last_id_top:
+            if (
+                id_top is not None
+                and last_id_top is not None
+                and set(id_top) == last_id_top
+            ):
                 id_top = None
 
             id_tops.append(id_top)
@@ -145,20 +129,10 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
         # Compute probability difference
         removal_importance = baseline - probs_removing
 
-        """
-        detailed_result = {}
-        r = 0
-        for i in range(len(thresholds)):
-            if id_tops[i] is not None:
-                detailed_result[thresholds[i]] = (
-                    id_tops[i],
-                    removal_importance[r].item(),
-                )
-                r += 1
+        aopc_comprehesiveness = _compute_aopc(removal_importance)
 
-        """
-
-        return _compute_aopc(removal_importance)
+        evaluation_output = Evaluation(self.SHORT_NAME, aopc_comprehesiveness)
+        return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):
         return super().aggregate_score(score, total, **aggregation_args)
@@ -171,39 +145,14 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = True
     TYPE_METRIC = "faithfulness"
 
-    def __init__(self, model: Model, tokenizer):
-        super().__init__(model, tokenizer)
-
-    def evaluate_explanations(
-        self,
-        texts: List[str],
-        score_explanations: List[List[float]],
-        targets,
-        **evaluation_args
-    ):
-
-        """
-        Compute the aggregate evaluation score for a list of score explanations.
-        Return the aggregate evaluation score as average and standard deviation of aopc_sufficiency
-        """
-        scores = []
-        for text, score_explanation, target in zip(texts, score_explanations, targets):
-            scores.append(
-                self.evaluate_explanation(
-                    text, score_explanation, target=target, **evaluation_args
-                )
-            )
-        # https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L263
-        # Average of the average score AOPC
-        average_score, std = np.average(scores), np.std(scores)
-        return average_score, std
-
-    def evaluate_explanation(
-        self, text, score_explanation, target=1, **evaluation_args
-    ):
+    def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
         remove_first_last = evaluation_args.get("remove_first_last", True)
         only_pos = evaluation_args.get("only_pos", False)
 
+        text = explanation.text
+        score_explanation = explanation.scores
+
+        # TO DO - use tokens
         # Get prediction probability of the input sencence for the target
         baseline = self.model._get_class_predicted_probability(
             text, self.tokenizer, target
@@ -218,6 +167,8 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
         # If remove_first_last, first and last token id (CLS and ) are removed
         if remove_first_last == True:
             input_ids = input_ids[1:-1]
+            if self.tokenizer.cls_token == explanation.tokens[0]:
+                score_explanation = score_explanation[1:-1]
 
         # Defaul parameters
         removal_args = {
@@ -254,7 +205,11 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             id_top = get_discrete_rationale_function(score_explanation, v, only_pos)
 
             # If the rationale is the same, we do not include it. In this way, we will not consider in the average the same omission.
-            if last_id_top is not None and set(id_top) == last_id_top:
+            if (
+                id_top is not None
+                and last_id_top is not None
+                and set(id_top) == last_id_top
+            ):
                 id_top = None
 
             id_tops.append(id_top)
@@ -294,78 +249,20 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
         # Compute probability difference
         removal_importance = baseline - probs_removing
 
-        """
-        detailed_result = {}
-        r = 0
-        for i in range(len(thresholds)):
-            if id_tops[i] is not None:
-                detailed_result[thresholds[i]] = (
-                    id_tops[i],
-                    removal_importance[r].item(),
-                )
-                r += 1
+        aopc_sufficiency = _compute_aopc(removal_importance)
 
-        """
-
-        return _compute_aopc(removal_importance)
+        evaluation_output = Evaluation(self.SHORT_NAME, aopc_sufficiency)
+        return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):
         return super().aggregate_score(score, total, **aggregation_args)
 
 
 class TauLOO_Evaluation(BaseEvaluator):
-    NAME = "tau_leave-one-out"
-    SHORT_NAME = "tauloo"
+    NAME = "tau_leave-one-out_correlation"
+    SHORT_NAME = "taucorr_loo"
     TYPE_METRIC = "faithfulness"
-    BEST_SORTING_ASCENDING = None
-
-    def __init__(self, model: Model, tokenizer, use_correlation=True):
-        super().__init__(model, tokenizer)
-        self.use_correlation = use_correlation
-        if self.use_correlation:
-            self.SHORT_NAME = "taucorr_loo"
-            # Higher is better
-            self.BEST_SORTING_ASCENDING = False
-        else:
-            self.SHORT_NAME = "taud_loo"
-            # Lower is better
-            self.BEST_SORTING_ASCENDING = False
-
-    # As in Attention is not explanation
-    # https://github.com/successar/AttentionExplanation/blob/425a89a49a8b3bffc3f5e8338287e2ecd0cf1fa2/common_code/kendall_top_k.py
-
-    def evaluate_explanations(
-        self,
-        texts: List[str],
-        score_explanations: List[List[float]],
-        targets,
-        **evaluation_args
-    ):
-        """
-        Compute the aggregate evaluation score for a list of score explanations.
-        Return the aggregate evaluation score as average and standard deviation of tau_leave-one-out scores
-        """
-        scores = []
-        for text, score_explanation, target in zip(texts, score_explanations, targets):
-            scores.append(
-                self.evaluate_explanation(
-                    text, score_explanation, target=target, **evaluation_args
-                )
-            )
-        # https://arxiv.org/pdf/1902.10186.pdf: mean and standard deviation.
-        average_score, std = np.average(scores), np.std(scores)
-        return average_score, std
-
-    def _kendalltau_distance(self, x, y):
-        from scipy.stats import kendalltau
-
-        """
-        It returns a distance: 0 for identical lists and 1 if completely different.
-        """
-        # https://github.com/successar/AttentionExplanation/blob/425a89a49a8b3bffc3f5e8338287e2ecd0cf1fa2/common_code/kendall_top_k.py#L23
-        if x.size != y.size:
-            raise NameError("The two arrays need to have same lengths")
-        return 1 - (kendalltau(x, y)[0] / 2 + 0.5)
+    BEST_SORTING_ASCENDING = False
 
     def compute_leave_one_out_occlusion(self, text, target=1, remove_first_last=True):
 
@@ -394,11 +291,16 @@ class TauLOO_Evaluation(BaseEvaluator):
 
         return occlusion_importance
 
-    def evaluate_explanation(
-        self, text, score_explanation, target=1, **evaluation_args
-    ):
+    def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
 
         remove_first_last = evaluation_args.get("remove_first_last", True)
+
+        text = explanation.text
+        score_explanation = explanation.scores
+
+        if remove_first_last:
+            if self.tokenizer.cls_token == explanation.tokens[0]:
+                score_explanation = score_explanation[1:-1]
 
         loo_scores = (
             self.compute_leave_one_out_occlusion(
@@ -407,17 +309,10 @@ class TauLOO_Evaluation(BaseEvaluator):
             * -1
         )
 
-        if self.use_correlation:
-            # Faithfulness - Kendall correlation w.r.t. leave one out
-            from scipy.stats import kendalltau
+        kendalltau_score = kendalltau(loo_scores, score_explanation)[0]
 
-            kendalltau_score = kendalltau(loo_scores, score_explanation)[0]
-
-        else:
-            # Faithfulness - Kendall tau distance w.r.t. leave one out
-            kendalltau_score = self._kendalltau_distance(loo_scores, score_explanation)
-
-        return kendalltau_score
+        evaluation_output = Evaluation(self.SHORT_NAME, kendalltau_score)
+        return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):
         return super().aggregate_score(score, total, **aggregation_args)

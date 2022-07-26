@@ -1,11 +1,11 @@
-from pickle import FALSE
+import numpy as np
+from sklearn.metrics import auc, precision_recall_curve
+
 from . import BaseEvaluator
 from ..modelw import Model
-import numpy as np
-from typing import List
-from .utils_from_soft_to_discrete import (
-    get_discrete_explanation_topK,
-)
+from .evaluation import Evaluation
+from .utils_from_soft_to_discrete import get_discrete_explanation_topK
+from ..explainers.explanation import ExplanationWithRationale
 
 
 class AUPRC_PlausibilityEvaluation(BaseEvaluator):
@@ -15,47 +15,31 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "plausibility"
 
-    def __init__(self, model: Model, tokenizer):
-        super().__init__(model, tokenizer)
-
     def _compute_auprc_soft_scoring(self, true_rationale, soft_scores):
-        from sklearn.metrics import auc, precision_recall_curve
 
         precision, recall, _ = precision_recall_curve(true_rationale, soft_scores)
         auc_score = auc(recall, precision)
         return auc_score
 
-    def evaluate_explanations(
+    def compute_evaluation(
         self,
-        texts: List[str],
-        score_explanations: List[List[float]],
-        human_rationales,
-        targets=None,
+        explanation_with_rationale: ExplanationWithRationale,
+        target=1,
         **evaluation_args
     ):
-        scores = []
-        for text, score_explanation, human_rationale in zip(
-            texts, score_explanations, human_rationales
-        ):
-            scores.append(
-                self.evaluate_explanation(
-                    text,
-                    score_explanation,
-                    human_rationale,
-                    # target=target,
-                    **evaluation_args
-                )
-            )
-        # https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L222        # Average of aucs
-        average_score, std = np.average(scores), np.std(scores)
-        return average_score, std
-
-    def evaluate_explanation(
-        self, text, score_explanation, human_rationale, target=1, **evaluation_args
-    ):
         # Plausibility - Area Under the Precision- Recall curve (AUPRC) - ERASER
-
+        if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
+            return None
         only_pos = evaluation_args.get("only_pos", False)
+        remove_first_last = evaluation_args.get("remove_first_last", True)
+
+        score_explanation = explanation_with_rationale.scores
+        human_rationale = explanation_with_rationale.rationale
+
+        if remove_first_last == True:
+            human_rationale = human_rationale[1:-1]
+            if self.tokenizer.cls_token == explanation_with_rationale.tokens[0]:
+                score_explanation = score_explanation[1:-1]
 
         # TODO.
         if only_pos:
@@ -66,7 +50,8 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
         auprc_soft_plausibility = self._compute_auprc_soft_scoring(
             human_rationale, score_explanation
         )
-        return auprc_soft_plausibility
+        evaluation_output = Evaluation(self.SHORT_NAME, auprc_soft_plausibility)
+        return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):
         return super().aggregate_score(score, total, **aggregation_args)
@@ -188,39 +173,27 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         )
         return instance_prec, instance_rec, instance_f1, tp, pos, pred_pos
 
-    def evaluate_explanations(
+    def compute_evaluation(
         self,
-        texts: List[str],
-        score_explanations: List[List[float]],
-        human_rationales,
-        targets=None,
+        explanation_with_rationale: ExplanationWithRationale,
+        target=1,
         **evaluation_args
     ):
+        if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
+            return None
 
-        only_pos = evaluation_args.get("only_pos", False)
-        top_k_hard_rationale = evaluation_args.get("top_k_rationale", 5)
-
-        discrete_explanations = []
-        for score_explanation in score_explanations:
-
-            topk_score_explanations = get_discrete_explanation_topK(
-                score_explanation, top_k_hard_rationale, only_pos=only_pos
-            )
-
-            discrete_explanations.append(topk_score_explanations)
-
-        scores = self._score_hard_rationale_predictions_dataset(
-            human_rationales, discrete_explanations
-        )
-
-        # Micro and macro f1, precision, recall
-        return scores
-
-    def evaluate_explanation(
-        self, text, score_explanation, human_rationale, target=1, **evaluation_args
-    ):
         # Token fpr - hard rationale predictions. token-level F1 scores
         only_pos = evaluation_args.get("only_pos", False)
+        remove_first_last = evaluation_args.get("remove_first_last", True)
+
+        score_explanation = explanation_with_rationale.scores
+        human_rationale = explanation_with_rationale.rationale
+
+        if remove_first_last == True:
+            human_rationale = human_rationale[1:-1]
+            if self.tokenizer.cls_token == explanation_with_rationale.tokens[0]:
+                score_explanation = score_explanation[1:-1]
+
         top_k_hard_rationale = evaluation_args.get("top_k_rationale", 5)
 
         topk_score_explanations = get_discrete_explanation_topK(
@@ -240,9 +213,16 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         accumulate_result = evaluation_args.get("accumulate_result", False)
 
         if accumulate_result:
-            return tp, pos, pred_pos, instance_prec, instance_rec, instance_f1_micro
+
+            output_score = np.array(
+                [tp, pos, pred_pos, instance_prec, instance_rec, instance_f1_micro]
+            )
+
+            evaluation_output = Evaluation(self.SHORT_NAME, output_score)
         else:
-            return instance_f1_micro
+            evaluation_output = Evaluation(self.SHORT_NAME, instance_f1_micro)
+
+        return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):
         average = aggregation_args.get("average", "macro")
@@ -306,8 +286,11 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         iou = 0 if denom == 0 else num / denom
         return iou
 
-    def evaluate_explanation(
-        self, text, score_explanation, human_rationale, target=1, **evaluation_args
+    def compute_evaluation(
+        self,
+        explanation_with_rationale: ExplanationWithRationale,
+        target=1,
+        **evaluation_args
     ):
 
         """From ERASER
@@ -319,40 +302,30 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         soft_score_explanation: soft scores, len = #tokens, floats
         """
 
+        if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
+            return None
+
         only_pos = evaluation_args.get("only_pos", False)
+        remove_first_last = evaluation_args.get("remove_first_last", True)
+
+        score_explanation = explanation_with_rationale.scores
+        human_rationale = explanation_with_rationale.rationale
+
+        if remove_first_last == True:
+            human_rationale = human_rationale[1:-1]
+            if self.tokenizer.cls_token == explanation_with_rationale.tokens[0]:
+                score_explanation = score_explanation[1:-1]
+
         top_k_hard_rationale = evaluation_args.get("top_k_rationale", 5)
 
         topk_score_explanations = get_discrete_explanation_topK(
             score_explanation, top_k_hard_rationale, only_pos=only_pos
         )
 
-        return self._token_iou(human_rationale, topk_score_explanations)
+        token_iou = self._token_iou(human_rationale, topk_score_explanations)
 
-    # TODO
-    def evaluate_explanations(
-        self,
-        texts: List[str],
-        score_explanations: List[List[float]],
-        human_rationales,
-        targets=None,
-        **evaluation_args
-    ):
-        scores = []
-        for text, score_explanation, human_rationale in zip(
-            texts, score_explanations, human_rationales
-        ):
-            scores.append(
-                self.evaluate_explanation(
-                    text,
-                    score_explanation,
-                    human_rationale,
-                    # target=target,
-                    **evaluation_args
-                )
-            )
-        # https://github.com/jayded/eraserbenchmark/blob/36467f1662812cbd4fbdd66879946cd7338e08ec/rationale_benchmark/metrics.py#L222        # Average of aucs
-        average_score, std = np.average(scores), np.std(scores)
-        return average_score, std
+        evaluation_output = Evaluation(self.SHORT_NAME, token_iou)
+        return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):
         return super().aggregate_score(score, total, **aggregation_args)

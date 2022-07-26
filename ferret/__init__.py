@@ -12,18 +12,19 @@ from .explainers.dummy import DummyExplainer
 
 from .benchmark import Benchmark
 
-
-from .evaluation.explanation_evaluation import ExplanationEvalutator
-from .evaluation.faithfulness_measures import (
+from .evaluators.faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,
     AOPC_Sufficiency_Evaluation,
     TauLOO_Evaluation,
 )
-from .evaluation.plausibility_measures import (
+from .evaluators.plausibility_measures import (
     AUPRC_PlausibilityEvaluation,
     Tokenf1_PlausibilityEvaluation,
     TokenIOU_PlausibilityEvaluation,
 )
-from .evaluation.classes_evaluation_measures import (
-    AOPC_Comprehensiveness_Evaluation_by_class,
-)
+
+from .datasets.datamanagers import HateXplainDataset
+
+# from .evaluators.classes_evaluation_measures import (
+#    AOPC_Comprehensiveness_Evaluation_by_class,
+# )
