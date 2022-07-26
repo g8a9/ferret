@@ -40,7 +40,7 @@ import pytreebank
 set_names = ["train", "validation", "test"]
 
 
-def main(output_dir, normalize=False):
+def main(output_dir, normalize=True):
     """
     Author: Eliana Pastor
     Adapted from https://github.com/BoulderDS/evaluating-human-rationales/blob/66402dbe8ccdf8b841c185cd8050b8bdc04ef3d2/scripts/download_and_process_sst.py#L20
@@ -75,7 +75,7 @@ def get_leaves(tree):
     return leaves
 
 
-def get_sst_rationale(item, normalize=False):
+def get_sst_rationale(item, normalize=True):
     """
     Author: Eliana Pastor
     Adapted from https://github.com/BoulderDS/evaluating-human-rationales/blob/66402dbe8ccdf8b841c185cd8050b8bdc04ef3d2/scripts/download_and_process_sst.py#L74
@@ -97,7 +97,7 @@ def get_sst_rationale(item, normalize=False):
     return rationale
 
 
-def explanatory_phrase(tree, normalize=False):
+def explanatory_phrase(tree, normalize=True):
     if len(tree.children) == 0:
         return True
     else:
