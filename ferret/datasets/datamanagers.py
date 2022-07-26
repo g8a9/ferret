@@ -262,7 +262,7 @@ class MovieReviews(BaseDataset):
                     rationales = [
                         self._get_rationale_one_hot_encoding(
                             offsets, rationale_offset, len(tokens)
-                        )
+                        ).astype(int)
                         for rationale_offset in rationale_offsets
                     ]
                     return rationales
@@ -272,7 +272,7 @@ class MovieReviews(BaseDataset):
                     offsets, rationale_offsets, len(tokens)
                 )
 
-        return rationale
+        return rationale.astype(int)
 
     def _get_ground_truth(self, idx, split_type: str = TEST_SET):
         item_idx = self._get_item(idx, split_type)
