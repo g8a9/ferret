@@ -224,6 +224,9 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
 
             sample = np.array(copy.copy(input_ids))
 
+            # We take the tokens in the original order
+            id_top = np.sort(id_top)
+
             if removal_args["remove_tokens"]:
                 discrete_expl_th_token_ids = sample[id_top]
             else:
