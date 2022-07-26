@@ -3,6 +3,8 @@ ferret
 
 |pypi badge| |docs badge|
 
+|banner|
+
 .. |pypi badge| image:: https://img.shields.io/pypi/v/ferret-xai.svg
     :target: https://pypi.python.org/pypi/ferret-xai
     :alt: Latest PyPI version
@@ -11,6 +13,10 @@ ferret
     :alt: Documentation Status
     :scale: 100%
     :target: https://ferret.readthedocs.io/en/latest/?version=latest
+
+.. |banner| image:: ./images/banner.png
+    :alt: Ferret circular logo with the name to the right
+    :scale: 100%
 
 A python package for benchmarking interpretability techniques.
 
@@ -55,3 +61,5 @@ This package was created with Cookiecutter and the *audreyr/cookiecutter-pypacka
 
 - Cookiecutter: https://github.com/audreyr/cookiecutter
 - `audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+Logo and graphical assets made by `Luca Attanasio`: https://www.behance.net/attanasiol624d .
