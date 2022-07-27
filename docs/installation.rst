@@ -12,7 +12,7 @@ To install ferret, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install ferret
+    $ pip install -U ferret-xai
 
 This is the preferred method to install ferret, as it will always install the most recent stable release.
 

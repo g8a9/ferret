@@ -1,6 +1,5 @@
 """Client Interface Module"""
 
-from signal import raise_signal
 from typing import List, Union
 
 from ferret.datasets import BaseDataset
@@ -41,6 +40,7 @@ import json
 import numpy as np
 import pandas as pd
 import torch
+from torch.nn.functional import softmax
 from tqdm.auto import tqdm
 import seaborn as sns
 
@@ -317,15 +317,30 @@ class Benchmark:
                 )
         return dataset_evaluation_scores
 
+    def _forward(self, text):
+        item = self.tokenizer(text, return_tensors="pt")
+        with torch.no_grad():
+            outputs = self.model(**item)
+        return outputs
+
+    def score(self, text):
+        outputs = self._forward(text)
+        scores = softmax(outputs.logits[0], dim=-1)
+        return scores
+
     def get_dataframe(self, explanations) -> pd.DataFrame:
         scores = {e.explainer: e.scores for e in explanations}
         scores["Token"] = explanations[0].tokens
         table = pd.DataFrame(scores).set_index("Token").T
         return table
 
-    def show_table(self, explanations, apply_style: bool = True) -> pd.DataFrame:
+    def show_table(
+        self, explanations, apply_style: bool = True, remove_first_last: bool = True
+    ) -> pd.DataFrame:
         """Format explanations scores into a colored table."""
         table = self.get_dataframe(explanations)
+        if remove_first_last:
+            table = table.iloc[:, 1:-1]
 
         # Rename duplicate columns (tokens) by adding a suffix
         if sum(table.columns.duplicated().astype(int)) > 0:
@@ -348,18 +363,6 @@ class Benchmark:
     ) -> pd.DataFrame:
         """Format explanations and evaluations scores into a colored table."""
 
-        explanations = [
-            explanation_evaluation.explanation
-            for explanation_evaluation in explanation_evaluations
-        ]
-        table = self.get_dataframe(explanations)
-
-        # Rename duplicate columns (tokens) by adding a suffix
-        if sum(table.columns.duplicated().astype(int)) > 0:
-            table.columns = pd.io.parsers.base_parser.ParserBase(
-                {"names": table.columns, "usecols": None}
-            )._maybe_dedup_names(table.columns)
-
         explainer_scores = {}
         for explanation_evaluation in explanation_evaluations:
             explainer_scores[explanation_evaluation.explanation.explainer] = {
@@ -367,16 +370,13 @@ class Benchmark:
                 for evaluation in explanation_evaluation.evaluation_scores
             }
 
-        table = pd.concat([table, pd.DataFrame(explainer_scores).T], axis=1)
+        table = pd.DataFrame(explainer_scores).T
 
         if apply_style:
-
             table_style = self.style_evaluation(table)
-
             return table_style
-
         else:
-            table
+            return table
 
     def show_dataset_evaluation_table(
         self,
