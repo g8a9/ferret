@@ -6,6 +6,7 @@ import numpy as np
 from typing import List
 from .utils_from_soft_to_discrete import (
     _check_and_define_get_id_discrete_rationale_function,
+    parse_evaluator_args,
 )
 from .evaluation import Evaluation
 
@@ -24,8 +25,10 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
     TYPE_METRIC = "faithfulness"
 
     def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
-        remove_first_last = evaluation_args.get("remove_first_last", True)
-        only_pos = evaluation_args.get("only_pos", False)
+
+        remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
+            evaluation_args
+        )
 
         text = explanation.text
         score_explanation = explanation.scores
@@ -48,16 +51,6 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             input_ids = input_ids[1:-1]
             if self.tokenizer.cls_token == explanation.tokens[0]:
                 score_explanation = score_explanation[1:-1]
-
-        # Defaul parameters
-        removal_args = {
-            "remove_tokens": True,
-            "based_on": "k",
-            "thresholds": range(1, len(input_ids) + 1),
-        }
-        removal_args_input = evaluation_args.get("removal_args", None)
-        if removal_args_input:
-            removal_args.update(removal_args_input)
 
         discrete_expl_ths = []
         id_tops = []
@@ -114,7 +107,7 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             discrete_expl_th = self.tokenizer.decode(discrete_expl_th_token_ids)
 
             discrete_expl_ths.append(discrete_expl_th)
-
+        print(discrete_expl_ths)
         if discrete_expl_ths == []:
             return Evaluation(self.SHORT_NAME, 0)
 
@@ -144,8 +137,10 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
     TYPE_METRIC = "faithfulness"
 
     def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
-        remove_first_last = evaluation_args.get("remove_first_last", True)
-        only_pos = evaluation_args.get("only_pos", False)
+
+        remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
+            evaluation_args
+        )
 
         text = explanation.text
         score_explanation = explanation.scores
@@ -167,16 +162,6 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             input_ids = input_ids[1:-1]
             if self.tokenizer.cls_token == explanation.tokens[0]:
                 score_explanation = score_explanation[1:-1]
-
-        # Defaul parameters
-        removal_args = {
-            "remove_tokens": True,
-            "based_on": "k",
-            "thresholds": range(1, len(input_ids) + 1),
-        }
-        removal_args_input = evaluation_args.get("removal_args", None)
-        if removal_args_input:
-            removal_args.update(removal_args_input)
 
         discrete_expl_ths = []
         id_tops = []

@@ -6,6 +6,7 @@ from typing import List
 from .evaluation import Evaluation
 from ferret.evaluators.utils_from_soft_to_discrete import (
     get_discrete_explanation_topK,
+    parse_evaluator_args,
 )
 from ferret.explainers.explanation import ExplanationWithRationale
 
@@ -33,8 +34,8 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
         # Plausibility - Area Under the Precision- Recall curve (AUPRC) - ERASER
         if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
             return None
-        only_pos = evaluation_args.get("only_pos", False)
-        remove_first_last = evaluation_args.get("remove_first_last", True)
+
+        remove_first_last, only_pos, _, _ = parse_evaluator_args(evaluation_args)
 
         score_explanation = explanation_with_rationale.scores
         human_rationale = explanation_with_rationale.rationale
@@ -186,8 +187,10 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
             return None
 
         # Token fpr - hard rationale predictions. token-level F1 scores
-        only_pos = evaluation_args.get("only_pos", False)
-        remove_first_last = evaluation_args.get("remove_first_last", True)
+
+        remove_first_last, only_pos, _, top_k_hard_rationale = parse_evaluator_args(
+            evaluation_args
+        )
 
         score_explanation = explanation_with_rationale.scores
         human_rationale = explanation_with_rationale.rationale
@@ -196,8 +199,6 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
             human_rationale = human_rationale[1:-1]
             if self.tokenizer.cls_token == explanation_with_rationale.tokens[0]:
                 score_explanation = score_explanation[1:-1]
-
-        top_k_hard_rationale = evaluation_args.get("top_k_rationale", 5)
 
         topk_score_explanations = get_discrete_explanation_topK(
             score_explanation, top_k_hard_rationale, only_pos=only_pos
@@ -308,8 +309,9 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
             return None
 
-        only_pos = evaluation_args.get("only_pos", False)
-        remove_first_last = evaluation_args.get("remove_first_last", True)
+        remove_first_last, only_pos, _, top_k_hard_rationale = parse_evaluator_args(
+            evaluation_args
+        )
 
         score_explanation = explanation_with_rationale.scores
         human_rationale = explanation_with_rationale.rationale
@@ -318,8 +320,6 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
             human_rationale = human_rationale[1:-1]
             if self.tokenizer.cls_token == explanation_with_rationale.tokens[0]:
                 score_explanation = score_explanation[1:-1]
-
-        top_k_hard_rationale = evaluation_args.get("top_k_rationale", 5)
 
         topk_score_explanations = get_discrete_explanation_topK(
             score_explanation, top_k_hard_rationale, only_pos=only_pos
