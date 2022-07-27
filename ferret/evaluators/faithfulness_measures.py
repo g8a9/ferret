@@ -107,7 +107,7 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             discrete_expl_th = self.tokenizer.decode(discrete_expl_th_token_ids)
 
             discrete_expl_ths.append(discrete_expl_th)
-        print(discrete_expl_ths)
+
         if discrete_expl_ths == []:
             return Evaluation(self.SHORT_NAME, 0)
 
