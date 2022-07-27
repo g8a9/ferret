@@ -4,7 +4,6 @@ from signal import raise_signal
 from typing import List, Union
 
 from ferret.datasets import BaseDataset
-from ferret.datasets.sst_loader import SSTDataset
 
 from . import (
     SHAPExplainer,
