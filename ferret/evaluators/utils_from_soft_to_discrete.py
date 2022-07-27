@@ -15,8 +15,9 @@ def _get_id_tokens_top_k(soft_score_explanation, k, only_pos=True):
         ]
     else:
         id_top_k = np.array(soft_score_explanation).argsort()[-k:][::-1]
-    # if len(id_top_k) != k:
-    #    return None
+    # None if we take no token
+    if id_top_k == []:
+        return None
     return id_top_k
 
 
