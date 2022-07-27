@@ -116,7 +116,7 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             discrete_expl_ths.append(discrete_expl_th)
 
         if discrete_expl_ths == []:
-            return np.nan
+            return Evaluation(self.SHORT_NAME, 0)
 
         # Prediction probability for the target
 
@@ -239,7 +239,7 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             discrete_expl_ths.append(discrete_expl_th)
 
         if discrete_expl_ths == []:
-            return np.nan
+            return Evaluation(self.SHORT_NAME, 1)
 
         # Prediction probability for the target
 
