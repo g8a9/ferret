@@ -77,15 +77,19 @@ class Benchmark:
         self.tokenizer = tokenizer
 
         if not explainers:
-            self._used_explainers = [
-                SHAPExplainer,
-                GradientExplainer,
-                IntegratedGradientExplainer,
-                LIMEExplainer,
-            ]
             self.explainers = [
-                e(self.model, self.tokenizer) for e in self._used_explainers
+                SHAPExplainer(self.model, self.tokenizer),
+                LIMEExplainer(self.model, self.tokenizer),
+                GradientExplainer(self.model, self.tokenizer, multiply_by_inputs=False),
+                GradientExplainer(self.model, self.tokenizer, multiply_by_inputs=True),
+                IntegratedGradientExplainer(
+                    self.model, self.tokenizer, multiply_by_inputs=False
+                ),
+                IntegratedGradientExplainer(
+                    self.model, self.tokenizer, multiply_by_inputs=True
+                ),
             ]
+
         if not evaluators:
             self._used_evaluators = [
                 AOPC_Comprehensiveness_Evaluation,

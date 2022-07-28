@@ -13,6 +13,7 @@ with open("HISTORY.rst") as history_file:
 requirements = [
     "transformers",
     "datasets",
+    "sentencepiece",
     "captum",
     "einops",
     "shap",

@@ -10,11 +10,17 @@ import torch
 class GradientExplainer(BaseExplainer):
     NAME = "Gradient"
 
+    def __init__(self, model, tokenizer, multiply_by_inputs: bool = True):
+        super().__init__(model, tokenizer)
+        self.multiply_by_inputs = multiply_by_inputs
+
+        if self.multiply_by_inputs:
+            self.NAME += " (x Input)"
+
     def compute_feature_importance(
         self,
         text: str,
         target: int == 1,
-        multiply_by_inputs: bool = True,
         **explainer_args,
     ):
         init_args, call_args = parse_explainer_args(explainer_args)
@@ -30,7 +36,7 @@ class GradientExplainer(BaseExplainer):
 
         dl = (
             InputXGradient(func, **init_args)
-            if multiply_by_inputs
+            if self.multiply_by_inputs
             else Saliency(func, **init_args)
         )
 
@@ -49,6 +55,13 @@ class GradientExplainer(BaseExplainer):
 class IntegratedGradientExplainer(BaseExplainer):
     NAME = "Integrated Gradient"
 
+    def __init__(self, model, tokenizer, multiply_by_inputs: bool = True):
+        super().__init__(model, tokenizer)
+        self.multiply_by_inputs = multiply_by_inputs
+
+        if self.multiply_by_inputs:
+            self.NAME += " (x Input)"
+
     def _generate_baselines(self, input_len):
         ids = (
             [self.tokenizer.cls_token_id]
@@ -58,9 +71,7 @@ class IntegratedGradientExplainer(BaseExplainer):
         embeddings = self._get_input_embeds_from_ids(torch.tensor(ids))
         return embeddings.unsqueeze(0)
 
-    def compute_feature_importance(
-        self, text, target, multiply_by_inputs: bool = False, **explainer_args
-    ):
+    def compute_feature_importance(self, text, target, **explainer_args):
         init_args, call_args = parse_explainer_args(explainer_args)
         item = self.tokenizer(text, return_tensors="pt")
         input_len = item["attention_mask"].sum().item()
@@ -72,7 +83,7 @@ class IntegratedGradientExplainer(BaseExplainer):
             return scores[target].unsqueeze(0)
 
         dl = IntegratedGradients(
-            func, multiply_by_inputs=multiply_by_inputs, **init_args
+            func, multiply_by_inputs=self.multiply_by_inputs, **init_args
         )
         inputs = self.get_input_embeds(text)
         baselines = self._generate_baselines(input_len)
