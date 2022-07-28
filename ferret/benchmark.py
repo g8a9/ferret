@@ -115,7 +115,7 @@ class Benchmark:
         """Compute explanations."""
 
         if progress_bar:
-            pbar = tqdm(total=len(self.explainers), desc="Explainer")
+            pbar = tqdm(total=len(self.explainers), desc="Explainer", leave=False)
 
         explanations = list()
         for exp in self.explainers:
@@ -154,7 +154,7 @@ class Benchmark:
                 if class_explanation is not None
                 else len(self.evaluators)
             )
-            pbar = tqdm(total=total_evaluators, desc="Evaluator")
+            pbar = tqdm(total=total_evaluators, desc="Evaluator", leave=False)
 
         add_first_last = evaluation_args.get("add_first_last", True)
         explanation = (
@@ -258,15 +258,25 @@ class Benchmark:
             )
         return explanation_evaluations
 
-    def generate_dataset_explanations(self, data: BaseDataset, target=None, n=None):
+    def generate_dataset_explanations(
+        self, data: BaseDataset, target=None, n=None, show_progress_bar: bool = True
+    ):
         """
-        Data
-        Target: if target is none, the explanation is with respect the predicted class
+        Generate explanantions sequentially for all samples in one the supported datasets.
+
+        Note that we truncate samples to the maximum sequence length supported by the chosen model.
+
+        Params:
+        - target: if target is none, the explanation is with respect the predicted class
         """
         if isinstance(data, BaseDataset) == False:
             raise ValueError("Type of data should be BaseDataset")
         if n is None:
             n = len(data)
+
+        if show_progress_bar:
+            pbar = tqdm(total=n, desc="Sample", leave=False)
+
         dataset_explanations = list()
         for i in range(0, n):
             instance = data[i]
@@ -278,6 +288,13 @@ class Benchmark:
                     for explanation in explanations
                 ]
             dataset_explanations.append(explanations)
+
+            if show_progress_bar:
+                pbar.update(1)
+
+        if show_progress_bar:
+            pbar.close()
+
         return dataset_explanations
 
     def evaluate_dataset_explanations(
