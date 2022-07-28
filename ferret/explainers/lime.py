@@ -11,7 +11,7 @@ class LIMEExplainer(BaseExplainer):
 
     def compute_feature_importance(self, text, target=1, **explainer_args):
         init_args, call_args = parse_explainer_args(explainer_args)
-        item = self.tokenizer(text, return_tensors="pt")
+        item = self._tokenize(text)
         token_ids = item["input_ids"][0].tolist()
 
         # https://github.com/copenlu/xai-benchmark/blob/1cb264c21fb2c0b036127cf3bb8e035c5c5e95da/saliency_gen/interpret_lime.py

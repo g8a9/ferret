@@ -25,7 +25,7 @@ class GradientExplainer(BaseExplainer):
     ):
         init_args, call_args = parse_explainer_args(explainer_args)
 
-        item = self.tokenizer(text, return_tensors="pt")
+        item = self._tokenize(text)
         input_len = item["attention_mask"].sum().item()
 
         def func(input_embeds):
@@ -73,7 +73,7 @@ class IntegratedGradientExplainer(BaseExplainer):
 
     def compute_feature_importance(self, text, target, **explainer_args):
         init_args, call_args = parse_explainer_args(explainer_args)
-        item = self.tokenizer(text, return_tensors="pt")
+        item = self._tokenize(text)
         input_len = item["attention_mask"].sum().item()
 
         def func(input_embeds):
