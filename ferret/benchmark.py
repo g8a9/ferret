@@ -190,6 +190,44 @@ class Benchmark:
 
         return explanation_eval
 
+    def evaluate_explanations(
+        self,
+        explanations: List[Union[Explanation, ExplanationWithRationale]],
+        target,
+        human_rationale=None,
+        class_explanations=None,
+        progress_bar=True,
+        **evaluation_args,
+    ) -> List[ExplanationEvaluation]:
+        explanation_evaluations = list()
+
+        class_explanations_by_explainer = self._get_class_explanations_by_explainer(
+            class_explanations
+        )
+        if progress_bar:
+            pbar = tqdm(total=len(explanations), desc="Explanation eval", leave=False)
+
+        for i, explanation in enumerate(explanations):
+            class_explanation = None
+            if class_explanations_by_explainer is not None:
+                class_explanation = class_explanations_by_explainer[i]
+
+            explanation_evaluations.append(
+                self.evaluate_explanation(
+                    explanation,
+                    target,
+                    human_rationale,
+                    class_explanation,
+                    progress_bar=False,
+                    **evaluation_args,
+                )
+            )
+            if progress_bar:
+                pbar.update(1)
+        if progress_bar:
+            pbar.close()
+        return explanation_evaluations
+
     def _add_rationale(
         self,
         explanation: Explanation,
