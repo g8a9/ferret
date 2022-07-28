@@ -92,9 +92,8 @@ Datasets evaluations
     bench = Benchmark(...)
 
     hatexdata = bench.load_dataset("hatexplain")
-    dataset_explanations = bench.generate_dataset_explanations(hatexdata)
-    dataset_evaluations = bench.evaluate_dataset_explanations(dataset_explanations)
-    bench.show_dataset_evaluation_table(dataset_evaluations)
+    sample_evaluations =  bench.evaluate_samples(hatexdata, [1,2])
+    bench.show_samples_evaluation_table(sample_evaluations)
 
 
 Credits
