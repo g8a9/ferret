@@ -1,6 +1,6 @@
 """Client Interface Module"""
 
-from typing import List, Union
+from typing import Dict, List, Union
 
 from ferret.datasets import BaseDataset
 
@@ -43,6 +43,7 @@ import torch
 from torch.nn.functional import softmax
 from tqdm.auto import tqdm
 import seaborn as sns
+from joblib import Parallel, delayed
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 EVALUATION_PALETTE_HIGHER_BETTER = sns.light_palette("purple", as_cmap=True)
@@ -228,116 +229,6 @@ class Benchmark:
             ]
         return class_explanations_by_explainer
 
-    def evaluate_explanations(
-        self,
-        explanations: List[Union[Explanation, ExplanationWithRationale]],
-        target,
-        human_rationale=None,
-        class_explanations=None,
-        **evaluation_args,
-    ) -> List[ExplanationEvaluation]:
-        explanation_evaluations = list()
-
-        class_explanations_by_explainer = self._get_class_explanations_by_explainer(
-            class_explanations
-        )
-
-        for i, explanation in enumerate(explanations):
-            class_explanation = None
-            if class_explanations_by_explainer is not None:
-                class_explanation = class_explanations_by_explainer[i]
-
-            explanation_evaluations.append(
-                self.evaluate_explanation(
-                    explanation,
-                    target,
-                    human_rationale,
-                    class_explanation,
-                    **evaluation_args,
-                )
-            )
-        return explanation_evaluations
-
-    def generate_dataset_explanations(
-        self, data: BaseDataset, target=None, n=None, show_progress_bar: bool = True
-    ):
-        """
-        Generate explanantions sequentially for all samples in one the supported datasets.
-
-        Note that we truncate samples to the maximum sequence length supported by the chosen model.
-
-        Params:
-        - target: if target is none, the explanation is with respect the predicted class
-        """
-        if isinstance(data, BaseDataset) == False:
-            raise ValueError("Type of data should be BaseDataset")
-        if n is None:
-            n = len(data)
-
-        if show_progress_bar:
-            pbar = tqdm(total=n, desc="Sample", leave=False)
-
-        dataset_explanations = list()
-        for i in range(0, n):
-            instance = data[i]
-            text = instance["text"]
-            explanations = self.explain(text)
-            if "rationale" in instance:
-                explanations = [
-                    self._add_rationale(explanation, instance["rationale"])
-                    for explanation in explanations
-                ]
-            dataset_explanations.append(explanations)
-
-            if show_progress_bar:
-                pbar.update(1)
-
-        if show_progress_bar:
-            pbar.close()
-
-        return dataset_explanations
-
-    def evaluate_dataset_explanations(
-        self,
-        dataset_explanations: List[List[Union[Explanation, ExplanationWithRationale]]],
-        target=1,
-        **evaluation_args,
-    ):
-        # We want to accumulate the results.
-        evaluation_args["accumulate_result"] = True
-
-        # Init dictionary with accumation scores
-        dataset_evaluation_scores = {}
-
-        for explainer in self.explainers:
-            dataset_evaluation_scores[explainer.NAME] = {}
-            for evaluator in self.evaluators:
-                dataset_evaluation_scores[explainer.NAME][
-                    evaluator.SHORT_NAME
-                ] = copy.deepcopy(evaluator.INIT_VALUE)
-
-        n_explanations = len(dataset_explanations)
-        for explanations in dataset_explanations:
-            for explanation in explanations:
-                evaluation = self.evaluate_explanation(
-                    explanation, target, **evaluation_args
-                )
-                # Accumulate scores
-                for evaluation_score in evaluation.evaluation_scores:
-                    dataset_evaluation_scores[explanation.explainer][
-                        evaluation_score.name
-                    ] += evaluation_score.score
-
-        # From accumulated results to average vaalue
-        for evaluator in self.evaluators:
-            for explainer_name, evaluations in dataset_evaluation_scores.items():
-                dataset_evaluation_scores[explainer_name][
-                    evaluator.SHORT_NAME
-                ] = evaluator.aggregate_score(
-                    evaluations[evaluator.SHORT_NAME], n_explanations
-                )
-        return dataset_evaluation_scores
-
     def _forward(self, text):
         item = self.tokenizer(text, return_tensors="pt")
         with torch.no_grad():
@@ -399,24 +290,6 @@ class Benchmark:
         else:
             return table
 
-    def show_dataset_evaluation_table(
-        self,
-        dataset_evaluation_average_scores,
-        apply_style: bool = True,
-    ) -> pd.DataFrame:
-        """Format dataset average evaluations scores into a colored table."""
-
-        table = pd.DataFrame(dataset_evaluation_average_scores).T
-
-        if apply_style:
-
-            table_style = self.style_evaluation(table)
-
-            return table_style
-
-        else:
-            return table
-
     def style_evaluation(self, table):
         table_style = table.style.background_gradient(
             axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
@@ -451,53 +324,6 @@ class Benchmark:
             )
         return table_style
 
-    def _jsonify_explanations(
-        self,
-        explanations: List[Union[Explanation, ExplanationWithRationale]],
-    ):
-        def jsonify(obj):
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            if isinstance(obj, torch.Tensor):
-                return obj.numpy().tolist()
-            return obj
-
-        explanations_json = []
-        for explanation in explanations:
-
-            dict_explanation = dataclasses.asdict(explanation)
-            dict_explanation = {k: jsonify(v) for k, v in dict_explanation.items()}
-            explanations_json.append(dict_explanation)
-
-        return explanations_json
-
-    def store_explanations(
-        self,
-        explanations: List[Union[Explanation, ExplanationWithRationale]],
-        output: str,
-    ):
-        explanation_json_format = self._jsonify_explanations(explanations)
-        with open(f"{output}.json", "w") as f:
-            json.dump(explanation_json_format, f)
-
-    def store_dataset_explanations(
-        self,
-        dataset_explanations: List[List[Union[Explanation, ExplanationWithRationale]]],
-        output: str,
-    ):
-        dataset_explanations_json_format = {}
-        for idx, explanations in enumerate(dataset_explanations):
-            dataset_explanations_json_format[idx] = self._jsonify_explanations(
-                explanations
-            )
-        with open(f"{output}.json", "w") as f:
-            json.dump(dataset_explanations_json_format, f)
-
-    def read_dataset_explanations(self, input):
-        with open(f"{input}.json", "r") as f:
-            dataset_explanations = json.load(f)
-        return dataset_explanations
-
     def load_dataset(self, dataset_name: str, **kwargs):
         if dataset_name == "hatexplain":
             data = HateXplainDataset(self.tokenizer)
@@ -509,3 +335,217 @@ class Benchmark:
             except:
                 raise ValueError(f"Dataset {dataset_name} is not supported")
         return data
+
+    def evaluate_samples(
+        self,
+        dataset: BaseDataset,
+        sample: Union[int, List[int]],
+        show_progress_bar: bool = True,
+        n_workers: int = 1,
+    ) -> Dict:
+        """Explain a dataset sample, evaluate explanations, and compute average scores."""
+
+        #  Use list to index datasets
+        if isinstance(sample, int):
+            sample = [sample]
+
+        instances = [dataset[s] for s in sample]
+
+        #  Compute explanations for the predicted class
+        scores = [self.score(i["text"]) for i in instances]
+        predicted_classes = torch.cat(scores).argmax(-1).tolist()
+
+        targets = predicted_classes
+
+        if show_progress_bar:
+            pbar = tqdm(total=len(targets), desc="Text", leave=False)
+
+        explanations = list()
+        if n_workers > 1:
+            raise NotImplementedError()
+            #  Parallel(n_jobs=2)(delayed(sqrt)(i ** 2) for i in range(10))
+        else:
+            #  TODO Eliana
+            pbar.update(1)
+
+        if show_progress_bar:
+            pbar.close()
+
+        evaluations = [self.evaluate_explanation(e) for e in explanations]
+
+        return {"explanations": explanations, "evaluations": evaluations}
+
+    # def evaluate_explanations(
+    #     self,
+    #     explanations: List[Union[Explanation, ExplanationWithRationale]],
+    #     target,
+    #     human_rationale=None,
+    #     class_explanations=None,
+    #     **evaluation_args,
+    # ) -> List[ExplanationEvaluation]:
+    #     explanation_evaluations = list()
+
+    #     class_explanations_by_explainer = self._get_class_explanations_by_explainer(
+    #         class_explanations
+    #     )
+
+    #     for i, explanation in enumerate(explanations):
+    #         class_explanation = None
+    #         if class_explanations_by_explainer is not None:
+    #             class_explanation = class_explanations_by_explainer[i]
+
+    #         explanation_evaluations.append(
+    #             self.evaluate_explanation(
+    #                 explanation,
+    #                 target,
+    #                 human_rationale,
+    #                 class_explanation,
+    #                 **evaluation_args,
+    #             )
+    #         )
+    #     return explanation_evaluations
+
+    # def evaluate_dataset_explanations(
+    #     self,
+    #     dataset_explanations: List[List[Union[Explanation, ExplanationWithRationale]]],
+    #     target=1,
+    #     **evaluation_args,
+    # ):
+    #     # We want to accumulate the results.
+    #     evaluation_args["accumulate_result"] = True
+
+    #     # Init dictionary with accumation scores
+    #     dataset_evaluation_scores = {}
+
+    #     for explainer in self.explainers:
+    #         dataset_evaluation_scores[explainer.NAME] = {}
+    #         for evaluator in self.evaluators:
+    #             dataset_evaluation_scores[explainer.NAME][
+    #                 evaluator.SHORT_NAME
+    #             ] = copy.deepcopy(evaluator.INIT_VALUE)
+
+    #     n_explanations = len(dataset_explanations)
+    #     for explanations in dataset_explanations:
+    #         for explanation in explanations:
+    #             evaluation = self.evaluate_explanation(
+    #                 explanation, target, **evaluation_args
+    #             )
+    #             # Accumulate scores
+    #             for evaluation_score in evaluation.evaluation_scores:
+    #                 dataset_evaluation_scores[explanation.explainer][
+    #                     evaluation_score.name
+    #                 ] += evaluation_score.score
+
+    #     # From accumulated results to average vaalue
+    #     for evaluator in self.evaluators:
+    #         for explainer_name, evaluations in dataset_evaluation_scores.items():
+    #             dataset_evaluation_scores[explainer_name][
+    #                 evaluator.SHORT_NAME
+    #             ] = evaluator.aggregate_score(
+    #                 evaluations[evaluator.SHORT_NAME], n_explanations
+    #             )
+    #     return dataset_evaluation_scores
+
+    # def show_dataset_evaluation_table(
+    #     self,
+    #     dataset_evaluation_average_scores,
+    #     apply_style: bool = True,
+    # ) -> pd.DataFrame:
+    #     """Format dataset average evaluations scores into a colored table."""
+
+    #     table = pd.DataFrame(dataset_evaluation_average_scores).T
+
+    #     if apply_style:
+
+    #         table_style = self.style_evaluation(table)
+
+    #         return table_style
+
+    #     else:
+    #         return table
+
+    # def generate_dataset_explanations(
+    #     self, data: BaseDataset, target=None, n=None, show_progress_bar: bool = True
+    # ):
+    #     """
+    #     Generate explanantions sequentially for all samples in one the supported datasets.
+
+    #     Note that we truncate samples to the maximum sequence length supported by the chosen model.
+
+    #     Params:
+    #     - target: if target is none, the explanation is with respect the predicted class
+    #     """
+    #     if isinstance(data, BaseDataset) == False:
+    #         raise ValueError("Type of data should be BaseDataset")
+    #     if n is None:
+    #         n = len(data)
+
+    #     if show_progress_bar:
+    #         pbar = tqdm(total=n, desc="Sample", leave=False)
+
+    #     dataset_explanations = list()
+    #     for i in range(0, n):
+    #         instance = data[i]
+    #         text = instance["text"]
+    #         explanations = self.explain(text)
+    #         if "rationale" in instance:
+    #             explanations = [
+    #                 self._add_rationale(explanation, instance["rationale"])
+    #                 for explanation in explanations
+    #             ]
+    #         dataset_explanations.append(explanations)
+
+    #         if show_progress_bar:
+    #             pbar.update(1)
+
+    #     if show_progress_bar:
+    #         pbar.close()
+
+    #     return dataset_explanations
+
+    # def _jsonify_explanations(
+    #     self,
+    #     explanations: List[Union[Explanation, ExplanationWithRationale]],
+    # ):
+    #     def jsonify(obj):
+    #         if isinstance(obj, np.ndarray):
+    #             return obj.tolist()
+    #         if isinstance(obj, torch.Tensor):
+    #             return obj.numpy().tolist()
+    #         return obj
+
+    #     explanations_json = []
+    #     for explanation in explanations:
+
+    #         dict_explanation = dataclasses.asdict(explanation)
+    #         dict_explanation = {k: jsonify(v) for k, v in dict_explanation.items()}
+    #         explanations_json.append(dict_explanation)
+
+    #     return explanations_json
+
+    # def store_explanations(
+    #     self,
+    #     explanations: List[Union[Explanation, ExplanationWithRationale]],
+    #     output: str,
+    # ):
+    #     explanation_json_format = self._jsonify_explanations(explanations)
+    #     with open(f"{output}.json", "w") as f:
+    #         json.dump(explanation_json_format, f)
+
+    # def store_dataset_explanations(
+    #     self,
+    #     dataset_explanations: List[List[Union[Explanation, ExplanationWithRationale]]],
+    #     output: str,
+    # ):
+    #     dataset_explanations_json_format = {}
+    #     for idx, explanations in enumerate(dataset_explanations):
+    #         dataset_explanations_json_format[idx] = self._jsonify_explanations(
+    #             explanations
+    #         )
+    #     with open(f"{output}.json", "w") as f:
+    #         json.dump(dataset_explanations_json_format, f)
+
+    # def read_dataset_explanations(self, input):
+    #     with open(f"{input}.json", "r") as f:
+    #         dataset_explanations = json.load(f)
+    #     return dataset_explanations
