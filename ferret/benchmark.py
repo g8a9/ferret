@@ -399,8 +399,9 @@ class Benchmark:
                         evaluation_scores_by_explainer[explanation.explainer][
                             evaluation_score.name
                         ].append(evaluation_score.score)
+                if show_progress_bar:
+                    pbar.update(1)
 
-                pbar.update(1)
         # We compute mean and std, separately for each explainer and evaluator
         for explainer in evaluation_scores_by_explainer:
             for score_name, list_scores in evaluation_scores_by_explainer[
