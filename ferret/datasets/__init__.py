@@ -14,6 +14,12 @@ class BaseDataset(ABC):
     def NAME(self):
         pass
 
+    @property
+    @abstractmethod
+    def avg_rationale_size(self):
+        # Default value
+        return 5
+
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 

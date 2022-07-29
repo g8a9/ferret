@@ -395,6 +395,10 @@ class Benchmark:
 
         instances = [dataset[s] for s in sample]
 
+        # For the IOU and Token F1 plausibility scores we specify the K for deriving the top-k rationale
+        # As in DeYoung et al. 2020, we set it as the average size of the human rationales of the dataset
+        evaluation_args["top_k_rationale"] = dataset.avg_rationale_size
+
         # Default, w.r.t. predicted class
         if target is None:
             #  Compute explanations for the predicted class

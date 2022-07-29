@@ -18,6 +18,8 @@ from .utils_sst_rationale_generation import get_sst_rationale
 class HateXplainDataset(BaseDataset):
 
     NAME = "HateXplain"
+    avg_rationale_size = 7
+    # np.mean([sum(self._get_rationale(i, split_type="train")[self._get_ground_truth(i, split_type="train")]) for i in range(self.len("train"))])
 
     def __init__(self, tokenizer):
         from datasets import load_dataset
@@ -27,6 +29,7 @@ class HateXplainDataset(BaseDataset):
         self.validation_dataset = dataset["validation"]
         self.test_dataset = dataset["test"]
         self.tokenizer = tokenizer
+        self.top_k_hard_rationale = 7
         self.classes = [0, 1, 2]
 
     def __len__(self):
@@ -140,6 +143,7 @@ class HateXplainDataset(BaseDataset):
 class MovieReviews(BaseDataset):
 
     NAME = "MovieReviews"
+    avg_rationale_size = 78
 
     def __init__(self, tokenizer):
         from datasets import load_dataset
@@ -316,6 +320,7 @@ class MovieReviews(BaseDataset):
 class SSTDataset(BaseDataset):
 
     NAME = "SST"
+    avg_rationale_size = 10
 
     def __init__(self, tokenizer):
         from datasets import load_dataset
