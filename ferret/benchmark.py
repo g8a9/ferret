@@ -422,8 +422,9 @@ class Benchmark:
                 # If available, we add the human rationale
                 # It will be used in the evaluation of plausibility
                 if "rationale" in instance:
+                    # Add the human rationale for the corresponding class
                     explanations = [
-                        self._add_rationale(explanation, instance["rationale"])
+                        self._add_rationale(explanation, instance["rationale"][target])
                         for explanation in explanations
                     ]
 

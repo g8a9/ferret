@@ -9,6 +9,8 @@ TRAIN_SET = "TRAIN_SET"
 VALIDATION_SET = "VALIDATION_SET"
 TEST_SET = "TEST_SET"
 
+NONE_RATIONALE = []
+
 
 class HateXplainDataset(BaseDataset):
 
@@ -22,6 +24,7 @@ class HateXplainDataset(BaseDataset):
         self.validation_dataset = dataset["validation"]
         self.test_dataset = dataset["test"]
         self.tokenizer = tokenizer
+        self.classes = [0, 1, 2]
 
     def __len__(self):
         # We use the TEST_SET as default
@@ -87,7 +90,11 @@ class HateXplainDataset(BaseDataset):
     def _get_rationale(self, idx, split_type: str = TEST_SET, rationale_union=True):
         item_idx = self._get_item(idx, split_type)
         word_based_tokens = item_idx["post_tokens"]
-        rationale = []
+
+        # All hatexplain rationales are defined for the positive label
+        rationale_label = 1
+
+        rationale_by_label = [NONE_RATIONALE for c in self.classes]
         if "rationales" in item_idx:
             rationales = item_idx["rationales"]
             if len(rationales) > 0 and isinstance(rationales[0], list):
@@ -98,19 +105,20 @@ class HateXplainDataset(BaseDataset):
                     rationale = [int(each) for each in rationale]
                 else:
                     # We return all of them (deprecated)
-                    rationales = [
+                    rationale_by_label[rationale_label] = [
                         self.get_true_rationale_from_words_to_tokens(
                             word_based_tokens, rationale
                         )
                         for rationale in rationales
                     ]
-                    return rationales
+                    return rationale_by_label
             else:
                 rationale = rationales
-        rationale = self.get_true_rationale_from_words_to_tokens(
-            word_based_tokens, rationale
-        )
-        return rationale
+        rationale_by_label[
+            rationale_label
+        ] = self.get_true_rationale_from_words_to_tokens(word_based_tokens, rationale)
+
+        return rationale_by_label
 
     def _get_ground_truth(self, idx, split_type: str = TEST_SET):
         item_idx = self._get_item(idx, split_type)
@@ -138,6 +146,7 @@ class MovieReviews(BaseDataset):
         self.validation_dataset = dataset["validation"]
         self.test_dataset = dataset["test"]
         self.tokenizer = tokenizer
+        self.classes = [0, 1]
 
     def __len__(self):
         # We use the TEST_SET as default
@@ -244,6 +253,12 @@ class MovieReviews(BaseDataset):
 
         rationale = []
         rationale_field_name = "evidences"
+
+        # Movie rationales are defined for the ground truth label
+        rationale_label = self._get_ground_truth(idx)
+
+        rationale_by_label = [NONE_RATIONALE for c in self.classes]
+
         if rationale_field_name in item_idx:
             text_rationales = item_idx[rationale_field_name]
 
@@ -253,8 +268,12 @@ class MovieReviews(BaseDataset):
                 if rationale_union:
                     # We get the union of the rationales.
                     rationale_offsets = [t1 for t in rationale_offsets for t1 in t]
-                    rationale = self._get_rationale_one_hot_encoding(
+                    rationale_by_label[
+                        rationale_label
+                    ] = self._get_rationale_one_hot_encoding(
                         offsets, rationale_offsets, len(tokens)
+                    ).astype(
+                        int
                     )
 
                 else:
@@ -265,14 +284,19 @@ class MovieReviews(BaseDataset):
                         ).astype(int)
                         for rationale_offset in rationale_offsets
                     ]
-                    return rationales
+                    rationale_by_label[rationale_label] = rationales
+                    return rationale_by_label
             else:
 
-                rationale = self._get_rationale_one_hot_encoding(
+                rationale_by_label[
+                    rationale_label
+                ] = self._get_rationale_one_hot_encoding(
                     offsets, rationale_offsets, len(tokens)
+                ).astype(
+                    int
                 )
 
-        return rationale.astype(int)
+        return rationale_by_label
 
     def _get_ground_truth(self, idx, split_type: str = TEST_SET):
         item_idx = self._get_item(idx, split_type)
