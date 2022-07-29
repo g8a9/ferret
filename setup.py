@@ -54,6 +54,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/g8a9/ferret",
-    version="0.2.4",
+    version="0.3.0",
     zip_safe=False,
 )
