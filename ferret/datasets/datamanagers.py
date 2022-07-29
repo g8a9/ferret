@@ -9,7 +9,7 @@ TRAIN_SET = "TRAIN_SET"
 VALIDATION_SET = "VALIDATION_SET"
 TEST_SET = "TEST_SET"
 
-from ..benchmark import NONE_RATIONALE
+NONE_RATIONALE = []
 
 
 class HateXplainDataset(BaseDataset):
