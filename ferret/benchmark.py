@@ -49,6 +49,8 @@ SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 EVALUATION_PALETTE_HIGHER_BETTER = sns.light_palette("purple", as_cmap=True)
 EVALUATION_PALETTE_LOWER_BETTER = sns.light_palette("blue", as_cmap=True, reverse=True)
 
+NONE_RATIONALE = []
+
 
 def normalize(explanations, ord=1):
     """Run Lp noramlization of explanation attribution scores"""
@@ -233,11 +235,9 @@ class Benchmark:
         explanation: Explanation,
         rationale: List,
         add_first_last=True,
-        assign_equal_importance=True,
     ) -> ExplanationWithRationale:
-        if rationale == []:
-            if assign_equal_importance:
-                rationale = [1] * len(explanation.tokens)
+        if rationale == NONE_RATIONALE:
+            return explanation
         else:
             if add_first_last:
                 # We add the importance of the first and last token (0 as default)
@@ -421,7 +421,7 @@ class Benchmark:
                 )
                 # If available, we add the human rationale
                 # It will be used in the evaluation of plausibility
-                if "rationale" in instance:
+                if "rationale" in instance and len(instance["rationale"]) >= target:
                     # Add the human rationale for the corresponding class
                     explanations = [
                         self._add_rationale(explanation, instance["rationale"][target])
@@ -440,7 +440,7 @@ class Benchmark:
                         ].append(evaluation_score.score)
                 if show_progress_bar:
                     pbar.update(1)
-
+        print(evaluation_scores_by_explainer)
         # We compute mean and std, separately for each explainer and evaluator
         for explainer in evaluation_scores_by_explainer:
             for score_name, list_scores in evaluation_scores_by_explainer[
@@ -472,6 +472,10 @@ class Benchmark:
                 for explainer, inner in evaluation_scores_by_explainer.items()
             }
         ).T
+
+        # Avoid visualizing a columns with all nan (default value if plausibility could not computed)
+        table = table.dropna(axis=1, how="all")
+
         if apply_style:
             table_style = self.style_evaluation(table)
             return table_style
