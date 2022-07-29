@@ -35,6 +35,10 @@ def get_discrete_explanation_topK(score_explanation, topK, only_pos=False):
     # Indexes in the top k. If only pos is true, we only consider scores>0
     topk_indices = _get_id_tokens_top_k(score_explanation, topK, only_pos=only_pos)
 
+    # Return default score
+    if topk_indices is None:
+        return None
+
     # topk_score_explanations: one hot encoding: 1 if the token is in the rationale, 0 otherwise
     # i hate you [0, 1, 1]
 
