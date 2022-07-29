@@ -188,6 +188,7 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         remove_first_last, only_pos, _, top_k_hard_rationale = parse_evaluator_args(
             evaluation_args
         )
+        accumulate_result = evaluation_args.get("accumulate_result", False)
 
         score_explanation = explanation_with_rationale.scores
         human_rationale = explanation_with_rationale.rationale
@@ -201,6 +202,13 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
             score_explanation, top_k_hard_rationale, only_pos=only_pos
         )
 
+        if topk_score_explanations is None:
+            # Return default scores
+            if accumulate_result:
+                return Evaluation(self.SHORT_NAME, [0, 0, 0, 0, 0, 0])
+            else:
+                return Evaluation(self.SHORT_NAME, 0)
+
         tp, pos, pred_pos = self._instance_tp_pos_pred_pos(
             human_rationale, topk_score_explanations
         )
@@ -210,8 +218,6 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
             instance_rec,
             instance_f1_micro,
         ) = self._precision_recall_fmeasure(tp, pos, pred_pos)
-
-        accumulate_result = evaluation_args.get("accumulate_result", False)
 
         if accumulate_result:
 
@@ -321,6 +327,9 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         topk_score_explanations = get_discrete_explanation_topK(
             score_explanation, top_k_hard_rationale, only_pos=only_pos
         )
+        if topk_score_explanations is None:
+            # Return default scores
+            return Evaluation(self.SHORT_NAME, 0)
 
         token_iou = self._token_iou(human_rationale, topk_score_explanations)
 
