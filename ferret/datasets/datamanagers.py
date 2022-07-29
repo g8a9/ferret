@@ -84,15 +84,15 @@ class HateXplainDataset(BaseDataset):
     def _get_text(self, idx, split_type: str = TEST_SET):
         item_idx = self._get_item(idx, split_type)
         post_tokens = item_idx["post_tokens"]
-        text = self.tokenizer.convert_tokens_to_string(post_tokens)
+        text = " ".join(post_tokens)
         return text
 
     def _get_rationale(self, idx, split_type: str = TEST_SET, rationale_union=True):
         item_idx = self._get_item(idx, split_type)
         word_based_tokens = item_idx["post_tokens"]
 
-        # All hatexplain rationales are defined for the positive label
-        rationale_label = 1
+        # All hatexplain rationales are defined for the label, only for hatespeech or offensive classes
+        rationale_label = self._get_ground_truth(idx, split_type)
 
         rationale_by_label = [NONE_RATIONALE for c in self.classes]
         if "rationales" in item_idx:
@@ -255,7 +255,7 @@ class MovieReviews(BaseDataset):
         rationale_field_name = "evidences"
 
         # Movie rationales are defined for the ground truth label
-        rationale_label = self._get_ground_truth(idx)
+        rationale_label = self._get_ground_truth(idx, split_type)
 
         rationale_by_label = [NONE_RATIONALE for c in self.classes]
 
