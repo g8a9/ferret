@@ -2,7 +2,7 @@
 
 __author__ = """Giuseppe Attanasio"""
 __email__ = "giuseppeattanasio6@gmail.com"
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 
 from .explainers.shap import SHAPExplainer
