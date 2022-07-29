@@ -1,7 +1,7 @@
 ferret
 ========
 
-|pypi badge| |docs badge| |demo badge| |youtube badge|
+|pypi badge| |docs badge| |demo badge|
 
 |banner|
 
@@ -19,10 +19,10 @@ ferret
     :scale: 100%
     :target: https://huggingface.co/spaces/g8a9/ferret
 
-.. |youtube badge| image:: https://img.shields.io/badge/youtube-video-red
-    :alt: YouTube Video
-    :scale: 100%
-    :target: 
+.. .. |youtube badge| image:: https://img.shields.io/badge/youtube-video-red
+..     :alt: YouTube Video
+..     :scale: 100%
+..     :target: 
 
 .. |banner| image:: ./images/banner.png
     :alt: Ferret circular logo with the name to the right
