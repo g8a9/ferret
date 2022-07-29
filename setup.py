@@ -25,7 +25,8 @@ requirements = [
     "scikit-image",
     "opencv-python",
     "lime",
-    "joblib"
+    "joblib",
+    "pytreebank",
 ]
 
 test_requirements = []

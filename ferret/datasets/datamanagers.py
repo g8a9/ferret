@@ -4,12 +4,15 @@
 from . import BaseDataset
 import numpy as np
 from typing import List
+import pytreebank
 
-TRAIN_SET = "TRAIN_SET"
-VALIDATION_SET = "VALIDATION_SET"
-TEST_SET = "TEST_SET"
+TRAIN_SET = "train"
+VALIDATION_SET = "validation"
+TEST_SET = "test"
 
 NONE_RATIONALE = []
+
+from .utils_sst_rationale_generation import get_sst_rationale
 
 
 class HateXplainDataset(BaseDataset):
@@ -39,7 +42,7 @@ class HateXplainDataset(BaseDataset):
             return len(self.test_dataset)
         else:
             raise ValueError(
-                f"{split_type} not supported as split_type. Specify one among: TRAIN_SET, VALIDATION_SET or TEST_SET."
+                f"{split_type} not supported as split_type. Specify one among: train, validation or test."
             )
 
     def _get_item(self, idx: int, split_type: str = TEST_SET):
@@ -52,7 +55,7 @@ class HateXplainDataset(BaseDataset):
                 item_idx = self.test_dataset[idx]
             else:
                 raise ValueError(
-                    f"{split_type} not supported as split_type. Specify one among: TRAIN_SET, VALIDATION_SET or TEST_SET."
+                    f"{split_type} not supported as split_type. Specify one among:  train, validation or test."
                 )
             return item_idx
         elif isinstance(idx, dict):
@@ -161,7 +164,7 @@ class MovieReviews(BaseDataset):
             return len(self.test_dataset)
         else:
             raise ValueError(
-                f"{split_type} not supported as split_type. Specify one among: TRAIN_SET, VALIDATION_SET or TEST_SET."
+                f"{split_type} not supported as split_type. Specify one among:  train, validation or test."
             )
 
     def _get_item(self, idx: int, split_type: str = TEST_SET):
@@ -251,7 +254,6 @@ class MovieReviews(BaseDataset):
         tokens = tokenizer.convert_ids_to_tokens(encoded_text["input_ids"])
         offsets = encoded_text["offset_mapping"]
 
-        rationale = []
         rationale_field_name = "evidences"
 
         # Movie rationales are defined for the ground truth label
@@ -301,6 +303,123 @@ class MovieReviews(BaseDataset):
     def _get_ground_truth(self, idx, split_type: str = TEST_SET):
         item_idx = self._get_item(idx, split_type)
         label = item_idx["label"]
+        return label
+
+    def get_true_rationale_from_words_to_tokens(
+        self, word_based_tokens: List[str], words_based_rationales: List[int]
+    ):
+        return super().get_true_rationale_from_words_to_tokens(
+            word_based_tokens, words_based_rationales
+        )
+
+
+class SSTDataset(BaseDataset):
+
+    NAME = "SST"
+
+    def __init__(self, tokenizer):
+        from datasets import load_dataset
+
+        dataset = load_dataset("sst")
+        self.train_dataset = dataset["train"]
+        self.validation_dataset = dataset["validation"]
+        self.test_dataset = dataset["test"]
+        self.sst_ptb = load_dataset("sst", "ptb")
+        self.tokenizer = tokenizer
+        self.classes = [0, 1]
+
+    def __len__(self):
+        # We use the TEST_SET as default
+        return self.len()
+
+    def len(self, split_type: str = TEST_SET):
+        if split_type == TRAIN_SET:
+            return len(self.train_dataset)
+        elif split_type == VALIDATION_SET:
+            return len(self.validation_dataset)
+        elif split_type == TEST_SET:
+            return len(self.test_dataset)
+        else:
+            raise ValueError(
+                f"{split_type} not supported as split_type. Specify one among: TRAIN_SET, VALIDATION_SET or TEST_SET."
+            )
+
+    def _get_item(self, idx: int, split_type: str = TEST_SET):
+        if isinstance(idx, int):
+            if split_type == TRAIN_SET:
+                item_idx = self.train_dataset[idx]
+            elif split_type == VALIDATION_SET:
+                item_idx = self.validation_dataset[idx]
+            elif split_type == TEST_SET:
+                item_idx = self.test_dataset[idx]
+            else:
+                raise ValueError(
+                    f"{split_type} not supported as split_type. Specify one among: TRAIN_SET, VALIDATION_SET or TEST_SET."
+                )
+            return item_idx
+        elif isinstance(idx, dict):
+            return idx
+        else:
+            raise ValueError()
+
+    def __getitem__(self, idx):
+        # We use the TEST_SET as default
+        return self.get_instance(idx)
+
+    def get_instance(self, idx, split_type: str = TEST_SET):
+        item_idx = self._get_item(idx, split_type)
+        text = self._get_text(item_idx)
+        tokens = (
+            [self.tokenizer.cls_token]
+            + self.tokenizer.tokenize(text)
+            + [self.tokenizer.sep_token]
+        )
+        rationale = self._get_rationale(idx, item_idx=item_idx, split_type=split_type)
+        true_label = self._get_ground_truth(item_idx, split_type)
+        return {
+            "text": text,
+            "tokens": tokens,
+            "rationale": rationale,
+            "label": true_label,
+        }
+
+    def _get_text(self, idx, split_type: str = TEST_SET):
+        item_idx = self._get_item(idx, split_type)
+        text = item_idx["sentence"]
+        return text
+
+    def _get_rationale(self, idx, item_idx=None, split_type: str = TEST_SET):
+        if item_idx is None:
+            item_idx = self._get_item(idx, split_type)
+        word_based_tokens = item_idx["tokens"].split("|")
+
+        # Rationales are defined for the ground truth
+        rationale_label = self._get_ground_truth(idx, split_type)
+
+        rationale_by_label = [NONE_RATIONALE for c in self.classes]
+
+        # Get rationale from tree
+        tree_str = self.sst_ptb[split_type]["ptb_tree"][idx]
+        tree = pytreebank.create_tree_from_string(tree_str)
+        rationale = get_sst_rationale(tree)
+
+        # Convert rationale in one hot encoding.
+        rationale = [1 if r > 0 else 0 for r in rationale]
+
+        # We convert from word importance to token importance.
+        # If a word is relevant, we say that all tokens of the word are relevant.
+        rationale_by_label[
+            rationale_label
+        ] = self.get_true_rationale_from_words_to_tokens(word_based_tokens, rationale)
+        return rationale_by_label
+
+    def _get_ground_truth(self, idx, split_type: str = TEST_SET, threshold=0.5):
+        item_idx = self._get_item(idx, split_type)
+        label_score = item_idx["label"]
+        if label_score > threshold:
+            label = 1
+        else:
+            label = 0
         return label
 
     def get_true_rationale_from_words_to_tokens(

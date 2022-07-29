@@ -31,7 +31,7 @@ from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
 
 from .modelw import Model
-from .datasets.datamanagers import HateXplainDataset, MovieReviews
+from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
 import copy
 
 import dataclasses
@@ -369,6 +369,8 @@ class Benchmark:
             data = HateXplainDataset(self.tokenizer)
         elif dataset_name == "movie_rationales":
             data = MovieReviews(self.tokenizer)
+        elif dataset_name == "sst":
+            data = SSTDataset(self.tokenizer)
         else:
             try:
                 data = datasets.load_dataset(dataset_name)
