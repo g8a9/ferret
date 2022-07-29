@@ -380,6 +380,7 @@ class Benchmark:
         self,
         dataset: BaseDataset,
         sample: Union[int, List[int]],
+        target=None,
         show_progress_bar: bool = True,
         n_workers: int = 1,
         **evaluation_args,
@@ -392,12 +393,16 @@ class Benchmark:
 
         instances = [dataset[s] for s in sample]
 
-        #  Compute explanations for the predicted class
-        predicted_classes = [
-            self.score(i["text"]).argmax(-1).tolist() for i in instances
-        ]
+        # Default, w.r.t. predicted class
+        if target is None:
+            #  Compute explanations for the predicted class
+            predicted_classes = [
+                self.score(i["text"]).argmax(-1).tolist() for i in instances
+            ]
 
-        targets = predicted_classes
+            targets = predicted_classes
+        else:
+            targets = [target] * len(sample)
 
         if show_progress_bar:
             pbar = tqdm(total=len(targets), desc="explain", leave=False)
@@ -423,7 +428,7 @@ class Benchmark:
                 )
                 # If available, we add the human rationale
                 # It will be used in the evaluation of plausibility
-                if "rationale" in instance and len(instance["rationale"]) >= target:
+                if "rationale" in instance and len(instance["rationale"]) > target:
                     # Add the human rationale for the corresponding class
                     explanations = [
                         self._add_rationale(explanation, instance["rationale"][target])
@@ -442,7 +447,7 @@ class Benchmark:
                         ].append(evaluation_score.score)
                 if show_progress_bar:
                     pbar.update(1)
-        print(evaluation_scores_by_explainer)
+
         # We compute mean and std, separately for each explainer and evaluator
         for explainer in evaluation_scores_by_explainer:
             for score_name, list_scores in evaluation_scores_by_explainer[
