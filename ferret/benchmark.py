@@ -45,9 +45,10 @@ from tqdm.auto import tqdm
 import seaborn as sns
 from joblib import Parallel, delayed
 
+
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
-EVALUATION_PALETTE_HIGHER_BETTER = sns.light_palette("purple", as_cmap=True)
-EVALUATION_PALETTE_LOWER_BETTER = sns.light_palette("blue", as_cmap=True, reverse=True)
+EVALUATION_PALETTE = sns.light_palette("purple", as_cmap=True)
+EVALUATION_PALETTE_REVERSED = sns.light_palette("purple", as_cmap=True, reverse=True)
 
 
 def normalize(explanations, ord=1):
@@ -301,9 +302,9 @@ class Benchmark:
         return (
             table.style.background_gradient(
                 axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
-            )
+            ).format("{:.2f}")
             if apply_style
-            else table
+            else table.format("{:.2f}")
         )
 
     def show_evaluation_table(
@@ -324,14 +325,15 @@ class Benchmark:
 
         if apply_style:
             table_style = self.style_evaluation(table)
-            return table_style
+            return table_style.format("{:.2f}")
         else:
-            return table
+            return table.format("{:.2f}")
 
     def style_evaluation(self, table):
         table_style = table.style.background_gradient(
             axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
         )
+
         show_higher_cols, show_lower_cols = list(), list()
         # Highlight with two different palettes
         for evaluation_measure in self.evaluators + self.class_based_evaluators:
@@ -346,7 +348,7 @@ class Benchmark:
         if show_higher_cols:
             table_style.background_gradient(
                 axis=1,
-                cmap=EVALUATION_PALETTE_HIGHER_BETTER,
+                cmap=EVALUATION_PALETTE,
                 vmin=-1,
                 vmax=1,
                 subset=show_higher_cols,
@@ -355,7 +357,7 @@ class Benchmark:
         if show_lower_cols:
             table_style.background_gradient(
                 axis=1,
-                cmap=EVALUATION_PALETTE_LOWER_BETTER,
+                cmap=EVALUATION_PALETTE_REVERSED,
                 vmin=-1,
                 vmax=1,
                 subset=show_lower_cols,
