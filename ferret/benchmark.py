@@ -274,9 +274,16 @@ class Benchmark:
             outputs = self.model(**item)
         return outputs
 
-    def score(self, text):
+    def score(self, text, return_dict: bool = True):
         outputs = self._forward(text)
         scores = softmax(outputs.logits[0], dim=-1)
+
+        if return_dict:
+            scores = {
+                self.model.config.id2label[idx]: value.item()
+                for idx, value in enumerate(scores)
+            }
+
         return scores
 
     def get_dataframe(self, explanations) -> pd.DataFrame:
@@ -304,7 +311,7 @@ class Benchmark:
                 axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
             ).format("{:.2f}")
             if apply_style
-            else table.format("{:.2f}")
+            else table.style.format("{:.2f}")
         )
 
     def show_evaluation_table(
