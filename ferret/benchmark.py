@@ -148,7 +148,8 @@ class Benchmark:
         target: target class for which we evaluate the explanation
         human rationale: List in one-hot-encoding indicating if the token is in the rationale (1) or not (i)
         class_explanation: list of explanations. The explanation in position 'i' is computed using as target class the class 'i'.
-                            len = #target classes. If available, class-based scores are computed
+
+        len = #target classes. If available, class-based scores are computed
         """
         evaluations = list()
 

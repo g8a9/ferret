@@ -24,7 +24,7 @@ ferret
 ..     :scale: 100%
 ..     :target: 
 
-.. |banner| image:: ./images/banner.png
+.. |banner| image:: /_static/banner.png
     :alt: Ferret circular logo with the name to the right
     :scale: 100%
 
