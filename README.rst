@@ -38,15 +38,15 @@ A python package for benchmarking interpretability techniques.
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     from ferret import Benchmark
 
-    model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased")
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+    name = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+    model = AutoModelForSequenceClassification.from_pretrained(name)
+    tokenizer = AutoTokenizer.from_pretrained(name)
 
     bench = Benchmark(model, tokenizer)
-    explanations = bench.explain("You look stunning!")
-    evaluations = bench.evaluate_explanations(explanations)
+    explanations = bench.explain("You look stunning!", target=1)
+    evaluations = bench.evaluate_explanations(explanations, target=1)
 
-    print(evaluations)
-
+    bench.show_evaluation_table(evaluations)
 
 Features
 --------
