@@ -1,7 +1,7 @@
 ferret
 ========
 
-|pypi badge| |docs badge| |demo badge| |arxiv badge|
+|pypi badge| |docs badge| |demo badge| |youtube badge| |arxiv badge|
 
 |banner|
 
