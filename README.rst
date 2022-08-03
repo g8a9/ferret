@@ -1,7 +1,7 @@
 ferret
 ========
 
-|pypi badge| |docs badge| |demo badge| |youtube badge| |arxiv badge|
+|pypi badge| |docs badge| |demo badge| |youtube badge| |arxiv badge| |downloads badge|
 
 |banner|
 
@@ -32,6 +32,11 @@ ferret
     :alt: arxiv preprint
     :scale: 100%
     :target: https://arxiv.org/abs/2208.01575
+    
+.. |downloads badge| image:: https://pepy.tech/badge/ferret-xai
+    :alt: downloads badge
+    :scale: 100%
+    :target: https://pepy.tech/project/ferret-xai
 
 
 A python package for benchmarking interpretability techniques.
