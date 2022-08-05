@@ -62,34 +62,30 @@ A python package for benchmarking interpretability techniques.
 Features
 --------
 
-**ferret** builds on top of the transformers library. The library supports explanations using:
+**ferret** offers a *painless* integration with Hugging Face models and naming conventions. If you are already using the `transformers <https://github.com/huggingface/transformers>`_ library, you immediately get access to our **Explanation and Evaluation API**.
 
-* Gradients
-* Integrated Gradinets
-* Gradient x Input word embeddings
-* SHAP
+Supported Post-hoc Explainers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Gradient (plain gradients or multiplied by input token embeddings)
+* Integrated Gradinet (plain gradients or multiplied by input token embeddings)
+* SHAP (via Partition SHAP approximation of Shapley values)
 * LIME
 
-and evaluate explanations via:
+Supported Evaluation Metrics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Faithfulness measures.
+**Faithfulness** measures:
 
 * AOPC Comprehensiveness
 * AOPC Sufficiency
-* Kendall’s tau correlation with leave-one-feature out
+* Kendall’s Tau correlation with Leave-One-Out token removal.
 
+**Plausibility** measures:
 
-Plausibility measures.
-
-* AUPRC soft score plausibility
-* Token f1 hard score plausibility
-* Token IOU hard score plausibility
-
-**TODOs**
-
-* Possibility to run on select device ("cpu", "cuda")
-* Sample-And-Occlusion explanations
-* Discretized Integrated Gradients: https://arxiv.org/abs/2108.13654
+* Area-Under-Precision-Recall-Curve (soft score)
+* Token F1 (hard score)
+* Token Intersection Over Union (hard score)
 
 Visualization
 -------------
