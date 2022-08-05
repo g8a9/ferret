@@ -90,13 +90,17 @@ Supported Evaluation Metrics
 Visualization
 -------------
 
+The `Benchmark` class exposes easy-to-use table visualization methods (e.g., within Jupyter Notebooks)  
+
 .. code-block:: python
 
-    bench = Benchmark(...)
+    bench = Benchmark(model, tokenizer)
 
-    explanations = ...
+    # Pretty-print feature attribution scores by all supported explainers
+    explanations = bench.explain("You look stunning!")
     bench.show_table(explanations)
 
+    # Pretty-print all the supported evaluation metrics
     evaluations = bench.evaluate_explanations(explanations)
     bench.show_evaluation_table(evaluations)
 
@@ -104,14 +108,19 @@ Visualization
 Datasets evaluations
 --------------------
 
+The `Benchmark` class has a handy method to compute and average our evaluation metrics across multiple samples from a dataset.
+
 .. code-block:: python
+    import numpy as np
+    bench = Benchmark(model, tokenizer)
 
-    bench = Benchmark(...)
-
+    # Compute and average evaluation scores one of the supported dataset
+    samples = np.arange(20)
     hatexdata = bench.load_dataset("hatexplain")
-    sample_evaluations =  bench.evaluate_samples(hatexdata, [1,2])
+    sample_evaluations =  bench.evaluate_samples(hatexdata, samples)
+    
+    # Pretty-print the results
     bench.show_samples_evaluation_table(sample_evaluations)
-
 
 Credits
 -------
