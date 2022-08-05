@@ -105,12 +105,13 @@ The `Benchmark` class exposes easy-to-use table visualization methods (e.g., wit
     bench.show_evaluation_table(evaluations)
 
 
-Datasets evaluations
---------------------
+Dataset Evaluations
+-------------------
 
 The `Benchmark` class has a handy method to compute and average our evaluation metrics across multiple samples from a dataset.
 
 .. code-block:: python
+
     import numpy as np
     bench = Benchmark(model, tokenizer)
 
