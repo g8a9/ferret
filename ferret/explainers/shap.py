@@ -42,6 +42,9 @@ class SHAPExplainer(BaseExplainer):
     def compute_feature_importance(self, text, target=1, **explainer_args):
         init_args, call_args = parse_explainer_args(explainer_args)
 
+        # SHAP silent mode
+        init_args["silent"] = init_args.get("silent", True)
+
         pipe = TextClassificationPipelineWithTruncation(
             model=self.model,
             tokenizer=self.tokenizer,
