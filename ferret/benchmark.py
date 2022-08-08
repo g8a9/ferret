@@ -401,6 +401,7 @@ class Benchmark:
         if isinstance(sample, int):
             sample = [sample]
 
+        sample = list(map(int, sample))
         instances = [dataset[s] for s in sample]
 
         # For the IOU and Token F1 plausibility scores we specify the K for deriving the top-k rationale
