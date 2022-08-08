@@ -411,7 +411,7 @@ class Benchmark:
         if target is None:
             #  Compute explanations for the predicted class
             predicted_classes = [
-                self.score(i["text"]).argmax(-1).tolist() for i in instances
+                self.score(i["text"], return_dict=False).argmax(-1).tolist() for i in instances
             ]
 
             targets = predicted_classes
