@@ -67,25 +67,27 @@ Features
 Supported Post-hoc Explainers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Gradient (plain gradients or multiplied by input token embeddings)
-* Integrated Gradinet (plain gradients or multiplied by input token embeddings)
-* SHAP (via Partition SHAP approximation of Shapley values)
-* LIME
+* Gradient (plain gradients or multiplied by input token embeddings) (`Simonyan et al., 2014 <https://arxiv.org/abs/1312.6034>`_)
+* Integrated Gradient (plain gradients or multiplied by input token embeddings) (`Sundararajan et al., 2017 <http://proceedings.mlr.press/v70/sundararajan17a.html>`_)
+* SHAP (via Partition SHAP approximation of Shapley values) (`Lundberg and Lee, 2017 <https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html>`_)
+* LIME (`Ribeiro et al., 2016 <https://dl.acm.org/doi/abs/10.1145/2939672.2939778>`_)
 
 Supported Evaluation Metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Faithfulness** measures:
 
-* AOPC Comprehensiveness
-* AOPC Sufficiency
-* Kendall’s Tau correlation with Leave-One-Out token removal.
+* AOPC Comprehensiveness (`DeYoung et al., 2020 <https://doi.org/10.18653/v1/2020.acl-main.408>`_)
+* AOPC Sufficiency (`DeYoung et al., 2020 <https://doi.org/10.18653/v1/2020.acl-main.408>`_)
+* Kendall’s Tau correlation with Leave-One-Out token removal. (`Jain and Wallace, 2019 <https://aclanthology.org/N19-1357/>`_)
 
 **Plausibility** measures:
 
-* Area-Under-Precision-Recall-Curve (soft score)
-* Token F1 (hard score)
-* Token Intersection Over Union (hard score)
+* Area-Under-Precision-Recall-Curve (soft score) (`DeYoung et al., 2020 <https://doi.org/10.18653/v1/2020.acl-main.408>`_)
+* Token F1 (hard score) (`DeYoung et al., 2020 <https://doi.org/10.18653/v1/2020.acl-main.408>`_)
+* Token Intersection Over Union (hard score) (`DeYoung et al., 2020 <https://doi.org/10.18653/v1/2020.acl-main.408>`_)
+
+See our `paper <https://arxiv.org/abs/2208.01575>`_  for details.
 
 Visualization
 -------------
