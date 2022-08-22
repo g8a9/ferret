@@ -78,7 +78,13 @@ class IntegratedGradientExplainer(BaseExplainer):
 
         def func(input_embeds):
             item.pop("input_ids")
-            outputs = self.model(inputs_embeds=input_embeds, **item)
+            n_samples = input_embeds.shape[0]
+            attention_mask = item["attention_mask"].expand(n_samples, -1, -1)
+
+            #  TODO Improve here to introduce batched forward
+            outputs = self.model(
+                inputs_embeds=input_embeds, attention_mask=attention_mask
+            )
             scores = outputs.logits[0]
             return scores[target].unsqueeze(0)
 

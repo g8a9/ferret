@@ -79,6 +79,9 @@ class Benchmark:
     ):
         self.model = model
         self.tokenizer = tokenizer
+        self.explainers = explainers
+        self.evaluators = evaluators
+        self.class_based_evaluators = class_based_evaluators
 
         if not explainers:
             self.explainers = [
@@ -412,7 +415,8 @@ class Benchmark:
         if target is None:
             #  Compute explanations for the predicted class
             predicted_classes = [
-                self.score(i["text"], return_dict=False).argmax(-1).tolist() for i in instances
+                self.score(i["text"], return_dict=False).argmax(-1).tolist()
+                for i in instances
             ]
 
             targets = predicted_classes
