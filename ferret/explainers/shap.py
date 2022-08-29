@@ -46,13 +46,15 @@ class SHAPExplainer(BaseExplainer):
         init_args["silent"] = init_args.get("silent", True)
 
         pipe = TextClassificationPipelineWithTruncation(
-            model=self.model,
-            tokenizer=self.tokenizer,
+            model=self.helper.model,
+            tokenizer=self.helper.tokenizer,
             return_all_scores=True,
         )
         explainer_partition = ShapExplainer(pipe, **init_args)
         shap_values = explainer_partition([text], **call_args)
         attr = shap_values.values[0][:, target]
 
-        output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
+        output = Explanation(
+            text, self.get_tokens(text), attr, self.NAME, target
+        )
         return output

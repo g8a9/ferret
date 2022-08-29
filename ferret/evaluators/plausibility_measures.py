@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.metrics import auc, precision_recall_curve
 
 from . import BaseEvaluator
-from ..modelw import Model
+from ..model_utils import ModelHelper
 from .evaluation import Evaluation
 from .utils_from_soft_to_discrete import (
     get_discrete_explanation_topK,
@@ -67,7 +67,7 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
     TYPE_METRIC = "plausibility"
     INIT_VALUE = np.zeros(6)
 
-    def __init__(self, model: Model, tokenizer):
+    def __init__(self, model: ModelHelper, tokenizer):
         super().__init__(model, tokenizer)
 
     def _instance_tp_pos_pred_pos(self, true_expl, pred_expl):
@@ -271,7 +271,7 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "plausibility"
 
-    def __init__(self, model: Model, tokenizer):
+    def __init__(self, model: ModelHelper, tokenizer):
         super().__init__(model, tokenizer)
 
     def _token_iou(self, true_expl, pred_expl):

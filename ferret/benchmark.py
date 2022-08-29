@@ -30,7 +30,7 @@ from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_clas
 from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
 
-from .modelw import Model
+from .model_utils import ModelHelper
 from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
 import copy
 
@@ -79,6 +79,8 @@ class Benchmark:
     ):
         self.model = model
         self.tokenizer = tokenizer
+        self.helper = ModelHelper(self.model, self.tokenizer)
+
         self.explainers = explainers
         self.evaluators = evaluators
         self.class_based_evaluators = class_based_evaluators
@@ -106,19 +108,19 @@ class Benchmark:
                 Tokenf1_PlausibilityEvaluation,
                 TokenIOU_PlausibilityEvaluation,
             ]
-            model_wrapper = Model(self.model)
             self.evaluators = [
-                ev(model_wrapper, self.tokenizer) for ev in self._used_evaluators
+                ev(self.model, self.tokenizer) for ev in self._used_evaluators
             ]
         if not class_based_evaluators:
             self._used_class_evaluators = [AOPC_Comprehensiveness_Evaluation_by_class]
-            model_wrapper = Model(self.model)
             self.class_based_evaluators = [
-                class_ev(model_wrapper, self.tokenizer)
+                class_ev(self.model, self.tokenizer)
                 for class_ev in self._used_class_evaluators
             ]
 
-    def explain(self, text, target=1, progress_bar: bool = True) -> List[Explanation]:
+    def explain(
+        self, text, target=1, progress_bar: bool = True, normalize: bool = True
+    ) -> List[Explanation]:
         """Compute explanations."""
 
         if progress_bar:
@@ -278,16 +280,21 @@ class Benchmark:
             outputs = self.model(**item)
         return outputs
 
-    def score(self, text, return_dict: bool = True):
-        outputs = self._forward(text)
-        scores = softmax(outputs.logits[0], dim=-1)
+    def score(self, text: str, return_dict: bool = True):
+        """Compute prediction scores for a single query
+
+        :param text str: query to compute the logits from
+        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
+        """
+
+        _, logits = self.helper._forward(text, output_hidden_states=False)
+        scores = logits[0].softmax(-1)
 
         if return_dict:
             scores = {
                 self.model.config.id2label[idx]: value.item()
                 for idx, value in enumerate(scores)
             }
-
         return scores
 
     def get_dataframe(self, explanations) -> pd.DataFrame:

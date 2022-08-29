@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Any, Union
 from ferret.explainers.explanation import Explanation, ExplanationWithRationale
-from ferret.modelw import Model
+from ferret.model_utils import ModelHelper
 
 
 class BaseEvaluator(ABC):
@@ -34,9 +34,8 @@ class BaseEvaluator(ABC):
         # faithfulness
         pass
 
-    def __init__(self, model: Model, tokenizer):
-        self.model = model
-        self.tokenizer = tokenizer
+    def __init__(self, model, tokenizer):
+        self.helper = ModelHelper(model, tokenizer)
 
     def __call__(self, explanation: Explanation):
         return self.compute_evaluation(explanation)

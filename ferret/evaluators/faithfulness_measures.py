@@ -3,7 +3,7 @@ from scipy.stats import kendalltau
 import numpy as np
 
 from . import BaseEvaluator
-from ..modelw import Model
+from ..model_utils import ModelHelper
 from ..explainers.explanation import Explanation, ExplanationWithRationale
 from typing import List
 from .utils_from_soft_to_discrete import (
