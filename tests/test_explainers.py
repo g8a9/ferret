@@ -48,20 +48,5 @@ class TestExplainers(unittest.TestCase):
         self.assertListEqual(
             explanation.tokens, ["[CLS]", "you", "look", "so", "stunning", "!", "[SEP]"]
         )
-        self.assertTrue(
-            np.allclose(
-                explanation.scores,
-                np.array(
-                    [
-                        0.0,
-                        0.09135457,
-                        -0.05756018,
-                        0.04870788,
-                        0.23762842,
-                        0.06523287,
-                        0.0,
-                    ]
-                ),
-            )
-        )
+        #  LIME samples randomnly points in the neighborhood, attribution scores are not deteministic.
         self.assertEqual(explanation.target, 1)
