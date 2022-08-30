@@ -42,23 +42,24 @@ class TestExplainers(unittest.TestCase):
         self.assertEqual(explanation.target, 1)
 
     def test_lime(self):
-        text = "You look stunning!"
+        text = "You look so stunning!"
         exp = LIMEExplainer(self.m, self.t)
-        explanation = exp(text)
+        explanation = exp(text, call_args={"num_samples": 30, "show_progress": True})
         self.assertListEqual(
-            explanation.tokens, ["[CLS]", "you", "look", "stunning", "!", "[SEP]"]
+            explanation.tokens, ["[CLS]", "you", "look", "so", "stunning", "!", "[SEP]"]
         )
         self.assertTrue(
             np.allclose(
                 explanation.scores,
                 np.array(
                     [
-                        -0.0983047492795261,
-                        0.10306168006005363,
-                        -0.06656868157446298,
-                        0.1984260617345338,
-                        0.014057055876424484,
-                        0.06627109358660896,
+                        0.0,
+                        0.09135457,
+                        -0.05756018,
+                        0.04870788,
+                        0.23762842,
+                        0.06523287,
+                        0.0,
                     ]
                 ),
             )

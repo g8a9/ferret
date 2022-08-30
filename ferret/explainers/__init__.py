@@ -13,11 +13,18 @@ class BaseExplainer(ABC):
     def __init__(self, model, tokenizer):
         self.helper = ModelHelper(model, tokenizer)
 
+    @property
+    def device(self):
+        return self.helper.model.device
+
     def _tokenize(self, text, **tok_kwargs):
         return self.helper._tokenize(text, **tok_kwargs)
 
     def get_tokens(self, text):
         return self.helper.get_tokens(text)
+
+    def get_input_embeds(self, text):
+        return self.helper.get_input_embeds(text)
 
     @abstractmethod
     def compute_feature_importance(self, text: str, target: int, **explainer_args):

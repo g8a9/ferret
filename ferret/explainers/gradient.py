@@ -5,6 +5,7 @@ from .explanation import Explanation
 from .utils import parse_explainer_args
 from captum.attr import Saliency, IntegratedGradients, InputXGradient
 import torch
+import pdb
 
 
 class GradientExplainer(BaseExplainer):
@@ -26,13 +27,14 @@ class GradientExplainer(BaseExplainer):
         init_args, call_args = parse_explainer_args(explainer_args)
 
         item = self._tokenize(text)
+        item = {k: v.to(self.device) for k, v in item.items()}
         input_len = item["attention_mask"].sum().item()
 
         def func(input_embeds):
-            item.pop("input_ids")
-            outputs = self.model(inputs_embeds=input_embeds, **item)
-            scores = outputs.logits[0]
-            return scores[target].unsqueeze(0)
+            outputs = self.helper.model(
+                inputs_embeds=input_embeds, attention_mask=item["attention_mask"]
+            )
+            return outputs.logits
 
         dl = (
             InputXGradient(func, **init_args)
@@ -41,14 +43,13 @@ class GradientExplainer(BaseExplainer):
         )
 
         inputs = self.get_input_embeds(text)
-        attr = dl.attribute(inputs, **call_args)
-        attr = attr[0, :input_len, :].detach()
+        attr = dl.attribute(inputs, target=target, **call_args)
+        attr = attr[0, :input_len, :].detach().cpu()
 
         # pool over hidden size
-        attr = attr.sum(-1)
+        attr = attr.sum(-1).numpy()
 
         output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
-        # norm_attr = self._normalize_input_attributions(attr.detach())
         return output
 
 
@@ -64,11 +65,11 @@ class IntegratedGradientExplainer(BaseExplainer):
 
     def _generate_baselines(self, input_len):
         ids = (
-            [self.tokenizer.cls_token_id]
-            + [self.tokenizer.pad_token_id] * (input_len - 2)
-            + [self.tokenizer.sep_token_id]
+            [self.helper.tokenizer.cls_token_id]
+            + [self.helper.tokenizer.pad_token_id] * (input_len - 2)
+            + [self.helper.tokenizer.sep_token_id]
         )
-        embeddings = self._get_input_embeds_from_ids(torch.tensor(ids))
+        embeddings = self.helper._get_input_embeds_from_ids(torch.tensor(ids))
         return embeddings.unsqueeze(0)
 
     def compute_feature_importance(self, text, target, **explainer_args):
@@ -76,29 +77,28 @@ class IntegratedGradientExplainer(BaseExplainer):
         item = self._tokenize(text)
         input_len = item["attention_mask"].sum().item()
 
-        def func(input_embeds):
-            item.pop("input_ids")
-            n_samples = input_embeds.shape[0]
-            attention_mask = item["attention_mask"].expand(n_samples, -1, -1)
+        show_progress = call_args.pop("show_progress", False)
 
-            #  TODO Improve here to introduce batched forward
-            outputs = self.model(
-                inputs_embeds=input_embeds, attention_mask=attention_mask
+        def func(input_embeds):
+            attention_mask = torch.ones(*input_embeds.shape[:2], dtype=torch.uint8).to(
+                self.device
             )
-            scores = outputs.logits[0]
-            return scores[target].unsqueeze(0)
+            _, logits = self.helper._forward_with_input_embeds(
+                input_embeds, attention_mask, show_progress=show_progress
+            )
+            return logits
 
         dl = IntegratedGradients(
             func, multiply_by_inputs=self.multiply_by_inputs, **init_args
         )
-        inputs = self.get_input_embeds(text)
+        inputs = self.get_input_embeds(text).to(self.device)
         baselines = self._generate_baselines(input_len)
 
-        attr = dl.attribute(inputs, baselines=baselines, **call_args)
-        attr = attr[0, :input_len, :].detach()
+        attr = dl.attribute(inputs, baselines=baselines, target=target, **call_args)
+        attr = attr[0, :input_len, :].detach().cpu()
 
         # pool over hidden size
-        attr = attr.sum(-1)
+        attr = attr.sum(-1).numpy()
 
         # norm_attr = self._normalize_input_attributions(attr.detach())
         output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)

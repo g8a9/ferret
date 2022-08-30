@@ -50,6 +50,40 @@ class ModelHelper:
         ids = item["input_ids"][0][:input_len]
         return self.tokenizer.convert_ids_to_tokens(ids, **tok_kwargs)
 
+    def _forward_with_input_embeds(
+        self,
+        input_embeds,
+        attention_mask,
+        batch_size=8,
+        show_progress=False,
+        output_hidden_states=False,
+    ):
+        input_len = input_embeds.shape[0]
+        n_batches = math.ceil(input_len / batch_size)
+        input_batches = torch.tensor_split(input_embeds, n_batches)
+        mask_batches = torch.tensor_split(attention_mask, n_batches)
+
+        if show_progress:
+            pbar = tqdm(total=n_batches, desc="Batch", leave=False)
+
+        outputs = list()
+        for emb, mask in zip(input_batches, mask_batches):
+            out = self.model(
+                inputs_embeds=emb,
+                attention_mask=mask,
+                output_hidden_states=output_hidden_states,
+            )
+            outputs.append(out)
+
+            if show_progress:
+                pbar.update(1)
+
+        if show_progress:
+            pbar.close()
+
+        logits = torch.cat([o.logits for o in outputs])
+        return outputs, logits
+
     def _forward(
         self,
         text: Union[str, List[str]],
@@ -77,9 +111,9 @@ class ModelHelper:
 
                 if use_input_embeddings:
                     ids = item.pop("input_ids")  # (B,S,d_model)
-                    emb = self._get_input_embeds_from_ids(ids)
+                    input_embeddings = self._get_input_embeds_from_ids(ids)
                     out = self.model(
-                        inputs_embeds=emb,
+                        inputs_embeds=input_embeddings,
                         **item,
                         output_hidden_states=output_hidden_states,
                     )
