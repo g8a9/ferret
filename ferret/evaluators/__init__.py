@@ -34,6 +34,10 @@ class BaseEvaluator(ABC):
         # faithfulness
         pass
 
+    @property
+    def tokenizer(self):
+        return self.helper.tokenizer
+
     def __init__(self, model, tokenizer):
         self.helper = ModelHelper(model, tokenizer)
 

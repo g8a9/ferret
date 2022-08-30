@@ -27,6 +27,17 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
     TYPE_METRIC = "faithfulness"
 
     def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
+        """Evaluate an explanation on the AOPC Comprehensiveness metric.
+
+        We currently support multiple approaches to define the hard rationale from
+        soft score rationales, based on:
+        - th : token greater than a threshold
+        - perc : more than x% of the tokens
+        - k: top k values
+
+        :param explanation:
+        :param target:
+        """
         remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
             evaluation_args
         )
@@ -34,14 +45,13 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
         text = explanation.text
         score_explanation = explanation.scores
 
-        # TO DO - use tokens
+        # TODO - use tokens
         # Get prediction probability of the input sencence for the target
-        baseline = self.model._get_class_predicted_probability(
-            text, self.tokenizer, target
-        )
+        _, logits = self.helper._forward(text, output_hidden_states=False)
+        baseline = logits.softmax(-1)[0, target].item()
 
         # Tokenized sentence
-        item = self.tokenizer(text, return_tensors="pt")
+        item = self.helper._tokenize(text)
 
         # Get token ids of the sentence
         input_len = item["attention_mask"].sum().item()
@@ -53,16 +63,8 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             if self.tokenizer.cls_token == explanation.tokens[0]:
                 score_explanation = score_explanation[1:-1]
 
-        discrete_expl_ths = []
-        id_tops = []
-
-        """
-        We currently support multiple approaches to define the hard rationale from
-        soft score rationales, based on:
-        - th : token greater than a threshold
-        - perc : more than x% of the tokens
-        - k: top k values
-        """
+        discrete_expl_ths = list()
+        id_tops = list()
 
         get_discrete_rationale_function = (
             _check_and_define_get_id_discrete_rationale_function(
@@ -96,7 +98,6 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             # The only difference between comprehesivenss and sufficiency is the computation of the removal.
 
             # For the comprehensiveness: we remove the terms in the discrete rationale.
-
             sample = np.array(copy.copy(input_ids))
 
             if removal_args["remove_tokens"]:
@@ -113,21 +114,19 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             return Evaluation(self.SHORT_NAME, 0)
 
         # Prediction probability for the target
+        _, logits = self.helper._forward(discrete_expl_ths, output_hidden_states=False)
+        probs_removing = logits.softmax(-1)[:, target].cpu().numpy()
 
-        probs_removing = self.model._get_class_predicted_probabilities_texts(
-            discrete_expl_ths, self.tokenizer, target
-        ).numpy()
-
-        # Compute probability difference
+        # compute probability difference
         removal_importance = baseline - probs_removing
-
+        #  compute AOPC comprehensiveness
         aopc_comprehesiveness = _compute_aopc(removal_importance)
 
         evaluation_output = Evaluation(self.SHORT_NAME, aopc_comprehesiveness)
         return evaluation_output
 
-    def aggregate_score(self, score, total, **aggregation_args):
-        return super().aggregate_score(score, total, **aggregation_args)
+    # def aggregate_score(self, score, total, **aggregation_args):
+    #     return super().aggregate_score(score, total, **aggregation_args)
 
 
 class AOPC_Sufficiency_Evaluation(BaseEvaluator):
@@ -147,12 +146,11 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
 
         # TO DO - use tokens
         # Get prediction probability of the input sencence for the target
-        baseline = self.model._get_class_predicted_probability(
-            text, self.tokenizer, target
-        )
+        _, logits = self.helper._forward(text, output_hidden_states=False)
+        baseline = logits.softmax(-1)[0, target].item()
 
         # Tokenized sentence
-        item = self.tokenizer(text, return_tensors="pt")
+        item = self.helper._tokenize(text)
         # Get token ids of the sentence
         input_len = item["attention_mask"].sum().item()
         input_ids = item["input_ids"][0][:input_len].tolist()
@@ -165,14 +163,6 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
 
         discrete_expl_ths = []
         id_tops = []
-
-        """
-        We currently support multiple approaches to define the hard rationale from
-        soft score rationales, based on:
-        - th : token greater than a threshold
-        - perc : more than x% of the tokens
-        - k: top k values
-        """
 
         get_discrete_rationale_function = (
             _check_and_define_get_id_discrete_rationale_function(
@@ -227,10 +217,8 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             return Evaluation(self.SHORT_NAME, 1)
 
         # Prediction probability for the target
-
-        probs_removing = self.model._get_class_predicted_probabilities_texts(
-            discrete_expl_ths, self.tokenizer, target
-        ).numpy()
+        _, logits = self.helper._forward(discrete_expl_ths, output_hidden_states=False)
+        probs_removing = logits.softmax(-1)[:, target].cpu().numpy()
 
         # Compute probability difference
         removal_importance = baseline - probs_removing
@@ -240,8 +228,8 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
         evaluation_output = Evaluation(self.SHORT_NAME, aopc_sufficiency)
         return evaluation_output
 
-    def aggregate_score(self, score, total, **aggregation_args):
-        return super().aggregate_score(score, total, **aggregation_args)
+    # def aggregate_score(self, score, total, **aggregation_args):
+    #     return super().aggregate_score(score, total, **aggregation_args)
 
 
 class TauLOO_Evaluation(BaseEvaluator):
@@ -251,12 +239,10 @@ class TauLOO_Evaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
 
     def compute_leave_one_out_occlusion(self, text, target=1, remove_first_last=True):
+        _, logits = self.helper._forward(text, output_hidden_states=False)
+        baseline = logits.softmax(-1)[0, target].item()
 
-        baseline = self.model._get_class_predicted_probability(
-            text, self.tokenizer, target
-        )
-
-        item = self.tokenizer(text, return_tensors="pt")
+        item = self.helper._tokenize(text)
         input_len = item["attention_mask"].sum().item()
         input_ids = item["input_ids"][0][:input_len].tolist()
         if remove_first_last == True:
@@ -269,9 +255,8 @@ class TauLOO_Evaluation(BaseEvaluator):
             sample = self.tokenizer.decode(sample)
             samples.append(sample)
 
-        leave_one_out_removal = self.model._get_class_predicted_probabilities_texts(
-            samples, self.tokenizer, target
-        )
+        _, logits = self.helper._forward(samples, output_hidden_states=False)
+        leave_one_out_removal = logits.softmax(-1)[:, target].cpu()
 
         occlusion_importance = leave_one_out_removal - baseline
 
@@ -300,5 +285,5 @@ class TauLOO_Evaluation(BaseEvaluator):
         evaluation_output = Evaluation(self.SHORT_NAME, kendalltau_score)
         return evaluation_output
 
-    def aggregate_score(self, score, total, **aggregation_args):
-        return super().aggregate_score(score, total, **aggregation_args)
+    # def aggregate_score(self, score, total, **aggregation_args):
+    #     return super().aggregate_score(score, total, **aggregation_args)
