@@ -65,7 +65,3 @@ class TestExplainers(unittest.TestCase):
             )
         )
         self.assertEqual(explanation.target, 1)
-
-    # def test_individual_explanation(self):
-    #     """Test something."""
-    #
