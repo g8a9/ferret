@@ -53,14 +53,15 @@ EVALUATION_PALETTE_REVERSED = sns.light_palette("purple", as_cmap=True, reverse=
 NONE_RATIONALE = []
 
 
-def normalize(explanations, ord=1):
-    """Run Lp noramlization of explanation attribution scores"""
+def lp_normalize(explanations, ord=1):
+    """Run Lp-noramlization of explanation attribution scores"""
 
-    # TODO vectorize to improve perf
     new_exps = list()
     for exp in explanations:
         new_exp = copy.copy(exp)
-        new_exp.scores /= np.linalg.norm(exp.scores, axis=-1, ord=1)  # L1 normalization
+        new_exp.scores /= np.linalg.norm(
+            exp.scores, axis=-1, ord=ord
+        )  # L1 normalization
         new_exps.append(new_exp)
 
     return new_exps
@@ -119,23 +120,36 @@ class Benchmark:
             ]
 
     def explain(
-        self, text, target=1, progress_bar: bool = True, normalize: bool = True
+        self,
+        text,
+        target=1,
+        show_progress: bool = True,
+        normalize_scores: bool = True,
+        order: int = 1,
     ) -> List[Explanation]:
-        """Compute explanations."""
+        """Compute explanations using all the explainers stored in the class.
 
-        if progress_bar:
+        :param text str: text string to explain.
+        :param target int: class label to produce the explanations for
+        :param show_progress bool: enable progress bar
+        :param normalize_scores bool: do lp-normalization to make scores comparable
+        """
+
+        if show_progress:
             pbar = tqdm(total=len(self.explainers), desc="Explainer", leave=False)
 
         explanations = list()
         for exp in self.explainers:
             explanations.append(exp(text, target))
-            if progress_bar:
+            if show_progress:
                 pbar.update(1)
 
-        if progress_bar:
+        if show_progress:
             pbar.close()
 
-        explanations = normalize(explanations)
+        if normalize_scores:
+            explanations = lp_normalize(explanations, order)
+
         return explanations
 
     def evaluate_explanation(
