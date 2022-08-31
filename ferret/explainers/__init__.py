@@ -17,6 +17,10 @@ class BaseExplainer(ABC):
     def device(self):
         return self.helper.model.device
 
+    @property
+    def tokenizer(self):
+        return self.helper.tokenizer
+
     def _tokenize(self, text, **tok_kwargs):
         return self.helper._tokenize(text, **tok_kwargs)
 
