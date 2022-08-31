@@ -35,5 +35,5 @@ When the batched inference is available, you can specify both `batch_size` and
 .. code-block:: python
 
     exp = LIMEExplainer(m, t)
-    call_args={"num_samples": 30, "show_progress": True, "batch_size": 16}
+    call_args={"num_samples": 5000, "show_progress": True, "batch_size": 16}
     explanation = expl("You look stunning!", call_args=call_args)
