@@ -69,7 +69,9 @@ class IntegratedGradientExplainer(BaseExplainer):
             + [self.helper.tokenizer.pad_token_id] * (input_len - 2)
             + [self.helper.tokenizer.sep_token_id]
         )
-        embeddings = self.helper._get_input_embeds_from_ids(torch.tensor(ids))
+        embeddings = self.helper._get_input_embeds_from_ids(
+            torch.tensor(ids, device=self.device)
+        )
         return embeddings.unsqueeze(0)
 
     def compute_feature_importance(self, text, target, **explainer_args):
@@ -80,8 +82,8 @@ class IntegratedGradientExplainer(BaseExplainer):
         show_progress = call_args.pop("show_progress", False)
 
         def func(input_embeds):
-            attention_mask = torch.ones(*input_embeds.shape[:2], dtype=torch.uint8).to(
-                self.device
+            attention_mask = torch.ones(
+                *input_embeds.shape[:2], dtype=torch.uint8, device=self.device
             )
             _, logits = self.helper._forward_with_input_embeds(
                 input_embeds, attention_mask, show_progress=show_progress
@@ -91,11 +93,11 @@ class IntegratedGradientExplainer(BaseExplainer):
         dl = IntegratedGradients(
             func, multiply_by_inputs=self.multiply_by_inputs, **init_args
         )
-        inputs = self.get_input_embeds(text).to(self.device)
+        inputs = self.get_input_embeds(text)
         baselines = self._generate_baselines(input_len)
 
         attr = dl.attribute(inputs, baselines=baselines, target=target, **call_args)
-        attr = attr[0, :input_len, :].detach().cpu()
+        attr = attr[0, :input_len, :].cpu()
 
         # pool over hidden size
         attr = attr.sum(-1).numpy()
