@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from einops import rearrange
 from typing import Union, List
 import math
 from tqdm.autonotebook import tqdm
@@ -35,7 +34,7 @@ class ModelHelper:
         item = self._tokenize(text)
         item = {k: v.to(self.model.device) for k, v in item.items()}
         embeddings = self._get_input_embeds_from_ids(item["input_ids"][0])
-        embeddings = rearrange(embeddings, "s h -> () s h")
+        embeddings = embeddings.unsqueeze(0)
         return embeddings
 
     def _get_input_embeds_from_ids(self, ids) -> torch.Tensor:
