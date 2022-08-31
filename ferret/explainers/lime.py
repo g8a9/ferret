@@ -17,6 +17,7 @@ class LIMEExplainer(BaseExplainer):
 
         token_masking_strategy = call_args.pop("token_masking_strategy", "mask")
         show_progress = call_args.pop("show_progress", False)
+        batch_size = call_args.pop("batch_size", 8)
 
         item = self._tokenize(text, return_special_tokens_mask=True)
         token_ids = item["input_ids"][0].tolist()
@@ -62,6 +63,7 @@ class LIMEExplainer(BaseExplainer):
                 output_hidden_states=False,
                 add_special_tokens=False,
                 show_progress=show_progress,
+                batch_size=batch_size
             )
             return logits.softmax(-1).detach().cpu().numpy()
 
