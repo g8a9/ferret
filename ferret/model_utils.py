@@ -33,6 +33,7 @@ class ModelHelper:
         :param text str: the string to extract embeddings from.
         """
         item = self._tokenize(text)
+        item = {k: v.to(self.model.device) for k, v in item.items()}
         embeddings = self._get_input_embeds_from_ids(item["input_ids"][0])
         embeddings = rearrange(embeddings, "s h -> () s h")
         return embeddings
