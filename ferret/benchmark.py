@@ -129,10 +129,14 @@ class Benchmark:
     ) -> List[Explanation]:
         """Compute explanations using all the explainers stored in the class.
 
-        :param text str: text string to explain.
-        :param target int: class label to produce the explanations for
-        :param show_progress bool: enable progress bar
-        :param normalize_scores bool: do lp-normalization to make scores comparable
+        Args:
+            text (str): text string to explain.
+            target (int): class label to produce the explanations for
+            show_progress (bool): enable progress bar
+            normalize_scores (bool): do lp-normalization to make scores comparable
+
+        Returns:
+            List[Explanation]: list of all explanations produced
         """
 
         if show_progress:
