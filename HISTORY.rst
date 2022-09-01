@@ -3,7 +3,7 @@ History
 =======
 
 0.4.0 (2022-09-01)
-__________________
+------------------
 
 * GPU inference for all the supported explainers 
 * Batched inference on both CPU and GPU (see our `usage guides <https://ferret.readthedocs.io/en/latest/usage.html>`_)
