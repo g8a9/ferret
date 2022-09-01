@@ -9,3 +9,4 @@ scikit-image
 lime
 opencv-python
 pytreebank
+furo
