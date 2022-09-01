@@ -30,7 +30,7 @@ from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_clas
 from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
 
-from .modelw import Model
+from .model_utils import ModelHelper
 from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
 import copy
 
@@ -53,14 +53,15 @@ EVALUATION_PALETTE_REVERSED = sns.light_palette("purple", as_cmap=True, reverse=
 NONE_RATIONALE = []
 
 
-def normalize(explanations, ord=1):
-    """Run Lp noramlization of explanation attribution scores"""
+def lp_normalize(explanations, ord=1):
+    """Run Lp-noramlization of explanation attribution scores"""
 
-    # TODO vectorize to improve perf
     new_exps = list()
     for exp in explanations:
         new_exp = copy.copy(exp)
-        new_exp.scores /= np.linalg.norm(exp.scores, axis=-1, ord=1)  # L1 normalization
+        new_exp.scores /= np.linalg.norm(
+            exp.scores, axis=-1, ord=ord
+        )  # L1 normalization
         new_exps.append(new_exp)
 
     return new_exps
@@ -79,6 +80,8 @@ class Benchmark:
     ):
         self.model = model
         self.tokenizer = tokenizer
+        self.helper = ModelHelper(self.model, self.tokenizer)
+
         self.explainers = explainers
         self.evaluators = evaluators
         self.class_based_evaluators = class_based_evaluators
@@ -106,34 +109,51 @@ class Benchmark:
                 Tokenf1_PlausibilityEvaluation,
                 TokenIOU_PlausibilityEvaluation,
             ]
-            model_wrapper = Model(self.model)
             self.evaluators = [
-                ev(model_wrapper, self.tokenizer) for ev in self._used_evaluators
+                ev(self.model, self.tokenizer) for ev in self._used_evaluators
             ]
         if not class_based_evaluators:
             self._used_class_evaluators = [AOPC_Comprehensiveness_Evaluation_by_class]
-            model_wrapper = Model(self.model)
             self.class_based_evaluators = [
-                class_ev(model_wrapper, self.tokenizer)
+                class_ev(self.model, self.tokenizer)
                 for class_ev in self._used_class_evaluators
             ]
 
-    def explain(self, text, target=1, progress_bar: bool = True) -> List[Explanation]:
-        """Compute explanations."""
+    def explain(
+        self,
+        text,
+        target=1,
+        show_progress: bool = True,
+        normalize_scores: bool = True,
+        order: int = 1,
+    ) -> List[Explanation]:
+        """Compute explanations using all the explainers stored in the class.
 
-        if progress_bar:
+        Args:
+            text (str): text string to explain.
+            target (int): class label to produce the explanations for
+            show_progress (bool): enable progress bar
+            normalize_scores (bool): do lp-normalization to make scores comparable
+
+        Returns:
+            List[Explanation]: list of all explanations produced
+        """
+
+        if show_progress:
             pbar = tqdm(total=len(self.explainers), desc="Explainer", leave=False)
 
         explanations = list()
         for exp in self.explainers:
             explanations.append(exp(text, target))
-            if progress_bar:
+            if show_progress:
                 pbar.update(1)
 
-        if progress_bar:
+        if show_progress:
             pbar.close()
 
-        explanations = normalize(explanations)
+        if normalize_scores:
+            explanations = lp_normalize(explanations, order)
+
         return explanations
 
     def evaluate_explanation(
@@ -278,16 +298,21 @@ class Benchmark:
             outputs = self.model(**item)
         return outputs
 
-    def score(self, text, return_dict: bool = True):
-        outputs = self._forward(text)
-        scores = softmax(outputs.logits[0], dim=-1)
+    def score(self, text: str, return_dict: bool = True):
+        """Compute prediction scores for a single query
+
+        :param text str: query to compute the logits from
+        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
+        """
+
+        _, logits = self.helper._forward(text, output_hidden_states=False)
+        scores = logits[0].softmax(-1)
 
         if return_dict:
             scores = {
                 self.model.config.id2label[idx]: value.item()
                 for idx, value in enumerate(scores)
             }
-
         return scores
 
     def get_dataframe(self, explanations) -> pd.DataFrame:

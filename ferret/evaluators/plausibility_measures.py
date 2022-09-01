@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.metrics import auc, precision_recall_curve
 
 from . import BaseEvaluator
-from ..modelw import Model
+from ..model_utils import ModelHelper
 from .evaluation import Evaluation
 from .utils_from_soft_to_discrete import (
     get_discrete_explanation_topK,
@@ -19,7 +19,6 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
     TYPE_METRIC = "plausibility"
 
     def _compute_auprc_soft_scoring(self, true_rationale, soft_scores):
-
         precision, recall, _ = precision_recall_curve(true_rationale, soft_scores)
         auc_score = auc(recall, precision)
         return auc_score
@@ -55,9 +54,6 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
         evaluation_output = Evaluation(self.SHORT_NAME, auprc_soft_plausibility)
         return evaluation_output
 
-    def aggregate_score(self, score, total, **aggregation_args):
-        return super().aggregate_score(score, total, **aggregation_args)
-
 
 class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
     NAME = "token_f1_hard_plausibility"
@@ -67,11 +63,7 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
     TYPE_METRIC = "plausibility"
     INIT_VALUE = np.zeros(6)
 
-    def __init__(self, model: Model, tokenizer):
-        super().__init__(model, tokenizer)
-
     def _instance_tp_pos_pred_pos(self, true_expl, pred_expl):
-
         true_expl = np.array(true_expl)
         pred_expl = np.array(pred_expl)
 
@@ -271,9 +263,6 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "plausibility"
 
-    def __init__(self, model: Model, tokenizer):
-        super().__init__(model, tokenizer)
-
     def _token_iou(self, true_expl, pred_expl):
         """From ERASER
         We define IOU on a token level:  for two spans,
@@ -335,6 +324,3 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
 
         evaluation_output = Evaluation(self.SHORT_NAME, token_iou)
         return evaluation_output
-
-    def aggregate_score(self, score, total, **aggregation_args):
-        return super().aggregate_score(score, total, **aggregation_args)

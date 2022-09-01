@@ -15,7 +15,6 @@ requirements = [
     "datasets",
     "sentencepiece",
     "captum",
-    "einops",
     "shap",
     "seaborn",
     "matplotlib",
