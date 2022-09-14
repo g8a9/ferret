@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Union
 
-from ferret.datasets import BaseDataset
+from .datasets import BaseDataset
 
 from . import (
     SHAPExplainer,
@@ -436,29 +436,40 @@ class Benchmark:
         # As in DeYoung et al. 2020, we set it as the average size of the human rationales of the dataset
         evaluation_args["top_k_rationale"] = dataset.avg_rationale_size
 
-        # Default, w.r.t. predicted class
-        if target is None:
-            #  Compute explanations for the predicted class
-            predicted_classes = [
-                self.score(i["text"], return_dict=False).argmax(-1).tolist()
-                for i in instances
-            ]
+        # is_thermostatdata = isinstance(dataset, ThermostatDataset) --> problem with reload
+        is_thermostatdata = dataset.NAME == "Thermostat"
 
-            targets = predicted_classes
+        # Set the explanation target class
+        if is_thermostatdata:
+            # The explanations in thermostat are pre-computed for the predicted class
+            targets = [i["predicted_label"] for i in instances]
         else:
-            targets = [target] * len(sample)
+            # Default, w.r.t. predicted class
+            if target is None:
+                #  Compute explanations for the predicted class
+                predicted_classes = [
+                    self.score(i["text"], return_dict=False).argmax(-1).tolist()
+                    for i in instances
+                ]
+
+                targets = predicted_classes
+            else:
+                targets = [target] * len(sample)
+
+        if is_thermostatdata:
+            name_explainers = dataset.explainers
+        else:
+            name_explainers = [e.NAME for e in self.explainers]
 
         if show_progress_bar:
             pbar = tqdm(total=len(targets), desc="explain", leave=False)
 
         # Create an empty dict of dict to collect the results
         evaluation_scores_by_explainer = {}
-        for explainer in self.explainers:
-            evaluation_scores_by_explainer[explainer.NAME] = {}
+        for explainer in name_explainers:
+            evaluation_scores_by_explainer[explainer] = {}
             for evaluator in self.evaluators:
-                evaluation_scores_by_explainer[explainer.NAME][
-                    evaluator.SHORT_NAME
-                ] = []
+                evaluation_scores_by_explainer[explainer][evaluator.SHORT_NAME] = []
 
         if n_workers > 1:
             raise NotImplementedError()
@@ -466,24 +477,32 @@ class Benchmark:
         else:
 
             for instance, target in zip(instances, targets):
-                # Generate explanations - list of explanations (one for each explainers)
-                explanations = self.explain(
-                    instance["text"], target, progress_bar=False
-                )
-                # If available, we add the human rationale
-                # It will be used in the evaluation of plausibility
-                if "rationale" in instance and len(instance["rationale"]) > target:
-                    # Add the human rationale for the corresponding class
-                    explanations = [
-                        self._add_rationale(explanation, instance["rationale"][target])
-                        for explanation in explanations
-                    ]
+
+                if is_thermostatdata:
+                    # If it is Thermostat instance, explanation are already pre-computed
+                    explanations = instance["explanations"]
+                else:
+                    # We generate explanations - list of explanations (one for each explainers)
+                    explanations = self.explain(
+                        instance["text"], target, show_progress=False
+                    )
+                    # If available, we add the human rationale
+                    # It will be used in the evaluation of plausibility
+                    if "rationale" in instance and len(instance["rationale"]) > target:
+                        # Add the human rationale for the corresponding class
+                        explanations = [
+                            self._add_rationale(
+                                explanation, instance["rationale"][target]
+                            )
+                            for explanation in explanations
+                        ]
 
                 for explanation in explanations:
                     # We evaluate the explanation and we obtain an ExplanationEvaluation
                     evaluation = self.evaluate_explanation(
                         explanation, target, progress_bar=False, **evaluation_args
                     )
+
                     # We accumulate the results for each explainer
                     for evaluation_score in evaluation.evaluation_scores:
                         evaluation_scores_by_explainer[explanation.explainer][
@@ -494,13 +513,16 @@ class Benchmark:
 
         # We compute mean and std, separately for each explainer and evaluator
         for explainer in evaluation_scores_by_explainer:
-            for score_name, list_scores in evaluation_scores_by_explainer[
-                explainer
-            ].items():
-                evaluation_scores_by_explainer[explainer][score_name] = (
-                    np.mean(list_scores),
-                    np.std(list_scores),
-                )
+            for score_name in list(evaluation_scores_by_explainer[explainer]):
+                list_scores = evaluation_scores_by_explainer[explainer][score_name]
+                if list_scores:
+                    # Compute mean and standard deviation
+                    evaluation_scores_by_explainer[explainer][score_name] = (
+                        np.mean(list_scores),
+                        np.std(list_scores),
+                    )
+                else:
+                    evaluation_scores_by_explainer[explainer].pop(score_name, None)
 
         if show_progress_bar:
             pbar.close()
