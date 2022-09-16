@@ -29,6 +29,16 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
         target=1,
         **evaluation_args
     ):
+        """Evaluate an explanation on the Area Under the Precision- Recall (AUPRC) Plausibility metric.
+
+        Args:
+            explanation (ExplanationWithRationale): the explanation to evaluate
+            evaluation_args (dict):  additional evaluation args
+
+        Returns:
+            Evaluation : the AUPRC Plausibility score of the explanation
+        """
+
         # Plausibility - Area Under the Precision- Recall curve (AUPRC) - ERASER
         if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
             return None
@@ -173,6 +183,17 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         target=1,
         **evaluation_args
     ):
+
+        """Evaluate an explanation on the Token-f1 score Plausibility metric.
+
+        Args:
+            explanation (ExplanationWithRationale): the explanation to evaluate
+            evaluation_args (dict):  additional evaluation args
+
+        Returns:
+            Evaluation : the Token-f1 Plausibility score of the explanation
+        """
+
         if isinstance(explanation_with_rationale, ExplanationWithRationale) == False:
             return None
 
@@ -288,6 +309,16 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         target=1,
         **evaluation_args
     ):
+
+        """Evaluate an explanation on the Intersection Over Union (IOU) Plausibility metric.
+
+        Args:
+            explanation (ExplanationWithRationale): the explanation to evaluate
+            evaluation_args (dict):  additional evaluation args
+
+        Returns:
+            Evaluation : the IOU Plausibility score of the explanation
+        """
 
         """From ERASER
         'We define IOU on a token level:  for two spans,

@@ -1,6 +1,8 @@
-from ..benchmark import lp_normalize
 from . import BaseDataset
+from ..benchmark import lp_normalize
+from ..explainers.explanation import Explanation
 import thermostat
+from typing import List
 
 
 TRAIN_SET = "train"
@@ -52,17 +54,17 @@ class ThermostatDataset(BaseDataset):
     NAME = "Thermostat"
     avg_rationale_size = None
 
-    def __init__(self, name, name_explainers=None):
+    def __init__(self, name: str, name_explainers: List = None):
 
-        """
-        Load of thermostat dataset(s)
+        """Load of thermostat dataset(s)
 
-        name: dataset-model-explainer or dataset-model
-        A thermostat dataset is based on the triple ("dataset", "model", "explainer")
-        In the latter case, we load the thermostat datasets (for the specified dataset and model)
-        for all the explainers specified in name_explainers (all admitted ones if name_explainers is None)
+        Args:
+            name (str): name of the thermostat dataset to load. Format: "dataset-model-explainer" or "dataset-model"
+            A thermostat dataset is based on the triple ("dataset", "model", "explainer")
+            In the latter case, we load the thermostat datasets (for the specified dataset and model)
+            for all the explainers specified in name_explainers (all admitted ones if name_explainers is None)
 
-        name_explainers: list of admitted explainers. If none, we use all the admitted explainers
+            name_explainers (list): list of admitted explainers. If none, we use all the admitted explainers
         """
 
         check_termostat_config(name)
@@ -122,21 +124,19 @@ class ThermostatDataset(BaseDataset):
 
     def get_instance(self, idx, normalize_scores: bool = True):
 
-        """
-        Get the instance at index idx.
+        """Get the instance at index idx.
         Args:
-            idx
-            normalize_score: if set to True, explanations scores are normalized to ease the comparison
+            idx (int): the index of the sample
+            normalize_score (bool): do lp_normalization of explanations scores (to ease the comparison of explanations)
 
         Returns:
-            dict representing the instance.
-
-            An instance of the dataset is composed by the
-            - text
-            - tokens
-            - label: the ground truth
-            - predicted_label: the predicted label by the Thermostat model under analysis
-            - explanations: the list of explanation (List[Explanation])
+            Dict: the instance.
+                An instance of the dataset is composed by the
+                - text
+                - tokens
+                - label: the ground truth
+                - predicted_label: the predicted label by the Thermostat model under analysis
+                - explanations: the list of explanation (List[Explanation])
         """
 
         item_idx = self._get_item(idx)
@@ -160,7 +160,6 @@ class ThermostatDataset(BaseDataset):
             "explanations": explanations,
         }
         return instance
-
 
     def _get_tokens(self, idx):
 
@@ -210,18 +209,31 @@ class ThermostatDataset(BaseDataset):
     def _get_tokenizer_name(self):
         return self.test_dataset.tokenizer.name_or_path
 
-
     def get_target_explanations(self, idx):
-        """
-        Thermostat explanations are by default built w.r.t the predicted class
-        """    
-        return self._get_predicted_label(idx) 
+        """Returns the target of explanations at id idx
 
+        Args:
+            idx (int): the index of the sample
+
+        Returns:
+            int: the target class label of the explanations. Thermostat explanations are by default built w.r.t the predicted class
+        """
+        return self._get_predicted_label(idx)
 
     def get_explanations(
         self, idx, text=None, tokens=None, target=None, normalize_scores: bool = True
-    ):
-        from ..explainers.explanation import Explanation
+    ) -> List[Explanation]:
+        """Returns the pre-computed explanations of the instance at index idx
+
+        Args:
+            idx (int): the index of the sample
+            text (str): the text at id idx. If None, extracted at index idx
+            tokens (list): the tokens at id idx. If None, extracted at index idx
+            target (int): the target class label. If None, extracted at index idx
+
+        Returns:
+            List[Explanation]: the pre-computed explanation for the instance at index idx
+        """
 
         if text is None:
             text = self._get_text(idx)
