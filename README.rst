@@ -39,10 +39,12 @@ ferret
     :target: https://pepy.tech/project/ferret-xai
 
 
-A python package for benchmarking interpretability techniques.
+A python package for benchmarking interpretability techniques on Transformers.
 
-* Free software: MIT license
 * Documentation: https://ferret.readthedocs.io.
+* Paper: https://arxiv.org/abs/2208.01575
+* Demo: https://huggingface.co/spaces/g8a9/ferret
+* Free software: MIT license
 
 .. code-block:: python
 
@@ -58,6 +60,18 @@ A python package for benchmarking interpretability techniques.
     evaluations = bench.evaluate_explanations(explanations, target=1)
 
     bench.show_evaluation_table(evaluations)
+    
+    
+If you are using *ferret* for your work, please consider citing us!
+
+.. code-block:: bibtex
+
+    @article{attanasio2022ferret,
+      title={ferret: a Framework for Benchmarking Explainers on Transformers},
+      author={Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora},
+      journal={arXiv preprint arXiv:2208.01575},
+      year={2022}
+    }
 
 Features
 --------
