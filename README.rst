@@ -61,17 +61,6 @@ A python package for benchmarking interpretability techniques on Transformers.
 
     bench.show_evaluation_table(evaluations)
     
-    
-If you are using *ferret* for your work, please consider citing us!
-
-.. code-block:: bibtex
-
-    @article{attanasio2022ferret,
-      title={ferret: a Framework for Benchmarking Explainers on Transformers},
-      author={Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora},
-      journal={arXiv preprint arXiv:2208.01575},
-      year={2022}
-    }
 
 Features
 --------
@@ -148,3 +137,14 @@ This package was created with Cookiecutter and the *audreyr/cookiecutter-pypacka
 - `audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
 
 Logo and graphical assets made by `Luca Attanasio <https://www.behance.net/attanasiol624d>`_.
+
+If you are using *ferret* for your work, please consider citing us!
+
+.. code-block:: bibtex
+
+    @article{attanasio2022ferret,
+      title={ferret: a Framework for Benchmarking Explainers on Transformers},
+      author={Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora},
+      journal={arXiv preprint arXiv:2208.01575},
+      year={2022}
+    }
