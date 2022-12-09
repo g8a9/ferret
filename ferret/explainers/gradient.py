@@ -1,30 +1,40 @@
-from functools import partial
+from typing import Tuple, Union
+
+import torch
+from captum.attr import InputXGradient, IntegratedGradients, Saliency
 from cv2 import multiply
+
 from . import BaseExplainer
 from .explanation import Explanation
 from .utils import parse_explainer_args
-from captum.attr import Saliency, IntegratedGradients, InputXGradient
-import torch
-import pdb
 
 
 class GradientExplainer(BaseExplainer):
     NAME = "Gradient"
 
-    def __init__(self, model, tokenizer, multiply_by_inputs: bool = True):
-        super().__init__(model, tokenizer)
-        self.multiply_by_inputs = multiply_by_inputs
+    def __init__(
+        self,
+        model,
+        tokenizer,
+        task_name: str = "text-classification",
+        multiply_by_inputs: bool = True,
+        **kwargs,
+    ):
+        super().__init__(model, tokenizer, task_name, **kwargs)
 
+        self.multiply_by_inputs = multiply_by_inputs
         if self.multiply_by_inputs:
             self.NAME += " (x Input)"
 
     def compute_feature_importance(
         self,
-        text: str,
-        target: int == 1,
-        **explainer_args,
+        text: Union[str, Tuple[str, str]],
+        target: Union[int, str] = 1,
+        **kwargs,
     ):
-        init_args, call_args = parse_explainer_args(explainer_args)
+        # sanity checks
+        target = self.helper.check_format_target(target)
+        text = self.helper.check_format_input(text)
 
         item = self._tokenize(text)
         item = {k: v.to(self.device) for k, v in item.items()}
@@ -37,13 +47,13 @@ class GradientExplainer(BaseExplainer):
             return outputs.logits
 
         dl = (
-            InputXGradient(func, **init_args)
+            InputXGradient(func, **self.init_args)
             if self.multiply_by_inputs
-            else Saliency(func, **init_args)
+            else Saliency(func, **self.init_args)
         )
 
         inputs = self.get_input_embeds(text)
-        attr = dl.attribute(inputs, target=target, **call_args)
+        attr = dl.attribute(inputs, target=target, **kwargs)
         attr = attr[0, :input_len, :].detach().cpu()
 
         # pool over hidden size
@@ -56,10 +66,17 @@ class GradientExplainer(BaseExplainer):
 class IntegratedGradientExplainer(BaseExplainer):
     NAME = "Integrated Gradient"
 
-    def __init__(self, model, tokenizer, multiply_by_inputs: bool = True):
-        super().__init__(model, tokenizer)
-        self.multiply_by_inputs = multiply_by_inputs
+    def __init__(
+        self,
+        model,
+        tokenizer,
+        task_name: str = "text-classification",
+        multiply_by_inputs: bool = True,
+        **kwargs,
+    ):
+        super().__init__(model, tokenizer, task_name, **kwargs)
 
+        self.multiply_by_inputs = multiply_by_inputs
         if self.multiply_by_inputs:
             self.NAME += " (x Input)"
 
@@ -74,12 +91,20 @@ class IntegratedGradientExplainer(BaseExplainer):
         )
         return embeddings.unsqueeze(0)
 
-    def compute_feature_importance(self, text, target, **explainer_args):
-        init_args, call_args = parse_explainer_args(explainer_args)
+    def compute_feature_importance(
+        self,
+        text: Union[str, Tuple[str, str]],
+        target: Union[int, str] = 1,
+        show_progress: bool = False,
+        **kwargs,
+    ):
+        # sanity checks
+        target = self.helper.check_format_target(target)
+        text = self.helper.check_format_input(text)
+
+        # init_args, call_args = parse_explainer_args(explainer_args)
         item = self._tokenize(text)
         input_len = item["attention_mask"].sum().item()
-
-        show_progress = call_args.pop("show_progress", False)
 
         def func(input_embeds):
             attention_mask = torch.ones(
@@ -91,12 +116,12 @@ class IntegratedGradientExplainer(BaseExplainer):
             return logits
 
         dl = IntegratedGradients(
-            func, multiply_by_inputs=self.multiply_by_inputs, **init_args
+            func, multiply_by_inputs=self.multiply_by_inputs, **self.init_args
         )
         inputs = self.get_input_embeds(text)
         baselines = self._generate_baselines(input_len)
 
-        attr = dl.attribute(inputs, baselines=baselines, target=target, **call_args)
+        attr = dl.attribute(inputs, baselines=baselines, target=target, **kwargs)
         attr = attr[0, :input_len, :].detach().cpu()
 
         # pool over hidden size

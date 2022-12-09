@@ -1,7 +1,8 @@
 """Explainers API"""
 
 from abc import ABC, abstractmethod
-from ..model_utils import ModelHelper
+
+from ..model_utils import create_helper
 
 
 class BaseExplainer(ABC):
@@ -10,8 +11,12 @@ class BaseExplainer(ABC):
     def NAME(self):
         pass
 
-    def __init__(self, model, tokenizer):
-        self.helper = ModelHelper(model, tokenizer)
+    def __init__(self, model, tokenizer, task_name="text-classification", **kwargs):
+        if model is None or tokenizer is None:
+            raise ValueError("Please specify a model and a tokenizer.")
+
+        self.helper = create_helper(model, tokenizer, task_name)
+        self.init_args = kwargs
 
     @property
     def device(self):

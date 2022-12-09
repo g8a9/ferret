@@ -1,50 +1,42 @@
 """Client Interface Module"""
 
+import copy
+import dataclasses
+import json
 from typing import Dict, List, Union
+
+import datasets
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import torch
+from joblib import Parallel, delayed
+from torch.nn.functional import softmax
+from tqdm.auto import tqdm
 
 from ferret.datasets import BaseDataset
 
 from . import (
-    SHAPExplainer,
     GradientExplainer,
     IntegratedGradientExplainer,
     LIMEExplainer,
+    SHAPExplainer,
 )
-
+from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
+from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_class
+from .evaluators.evaluation import Evaluation, ExplanationEvaluation
 from .evaluators.faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,
     AOPC_Sufficiency_Evaluation,
     TauLOO_Evaluation,
 )
-
-from .evaluators.evaluation import Evaluation
-
 from .evaluators.plausibility_measures import (
     AUPRC_PlausibilityEvaluation,
     Tokenf1_PlausibilityEvaluation,
     TokenIOU_PlausibilityEvaluation,
 )
-
-from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_class
-
-from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation, ExplanationWithRationale
-
-from .model_utils import ModelHelper
-from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
-import copy
-
-import dataclasses
-import datasets
-import json
-import numpy as np
-import pandas as pd
-import torch
-from torch.nn.functional import softmax
-from tqdm.auto import tqdm
-import seaborn as sns
-from joblib import Parallel, delayed
-
+from .model_utils import create_helper
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 EVALUATION_PALETTE = sns.light_palette("purple", as_cmap=True)
@@ -74,13 +66,15 @@ class Benchmark:
         self,
         model,
         tokenizer,
+        task_name: str = "text-classification",
         explainers: List = None,
         evaluators: List = None,
         class_based_evaluators: List = None,
     ):
         self.model = model
         self.tokenizer = tokenizer
-        self.helper = ModelHelper(self.model, self.tokenizer)
+        self.task_name = task_name
+        self.helper = create_helper(self.model, self.tokenizer, self.task_name)
 
         self.explainers = explainers
         self.evaluators = evaluators
@@ -110,12 +104,13 @@ class Benchmark:
                 TokenIOU_PlausibilityEvaluation,
             ]
             self.evaluators = [
-                ev(self.model, self.tokenizer) for ev in self._used_evaluators
+                ev(self.model, self.tokenizer, self.task_name)
+                for ev in self._used_evaluators
             ]
         if not class_based_evaluators:
             self._used_class_evaluators = [AOPC_Comprehensiveness_Evaluation_by_class]
             self.class_based_evaluators = [
-                class_ev(self.model, self.tokenizer)
+                class_ev(self.model, self.tokenizer, self.task_name)
                 for class_ev in self._used_class_evaluators
             ]
 
@@ -139,17 +134,25 @@ class Benchmark:
             List[Explanation]: list of all explanations produced
         """
 
-        if show_progress:
-            pbar = tqdm(total=len(self.explainers), desc="Explainer", leave=False)
+        # sanity check and transformation to integer targets (if required)
+        # here we are assuming the same target format (e.g., positional integer will work
+        # for every explanation method. We might need to chage this in the future, when
+        # we will add new explanation methods.
+        requested_target = target
+        target = self.helper.check_format_target(target)
 
+        # we might optimize running the loop in parallel
         explanations = list()
-        for exp in self.explainers:
-            explanations.append(exp(text, target))
-            if show_progress:
-                pbar.update(1)
-
-        if show_progress:
-            pbar.close()
+        for explainer in tqdm(
+            self.explainers,
+            total=len(self.explainers),
+            desc="Explainer",
+            leave=False,
+            disable=not show_progress,
+        ):
+            exp = explainer(text, target)
+            exp.requested_target = requested_target
+            explanations.append(exp)
 
         if normalize_scores:
             explanations = lp_normalize(explanations, order)
@@ -190,6 +193,8 @@ class Benchmark:
             if human_rationale is not None
             else explanation
         )
+
+        target = self.helper.check_format_target(target)
 
         for evaluator in self.evaluators:
             evaluation = evaluator.compute_evaluation(
@@ -304,16 +309,7 @@ class Benchmark:
         :param text str: query to compute the logits from
         :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
         """
-
-        _, logits = self.helper._forward(text, output_hidden_states=False)
-        scores = logits[0].softmax(-1)
-
-        if return_dict:
-            scores = {
-                self.model.config.id2label[idx]: value.item()
-                for idx, value in enumerate(scores)
-            }
-        return scores
+        return self.helper._score(text, return_dict)
 
     def get_dataframe(self, explanations) -> pd.DataFrame:
         scores = {e.explainer: e.scores for e in explanations}
@@ -456,9 +452,7 @@ class Benchmark:
         for explainer in self.explainers:
             evaluation_scores_by_explainer[explainer.NAME] = {}
             for evaluator in self.evaluators:
-                evaluation_scores_by_explainer[explainer.NAME][
-                    evaluator.SHORT_NAME
-                ] = []
+                evaluation_scores_by_explainer[explainer.NAME][evaluator.SHORT_NAME] = []
 
         if n_workers > 1:
             raise NotImplementedError()
@@ -467,9 +461,7 @@ class Benchmark:
 
             for instance, target in zip(instances, targets):
                 # Generate explanations - list of explanations (one for each explainers)
-                explanations = self.explain(
-                    instance["text"], target, progress_bar=False
-                )
+                explanations = self.explain(instance["text"], target, progress_bar=False)
                 # If available, we add the human rationale
                 # It will be used in the evaluation of plausibility
                 if "rationale" in instance and len(instance["rationale"]) > target:

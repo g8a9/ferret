@@ -1,31 +1,45 @@
-from . import BaseExplainer
-from .utils import parse_explainer_args
-from .explanation import Explanation
-from lime.lime_text import LimeTextExplainer
-import torch
-import numpy as np
 import pdb
 from typing import List
+
+import numpy as np
+import torch
+from lime.lime_text import LimeTextExplainer
+
+from . import BaseExplainer
+from .explanation import Explanation
+from .utils import parse_explainer_args
 
 
 class LIMEExplainer(BaseExplainer):
     NAME = "LIME"
-    MAX_SAMPLES = 5000
 
-    def compute_feature_importance(self, text, target=1, **explainer_args):
-        init_args, call_args = parse_explainer_args(explainer_args)
+    def compute_feature_importance(
+        self,
+        text,
+        target=1,
+        token_masking_strategy="mask",
+        batch_size=8,
+        show_progress=True,
+        num_samples=None,
+        max_samples=5000,
+        **kwargs
+    ):
+        # init_args, call_args = parse_explainer_args(explainer_args)
+        # sanity checks
+        target = self.helper.check_format_target(target)
+        text = self.helper.check_format_input(text)
 
-        token_masking_strategy = call_args.pop("token_masking_strategy", "mask")
-        show_progress = call_args.pop("show_progress", False)
-        batch_size = call_args.pop("batch_size", 8)
+        # token_masking_strategy = call_args.pop("token_masking_strategy", "mask")
+        # show_progress = call_args.pop("show_progress", False)
+        # batch_size = call_args.pop("batch_size", 8)
 
         item = self._tokenize(text, return_special_tokens_mask=True)
         token_ids = item["input_ids"][0].tolist()
 
         # handle num_samples which might become a bottleneck
-        num_samples = call_args.pop("num_samples", None)
+        # num_samples = call_args.pop("num_samples", None)
         if num_samples is None:
-            num_samples = min(len(token_ids) ** 2, self.MAX_SAMPLES)  # powerset size
+            num_samples = min(len(token_ids) ** 2, max_samples)  # powerset size
 
         def fn_prediction_token_ids(token_ids_sentences: List[str]):
             """Run inference on a list of strings made of token ids.
@@ -63,12 +77,12 @@ class LIMEExplainer(BaseExplainer):
                 output_hidden_states=False,
                 add_special_tokens=False,
                 show_progress=show_progress,
-                batch_size=batch_size
+                batch_size=batch_size,
             )
             return logits.softmax(-1).detach().cpu().numpy()
 
         # Same word has a different relevance according to its position
-        lime_explainer = LimeTextExplainer(bow=False, **init_args)
+        lime_explainer = LimeTextExplainer(bow=False, **self.init_args)
 
         expl = lime_explainer.explain_instance(
             " ".join([str(i) for i in token_ids]),
@@ -76,7 +90,7 @@ class LIMEExplainer(BaseExplainer):
             labels=[target],
             num_features=len(token_ids),
             num_samples=num_samples,
-            **call_args,
+            **kwargs,
         )
 
         token_scores = np.array([list(dict(sorted(expl.local_exp[target])).values())])

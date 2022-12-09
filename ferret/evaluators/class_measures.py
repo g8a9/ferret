@@ -1,10 +1,12 @@
-from ferret.explainers.explanation import Explanation, ExplanationWithRationale
-from .faithfulness_measures import (
-    AOPC_Comprehensiveness_Evaluation,
-)
-from .evaluation import Evaluation
-import numpy as np
 from typing import List, Union
+
+import numpy as np
+
+from ferret.explainers.explanation import Explanation, ExplanationWithRationale
+
+from ..model_utils import create_helper
+from .evaluation import Evaluation
+from .faithfulness_measures import AOPC_Comprehensiveness_Evaluation
 
 
 class AOPC_Comprehensiveness_Evaluation_by_class:
@@ -17,14 +19,19 @@ class AOPC_Comprehensiveness_Evaluation_by_class:
 
     def __init__(
         self,
-        model=None,
-        tokenizer=None,
+        model,
+        tokenizer,
+        task_name,
         aopc_compr_eval: AOPC_Comprehensiveness_Evaluation = None,
     ):
         if aopc_compr_eval is None:
             if model is None or tokenizer is None:
-                raise ValueError("Specify the tokenizer and the model")
-            self.aopc_compr_eval = AOPC_Comprehensiveness_Evaluation(model, tokenizer)
+                raise ValueError("Please specify a model and a tokenizer.")
+
+            self.helper = create_helper(model, tokenizer, task_name)
+            self.aopc_compr_eval = AOPC_Comprehensiveness_Evaluation(
+                model, tokenizer, task_name
+            )
         else:
             self.aopc_compr_eval = aopc_compr_eval
 

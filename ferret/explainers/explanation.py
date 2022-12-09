@@ -1,5 +1,6 @@
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
 
 
 @dataclass
@@ -11,6 +12,7 @@ class Explanation:
     scores: np.array
     explainer: str
     target: int
+    requested_target = None
 
 @dataclass
 class ExplanationWithRationale(Explanation):
