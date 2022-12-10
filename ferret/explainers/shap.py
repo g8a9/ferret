@@ -1,5 +1,6 @@
 from typing import Dict, Text
 
+import numpy as np
 import shap
 from shap.maskers import Text as TextMasker
 
@@ -29,15 +30,13 @@ class SHAPExplainer(BaseExplainer):
     def compute_feature_importance(self, text, target=1, **kwargs):
         # sanity checks
         target = self.helper.check_format_target(target)
-        # text = self.helper.check_format_input(text)
+        text = self.helper.check_format_input(text)
 
-        def func(texts):
-            _, logits = self.helper._forward(texts)
+        def func(texts: np.array):
+            _, logits = self.helper._forward(texts.tolist())
             return logits.softmax(-1).cpu().numpy()
 
         masker = TextMasker(self.tokenizer)
-
-        breakpoint()
         explainer_partition = shap.Explainer(model=func, masker=masker, **self.init_args)
         shap_values = explainer_partition(text, **kwargs)
         attr = shap_values.values[0][:, target]
