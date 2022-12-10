@@ -29,8 +29,8 @@ class SHAPExplainer(BaseExplainer):
 
     def compute_feature_importance(self, text, target=1, **kwargs):
         # sanity checks
-        target = self.helper.check_format_target(target)
-        text = self.helper.check_format_input(text)
+        target = self.helper._check_target(target)
+        text = self.helper._check_sample(text)
 
         def func(texts: np.array):
             _, logits = self.helper._forward(texts.tolist())

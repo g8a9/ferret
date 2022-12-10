@@ -19,14 +19,18 @@ class BaseTaskHelper(ABC):
         self.tokenizer = tokenizer
 
     @abstractmethod
-    def check_format_target(self, target):
-        """Validate the specific target requested for the explanaiton"""
+    def _check_target(self, target):
+        """Validate the specific target requested for the explanation"""
         pass
 
     @abstractmethod
-    def check_format_input(self, input):
-        """Validate the specific input requested for the explanaiton"""
+    def _check_sample(self, input):
+        """Validate the specific input requested for the explanation"""
         pass
+
+    def _prepare_sample(self, sample):
+        """Format the input before the explanation"""
+        return sample
 
     def format_target(self, target):
         """Format the target variable
@@ -144,6 +148,16 @@ class BaseTaskHelper(ABC):
         logits = torch.cat([o.logits for o in outputs])
         return outputs, logits
 
+
+def create_helper(model, tokenizer, task_name):
+    helper = SUPPORTED_TASKS_TO_HELPERS.get(task_name, None)
+    if helper is None:
+        raise ValueError(f"Task {task_name} is not supported.")
+    else:
+        return helper(model, tokenizer)
+
+
+class TaskClassificationHelper(BaseTaskHelper):
     def _score(self, text: str, return_dict: bool = True):
         """Compute prediction scores for a single query
 
@@ -160,17 +174,7 @@ class BaseTaskHelper(ABC):
             }
         return scores
 
-
-def create_helper(model, tokenizer, task_name):
-    helper = SUPPORTED_TASKS_TO_HELPERS.get(task_name, None)
-    if helper is None:
-        raise ValueError(f"Task {task_name} is not supported.")
-    else:
-        return helper(model, tokenizer)
-
-
-class TaskClassificationHelper(BaseTaskHelper):
-    def check_format_target(self, target):
+    def _check_target(self, target):
         if isinstance(target, str) and target not in self.model.config.label2id:
             raise ValueError(
                 f"Target {target} is not a valid target. Use a string among: {list(self.model.config.label2id.keys())}"
@@ -184,7 +188,7 @@ class TaskClassificationHelper(BaseTaskHelper):
             target = self.model.config.label2id[target]
         return target
 
-    def check_format_input(self, text):
+    def _check_sample(self, text):
         if not any(
             (isinstance(text, str), isinstance(text, tuple), isinstance(text, list))
         ):
@@ -196,4 +200,84 @@ class TaskClassificationHelper(BaseTaskHelper):
             return text
 
 
-SUPPORTED_TASKS_TO_HELPERS = {"text-classification": TaskClassificationHelper}
+class ZeroShotTextClassificationHelper(BaseTaskHelper):
+    DEFAULT_TEMPLATE = "This is {}"
+
+    def _score(
+        self,
+        sample,
+        return_dict: bool = True,
+        template=None,
+        class_label: str = "entailment",
+        return_probs: bool = False,
+    ):
+        """Compute prediction scores for a single query
+
+        :param text str: query to compute the logits from
+        :param return_dict bool: return a dict in the format Class Label -> score.
+        Otherwise, return softmaxed logits as torch.Tensor. Default True
+        """
+        text_to_classify, options = self._check_sample(sample)
+
+        if template is None:
+            template = self.DEFAULT_TEMPLATE
+
+        texts = [(text_to_classify, template.format(opt)) for opt in options]
+        _, logits = self._forward(texts, output_hidden_states=False)
+        scores = logits.softmax(-1)
+
+        ent_idx = self.model.config.label2id[class_label]
+        scores = scores[:, ent_idx]
+
+        if return_probs:
+            scores = scores.softmax(-1)
+
+        if return_dict:
+            scores = {opt: s.item() for opt, s in zip(options, scores)}
+        return scores
+
+    def _check_sample(self, sample: Tuple[str, List[str]]):
+        is_valid = True
+        if not isinstance(sample, tuple):
+            is_valid = False
+        tt_classify, options = sample
+        if not isinstance(tt_classify, str):
+            is_valid = False
+        if not isinstance(options, list):
+            is_valid = False
+        if not all([isinstance(x, str) for x in options]):
+            is_valid = False
+
+        if not is_valid:
+            raise ValueError("Input sample Tuple[str, List[str]]")
+
+        return tt_classify, options
+
+    def _prepare_sample(self, sample, option="most_likely"):
+        ttc, options = sample
+        scores = self._score(sample, return_dict=True)
+        if option == "most_likely":
+            opt_idx = np.array(list(scores.values())).argmax()
+            option = options[opt_idx]
+
+        return (ttc, self.DEFAULT_TEMPLATE.format(option))
+
+    def _check_target(self, target):
+        if isinstance(target, str) and target not in self.model.config.label2id:
+            raise ValueError(
+                f"Target {target} is not a valid target. Use a string among: {list(self.model.config.label2id.keys())}"
+            )
+        if isinstance(target, int) and target not in self.model.config.id2label:
+            raise ValueError(
+                f"Target {target} is not a valid target. Use an integer amond: {list(self.model.config.id2label.keys())}"
+            )
+
+        if isinstance(target, str):
+            target = self.model.config.label2id[target]
+        return target
+
+
+SUPPORTED_TASKS_TO_HELPERS = {
+    "text-classification": TaskClassificationHelper,
+    "zero-shot-text-classification": ZeroShotTextClassificationHelper,
+}

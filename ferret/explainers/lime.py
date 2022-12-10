@@ -26,8 +26,8 @@ class LIMEExplainer(BaseExplainer):
     ):
         # init_args, call_args = parse_explainer_args(explainer_args)
         # sanity checks
-        target = self.helper.check_format_target(target)
-        text = self.helper.check_format_input(text)
+        target = self.helper._check_target(target)
+        text = self.helper._check_sample(text)
 
         # token_masking_strategy = call_args.pop("token_masking_strategy", "mask")
         # show_progress = call_args.pop("show_progress", False)

@@ -33,8 +33,8 @@ class GradientExplainer(BaseExplainer):
         **kwargs,
     ):
         # sanity checks
-        target = self.helper.check_format_target(target)
-        text = self.helper.check_format_input(text)
+        target = self.helper._check_target(target)
+        text = self.helper._check_sample(text)
 
         item = self._tokenize(text)
         item = {k: v.to(self.device) for k, v in item.items()}
@@ -99,8 +99,8 @@ class IntegratedGradientExplainer(BaseExplainer):
         **kwargs,
     ):
         # sanity checks
-        target = self.helper.check_format_target(target)
-        text = self.helper.check_format_input(text)
+        target = self.helper._check_target(target)
+        text = self.helper._check_sample(text)
 
         # init_args, call_args = parse_explainer_args(explainer_args)
         item = self._tokenize(text)

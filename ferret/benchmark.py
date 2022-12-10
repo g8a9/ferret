@@ -139,7 +139,9 @@ class Benchmark:
         # for every explanation method. We might need to chage this in the future, when
         # we will add new explanation methods.
         requested_target = target
-        target = self.helper.check_format_target(target)
+        target = self.helper._check_target(target)
+        text = self.helper._check_sample(text)
+        text = self.helper._prepare_sample(text)
 
         # we might optimize running the loop in parallel
         explanations = list()
@@ -194,7 +196,7 @@ class Benchmark:
             else explanation
         )
 
-        target = self.helper.check_format_target(target)
+        target = self.helper._check_target(target)
 
         for evaluator in self.evaluators:
             evaluation = evaluator.compute_evaluation(
@@ -303,13 +305,13 @@ class Benchmark:
             outputs = self.model(**item)
         return outputs
 
-    def score(self, text: str, return_dict: bool = True):
+    def score(self, text: str, return_dict: bool = True, **kwargs):
         """Compute prediction scores for a single query
 
         :param text str: query to compute the logits from
         :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
         """
-        return self.helper._score(text, return_dict)
+        return self.helper._score(text, return_dict, **kwargs)
 
     def get_dataframe(self, explanations) -> pd.DataFrame:
         scores = {e.explainer: e.scores for e in explanations}
