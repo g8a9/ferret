@@ -12,3 +12,6 @@ to see which task we currently support off-the-shelf (note: **ferret-xai >= 0.5.
 | _Masked Language Modeling_    |   |    |      |      |          |
 | _Casual Language Modeling_    |   |    |      |      |          |
 | _Named Entity Recognition_    |   |    |      |      |          |
+
+✅: we got you covered!
+⚙️: working on it...
