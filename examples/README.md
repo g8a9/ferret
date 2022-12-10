@@ -13,5 +13,6 @@ to see which task we currently support off-the-shelf (note: **ferret-xai >= 0.5.
 | _Casual Language Modeling_    |   |    |      |      |          |
 | _Named Entity Recognition_    |   |    |      |      |          |
 
-✅: we got you covered!
-⚙️: working on it...
+Where:
+- ✅: we got you covered!
+- ⚙️: working on it...
