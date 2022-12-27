@@ -141,8 +141,8 @@ See `the changelog file <https://github.com/g8a9/ferret/blob/main/HISTORY.rst>`_
 - ⚙️ Support to explainers for seq2seq and autoregressive generation through `inseq <https://github.com/inseq-team/inseq>`_. 
 - ⚙️ New evaluation measure: Sensitivity, Stability (`Yin et al <https://aclanthology.org/2022.acl-long.188/>`_)
 - ⚙️ New evaluation measure: Area Under the Threshold-Performance Curve (AUC-TP) (`Atanasova et al. <https://aclanthology.org/2020.emnlp-main.263/>`_)
-- ⚙️ New explainer: Sampling and Occlusion (`Jin et al., 2020 <https://arxiv.org/abs/1911.06194>`_)
-- ⚙️ New explainer: Discretized Integrated Gradient (`Sanyal and Ren, 2021 <https://aclanthology.org/2021.emnlp-main.805/>`_)
+- ⚙️ New explainer: Sampling and Occlusion (SOC) (`Jin et al., 2020 <https://arxiv.org/abs/1911.06194>`_)
+- ⚙️ New explainer: Discretized Integrated Gradient (DIG) (`Sanyal and Ren, 2021 <https://aclanthology.org/2021.emnlp-main.805/>`_)
 - ⚙️ Support additional form of aggregation over embeddings' hidden dimension.
 
 Credits
