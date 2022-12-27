@@ -1,8 +1,6 @@
 """Client Interface Module"""
 
 import copy
-import dataclasses
-import json
 from typing import Dict, List, Union
 
 import datasets
@@ -10,16 +8,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
-from joblib import Parallel, delayed
-from torch.nn.functional import softmax
 from tqdm.auto import tqdm
 
-from . import (
-    GradientExplainer,
-    IntegratedGradientExplainer,
-    LIMEExplainer,
-    SHAPExplainer,
-)
 from .datasets import BaseDataset
 from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
 from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_class
@@ -35,6 +25,9 @@ from .evaluators.plausibility_measures import (
     TokenIOU_PlausibilityEvaluation,
 )
 from .explainers.explanation import Explanation, ExplanationWithRationale
+from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
+from .explainers.lime import LIMEExplainer
+from .explainers.shap import SHAPExplainer
 from .model_utils import ModelHelper
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
