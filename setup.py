@@ -26,6 +26,7 @@ requirements = [
     "lime",
     "joblib",
     "pytreebank",
+    "thermostat-datasets",
 ]
 
 test_requirements = []

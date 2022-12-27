@@ -1,9 +1,11 @@
-from . import BaseExplainer
-from .utils import parse_explainer_args
-from .explanation import Explanation
+from typing import Dict, Text
+
 import shap
 from shap.maskers import Text as TextMasker
-from typing import Dict, Text
+
+from . import BaseExplainer
+from .explanation import Explanation
+from .utils import parse_explainer_args
 
 
 class SHAPExplainer(BaseExplainer):

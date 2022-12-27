@@ -1,16 +1,17 @@
 import copy
-from scipy.stats import kendalltau
-import numpy as np
-
-from . import BaseEvaluator
-from ..model_utils import ModelHelper
-from ..explainers.explanation import Explanation, ExplanationWithRationale
 from typing import List
+
+import numpy as np
+from scipy.stats import kendalltau
+
+from ..explainers.explanation import Explanation, ExplanationWithRationale
+from ..model_utils import ModelHelper
+from . import BaseEvaluator
+from .evaluation import Evaluation
 from .utils_from_soft_to_discrete import (
     _check_and_define_get_id_discrete_rationale_function,
     parse_evaluator_args,
 )
-from .evaluation import Evaluation
 
 
 def _compute_aopc(scores):
@@ -26,18 +27,25 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "faithfulness"
 
-    def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
+    def compute_evaluation(
+        self, explanation: Explanation, target=1, **evaluation_args
+    ) -> Evaluation:
         """Evaluate an explanation on the AOPC Comprehensiveness metric.
 
-        We currently support multiple approaches to define the hard rationale from
-        soft score rationales, based on:
-        - th : token greater than a threshold
-        - perc : more than x% of the tokens
-        - k: top k values
+        Args:
+            explanation (Explanation): the explanation to evaluate
+            target (int): class label for which the explanation is evaluated
+            evaluation_args (dict):  additional evaluation args.
+                We currently support multiple approaches to define the hard rationale from
+                soft score rationales, based on:
+                - th : token greater than a threshold
+                - perc : more than x% of the tokens
+                - k: top k values
 
-        :param explanation:
-        :param target:
+        Returns:
+            Evaluation : the AOPC Comprehensiveness score of the explanation
         """
+
         remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
             evaluation_args
         )
@@ -136,7 +144,20 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = True
     TYPE_METRIC = "faithfulness"
 
-    def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
+    def compute_evaluation(
+        self, explanation: Explanation, target=1, **evaluation_args
+    ) -> Evaluation:
+        """Evaluate an explanation on the AOPC Sufficiency metric.
+
+        Args:
+            explanation (Explanation): the explanation to evaluate
+            target (int): class label for which the explanation is evaluated
+            evaluation_args (dict):  additional evaluation args
+
+        Returns:
+            Evaluation : the AOPC Sufficiency score of the explanation
+        """
+
         remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
             evaluation_args
         )
@@ -239,6 +260,7 @@ class TauLOO_Evaluation(BaseEvaluator):
     BEST_SORTING_ASCENDING = False
 
     def compute_leave_one_out_occlusion(self, text, target=1, remove_first_last=True):
+
         _, logits = self.helper._forward(text, output_hidden_states=False)
         baseline = logits.softmax(-1)[0, target].item()
 
@@ -262,7 +284,21 @@ class TauLOO_Evaluation(BaseEvaluator):
 
         return occlusion_importance
 
-    def compute_evaluation(self, explanation: Explanation, target=1, **evaluation_args):
+    def compute_evaluation(
+        self, explanation: Explanation, target=1, **evaluation_args
+    ) -> Evaluation:
+        """Evaluate an explanation on the tau-LOO metric,
+        i.e., the Kendall tau correlation between the explanation scores and leave one out (LOO) scores,
+        computed by leaving one feature out and computing the change in the prediciton probability
+
+        Args:
+            explanation (Explanation): the explanation to evaluate
+            target (int): class label for which the explanation is evaluated
+            evaluation_args (dict):  additional evaluation args
+
+        Returns:
+            Evaluation : the tau-LOO score of the explanation
+        """
 
         remove_first_last = evaluation_args.get("remove_first_last", True)
 

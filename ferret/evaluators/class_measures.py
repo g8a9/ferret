@@ -1,10 +1,11 @@
-from ferret.explainers.explanation import Explanation, ExplanationWithRationale
-from .faithfulness_measures import (
-    AOPC_Comprehensiveness_Evaluation,
-)
-from .evaluation import Evaluation
-import numpy as np
 from typing import List, Union
+
+import numpy as np
+
+from ferret.explainers.explanation import Explanation, ExplanationWithRationale
+
+from .evaluation import Evaluation
+from .faithfulness_measures import AOPC_Comprehensiveness_Evaluation
 
 
 class AOPC_Comprehensiveness_Evaluation_by_class:

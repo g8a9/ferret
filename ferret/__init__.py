@@ -21,7 +21,3 @@ from .explainers.dummy import DummyExplainer
 from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
 from .explainers.lime import LIMEExplainer
 from .explainers.shap import SHAPExplainer
-
-# from .evaluators.classes_evaluation_measures import (
-#    AOPC_Comprehensiveness_Evaluation_by_class,
-# )

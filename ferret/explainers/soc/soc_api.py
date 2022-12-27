@@ -1,11 +1,16 @@
+import json
+import logging
+import os
+import pickle
 from builtins import breakpoint
 
+import torch
+
 from ferret.explainers.soc.processor import Processor
-from .soc_algo import _SamplingAndOcclusionAlgo
+
 from .lm import BiGRULanguageModel
+from .soc_algo import _SamplingAndOcclusionAlgo
 from .train_lm import do_train_lm
-import os, logging, torch, pickle
-import json
 
 logger = logging.getLogger(__name__)
 

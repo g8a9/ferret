@@ -1,4 +1,9 @@
-import json, os, csv, sys, logging
+import csv
+import json
+import logging
+import os
+import sys
+
 import torch
 from torch.utils.data.dataloader import default_collate
 

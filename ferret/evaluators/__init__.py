@@ -1,7 +1,8 @@
 """Evaluators API"""
 
 from abc import ABC, abstractmethod
-from typing import List, Any, Union
+from typing import Any, List, Union
+
 from ferret.explainers.explanation import Explanation, ExplanationWithRationale
 from ferret.model_utils import ModelHelper
 

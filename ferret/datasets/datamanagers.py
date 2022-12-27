@@ -1,10 +1,12 @@
 """Datasets API"""
 
 
-from . import BaseDataset
-import numpy as np
 from typing import List
+
+import numpy as np
 import pytreebank
+
+from . import BaseDataset
 
 TRAIN_SET = "train"
 VALIDATION_SET = "validation"
