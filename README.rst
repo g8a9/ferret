@@ -46,6 +46,7 @@ A python package for benchmarking interpretability techniques on Transformers.
 * Demo: https://huggingface.co/spaces/g8a9/ferret
 * Free software: MIT license
 
+
 .. code-block:: python
 
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -61,6 +62,13 @@ A python package for benchmarking interpretability techniques on Transformers.
 
     bench.show_evaluation_table(evaluations)
     
+
+Installation
+____________
+
+.. code-block:: bash
+
+    pip install -U ferret-xai
 
 Features
 --------
