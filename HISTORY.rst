@@ -2,6 +2,11 @@
 History
 =======
 
+0.4.1 (2022-12-27)
+------------------
+
+* Integrated interface to Thermostat datasets and pre-coumpute feature attributions
+
 0.4.0 (2022-09-01)
 ------------------
 
