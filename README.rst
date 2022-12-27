@@ -134,9 +134,9 @@ Planned Developement
 
 See `the changelog file <https://github.com/g8a9/ferret/blob/main/HISTORY.rst>_` for further details.
 
-- ✅ GPU acceleartion support for inference (v0.4.0)
-- ✅ Batched Inference for internal methods's approximation steps (e.g., LIME or SHAP) (v.0.4.0)
-- ⚙️ Simplified Task API to support NLI, Zero-Shot Text Classification, Language Modeling (`branch <https://github.com/g8a9/ferret/tree/task-API>_`).
+- ✅ GPU acceleartion support for inference (**v0.4.0**)
+- ✅ Batched Inference for internal methods's approximation steps (e.g., LIME or SHAP) (**v0.4.0**)
+- ⚙️ Simplified Task API to support NLI, Zero-Shot Text Classification, Language Modeling (`branch <https://github.com/g8a9/ferret/tree/task-API>`_).
 - ⚙️ Multi-sample explanation generation and evaluation
 - ⚙️ Support to explainers for seq2seq and autoregressive generation through `inseq <https://github.com/inseq-team/inseq>`_. 
 - ⚙️ New explainer: Sampling and Occlusion (`Jin et al., 2020 <https://arxiv.org/abs/1911.06194>`_)
