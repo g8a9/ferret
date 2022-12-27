@@ -3,12 +3,13 @@
 """Tests for `ferret` package."""
 
 
-from re import T
 import unittest
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-from ferret import Benchmark, SHAPExplainer, LIMEExplainer
-import numpy as np
+from re import T
 
+import numpy as np
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from ferret import Benchmark, LIMEExplainer, SHAPExplainer
 
 DEFAULT_EXPLAINERS_NUM = 6
 
@@ -26,18 +27,14 @@ class TestExplainers(unittest.TestCase):
     def test_initialization(self):
         self.assertEqual(len(self.bench.explainers), DEFAULT_EXPLAINERS_NUM)
 
+    # SHAP and LIME sample randomnly points in the neighborhood,
+    # attribution scores are not deteministic.
     def test_shap(self):
         text = "You look stunning!"
         exp = SHAPExplainer(self.m, self.t)
         explanation = exp(text)
         self.assertListEqual(
             explanation.tokens, ["[CLS]", "you", "look", "stunning", "!", "[SEP]"]
-        )
-        self.assertTrue(
-            np.allclose(
-                explanation.scores,
-                np.array([0.0, 0.05189601, -0.0196495, 0.37571134, 0.06520349, 0.0]),
-            )
         )
         self.assertEqual(explanation.target, 1)
 
@@ -48,5 +45,4 @@ class TestExplainers(unittest.TestCase):
         self.assertListEqual(
             explanation.tokens, ["[CLS]", "you", "look", "so", "stunning", "!", "[SEP]"]
         )
-        #  LIME samples randomnly points in the neighborhood, attribution scores are not deteministic.
         self.assertEqual(explanation.target, 1)

@@ -1,14 +1,14 @@
 import numpy as np
 from sklearn.metrics import auc, precision_recall_curve
 
-from . import BaseEvaluator
+from ..explainers.explanation import ExplanationWithRationale
 from ..model_utils import ModelHelper
+from . import BaseEvaluator
 from .evaluation import Evaluation
 from .utils_from_soft_to_discrete import (
     get_discrete_explanation_topK,
     parse_evaluator_args,
 )
-from ..explainers.explanation import ExplanationWithRationale
 
 
 class AUPRC_PlausibilityEvaluation(BaseEvaluator):

@@ -1,9 +1,10 @@
-from . import BaseDataset
-from ..benchmark import lp_normalize
-from ..explainers.explanation import Explanation
-import thermostat
 from typing import List
 
+import thermostat
+
+from ..benchmark import lp_normalize
+from ..explainers.explanation import Explanation
+from . import BaseDataset
 
 TRAIN_SET = "train"
 VALIDATION_SET = "validation"

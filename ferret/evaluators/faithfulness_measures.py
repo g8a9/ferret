@@ -1,16 +1,17 @@
 import copy
-from scipy.stats import kendalltau
-import numpy as np
-
-from . import BaseEvaluator
-from ..model_utils import ModelHelper
-from ..explainers.explanation import Explanation, ExplanationWithRationale
 from typing import List
+
+import numpy as np
+from scipy.stats import kendalltau
+
+from ..explainers.explanation import Explanation, ExplanationWithRationale
+from ..model_utils import ModelHelper
+from . import BaseEvaluator
+from .evaluation import Evaluation
 from .utils_from_soft_to_discrete import (
     _check_and_define_get_id_discrete_rationale_function,
     parse_evaluator_args,
 )
-from .evaluation import Evaluation
 
 
 def _compute_aopc(scores):

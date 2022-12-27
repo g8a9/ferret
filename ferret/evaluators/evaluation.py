@@ -1,7 +1,9 @@
-import numpy as np
 from dataclasses import dataclass
-from ferret.explainers.explanation import Explanation
 from typing import List
+
+import numpy as np
+
+from ferret.explainers.explanation import Explanation
 
 
 @dataclass

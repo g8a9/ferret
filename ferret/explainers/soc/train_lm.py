@@ -1,15 +1,15 @@
-import time
 import glob
-
-import torch.optim as O
-import torch.nn as nn
-import torch
-
 import os
+import time
+
+import torch
+import torch.nn as nn
+import torch.optim as O
 
 
 def makedirs(name):
-    import os, errno
+    import errno
+    import os
 
     try:
         os.makedirs(name)
