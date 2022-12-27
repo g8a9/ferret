@@ -132,16 +132,18 @@ The `Benchmark` class has a handy method to compute and average our evaluation m
 Planned Developement
 --------------------
 
-See `the changelog file <https://github.com/g8a9/ferret/blob/main/HISTORY.rst>_` for further details.
+See `the changelog file <https://github.com/g8a9/ferret/blob/main/HISTORY.rst>`_ for further details.
 
 - ✅ GPU acceleartion support for inference (**v0.4.0**)
 - ✅ Batched Inference for internal methods's approximation steps (e.g., LIME or SHAP) (**v0.4.0**)
 - ⚙️ Simplified Task API to support NLI, Zero-Shot Text Classification, Language Modeling (`branch <https://github.com/g8a9/ferret/tree/task-API>`_).
 - ⚙️ Multi-sample explanation generation and evaluation
 - ⚙️ Support to explainers for seq2seq and autoregressive generation through `inseq <https://github.com/inseq-team/inseq>`_. 
+- ⚙️ New evaluation measure: Sensitivity, Stability (`Yin et al <https://aclanthology.org/2022.acl-long.188/>`_)
+- ⚙️ New evaluation measure: Area Under the Threshold-Performance Curve (AUC-TP) (`Atanasova et al. <https://aclanthology.org/2020.emnlp-main.263/>`_)
 - ⚙️ New explainer: Sampling and Occlusion (`Jin et al., 2020 <https://arxiv.org/abs/1911.06194>`_)
 - ⚙️ New explainer: Discretized Integrated Gradient (`Sanyal and Ren, 2021 <https://aclanthology.org/2021.emnlp-main.805/>`_)
-- ⚙️ Support additional form of aggregation over embeddings' hidden dimension 
+- ⚙️ Support additional form of aggregation over embeddings' hidden dimension.
 
 Credits
 -------
