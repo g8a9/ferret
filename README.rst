@@ -1,6 +1,3 @@
-ferret
-========
-
 |pypi badge| |docs badge| |demo badge| |youtube badge| |arxiv badge| |downloads badge|
 
 |banner|
@@ -44,8 +41,20 @@ A python package for benchmarking interpretability techniques on Transformers.
 * Documentation: https://ferret.readthedocs.io.
 * Paper: https://arxiv.org/abs/2208.01575
 * Demo: https://huggingface.co/spaces/g8a9/ferret
-* Free software: MIT license
 
+
+Getting Started
+_______________
+
+Installation
+------------
+
+.. code-block:: bash
+
+    pip install -U ferret-xai
+
+Evaluate Explanations
+---------------------
 
 .. code-block:: python
 
@@ -62,13 +71,6 @@ A python package for benchmarking interpretability techniques on Transformers.
 
     bench.show_evaluation_table(evaluations)
     
-
-Installation
-____________
-
-.. code-block:: bash
-
-    pip install -U ferret-xai
 
 Features
 --------
