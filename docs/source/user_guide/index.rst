@@ -11,4 +11,18 @@ Head to :ref:`quickstart` for a basic example.
 
     whatisferret
     quickstart
+
+.. toctree:: 
+    :caption: Using ferret
+    :maxdepth: 2
+
+    benchmarking
+    explaining
     advanced
+
+.. toctree::
+    :caption: Notions
+    :maxdepth: 2
+
+    notions.explainers
+    notions.benchmarking

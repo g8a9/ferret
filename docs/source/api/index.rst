@@ -8,7 +8,9 @@ This list contains all main classes and methods.
     :maxdepth: 2
 
     benchmark
-
+    explainers
+    evaluators
+    datasets
 
 .. Benchmark
 .. ---------
