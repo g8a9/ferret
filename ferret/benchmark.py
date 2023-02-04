@@ -111,16 +111,37 @@ class Benchmark:
         normalize_scores: bool = True,
         order: int = 1,
     ) -> List[Explanation]:
-        """Compute explanations using all the explainers stored in the class.
+        """
+        Compute explanations using all the explainers stored in the class.
 
-        Args:
-            text (str): text string to explain.
-            target (int): class label to produce the explanations for
-            show_progress (bool): enable progress bar
-            normalize_scores (bool): do lp-normalization to make scores comparable
+        Parameters
+        ----------
+        text : str
+            Text string to explain.
+        target : int
+            Class label to produce the explanations for.
+        show_progress : bool, default False
+            Enable progress bar.
+        normalize_scores : bool, default True
+            Do lp-normalization to make scores comparable.
+        order : int, default 1
+            Normalization order, as passed to *numpy.linalg.norm*.
 
-        Returns:
-            List[Explanation]: list of all explanations produced
+        Returns
+        -------
+
+        List[Explanation]
+            List of all explanations produced.
+
+        Notes
+        -----
+
+        Please reference to :ref:`User Guide <explaining>` for more information.
+
+        Examples
+        --------
+        >>> bench = Benchmark(model, tokenizer)
+        >>> explanations = bench.explain("I love your style!", target=2)
         """
 
         if show_progress:
