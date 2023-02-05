@@ -1,8 +1,7 @@
 ferret documentation
 ====================
 
-|pypi badge| |docs badge| |demo badge| |youtube badge| |arxiv badge| |downloads badge|
-
+|pypi badge| |demo badge| |youtube badge| |arxiv badge| |downloads badge|
 
 .. |pypi badge| image:: https://img.shields.io/pypi/v/ferret-xai.svg
     :target: https://pypi.python.org/pypi/ferret-xai
@@ -10,31 +9,25 @@ ferret documentation
 
 .. |Docs Badge| image:: https://readthedocs.org/projects/ferret/badge/?version=latest
     :alt: Documentation Status
-    :scale: 100%
     :target: https://ferret.readthedocs.io/en/latest/?version=latest
 
 .. |demo badge| image:: https://img.shields.io/badge/HF%20Spaces-Demo-yellow
     :alt: HuggingFace Spaces Demo 
-    :scale: 100%
     :target: https://huggingface.co/spaces/g8a9/ferret
 
 .. |youtube badge| image:: https://img.shields.io/badge/youtube-video-red
     :alt: YouTube Video
-    :scale: 100%
     :target: https://www.youtube.com/watch?v=kX0HcSah_M4
 
 .. |banner| image:: /_static/banner.png
     :alt: Ferret circular logo with the name to the right
-    :scale: 100%
     
 .. |arxiv badge| image:: https://img.shields.io/badge/arXiv-2208.01575-b31b1b.svg
     :alt: arxiv preprint
-    :scale: 100%
     :target: https://arxiv.org/abs/2208.01575
     
 .. |downloads badge| image:: https://pepy.tech/badge/ferret-xai
     :alt: downloads badge
-    :scale: 100%
     :target: https://pepy.tech/project/ferret-xai
 
 

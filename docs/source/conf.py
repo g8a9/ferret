@@ -121,6 +121,9 @@ html_theme_options = {
         "json_url": "versions.json",
         "version_match": version,
     },
+    "external_links": [
+        {"name": "Demo", "url": "https://huggingface.co/spaces/g8a9/ferret"},
+    ]
     # "logo": {
     #     "image_light": "logo.png",
     #     "image_dark": "logo.png",
