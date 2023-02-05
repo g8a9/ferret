@@ -41,10 +41,7 @@ ferret documentation
 ferret is Python library for benchmarking interpretability techniques on
 Transformers.
 
-**Useful links**:
-`Source Repository <https://github.com/g8a9/ferret>`_ |
-`Paper <https://arxiv.org/abs/2208.01575>`_ |
-`Demo <https://huggingface.co/spaces/g8a9/ferret>`_
+Use any of the badges above to test our live demo, view a video demonstration, or explore our technical paper in detail. 
 
 Installation
 ------------
@@ -62,6 +59,21 @@ you through the process.
 
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
+
+
+Citation
+--------
+
+If you are using ferret for your work, please consider citing us!
+
+.. code-block:: bibtex
+
+    @article{attanasio2022ferret,
+      title={ferret: a Framework for Benchmarking Explainers on Transformers},
+      author={Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora},
+      journal={arXiv preprint arXiv:2208.01575},
+      year={2022}
+    }
 
 
 .. Indices and tables
