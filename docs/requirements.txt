@@ -12,3 +12,4 @@ pytreebank
 tqdm
 sphinx-toggleprompt>=0.3.1
 sphinx-copybutton>=0.5.1
+pydata_sphinx_theme>=0.12.0
