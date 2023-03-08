@@ -33,7 +33,7 @@ ferret
     :scale: 100%
     :target: https://arxiv.org/abs/2208.01575
     
-.. |downloads badge| image:: https://pepy.tech/badge/ferret-xai
+.. |downloads badge| image:: https://pepy.tech/badge/ferret-xai/month
     :alt: downloads badge
     :scale: 100%
     :target: https://pepy.tech/project/ferret-xai
