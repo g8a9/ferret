@@ -42,10 +42,8 @@ ferret
 A python package for benchmarking interpretability techniques on Transformers.
 
 * Documentation: https://ferret.readthedocs.io.
-* Paper: https://arxiv.org/abs/2208.01575
 * Demo: https://huggingface.co/spaces/g8a9/ferret
-* Free software: MIT license
-
+* Paper (accepted at EACL23): https://arxiv.org/abs/2208.01575
 
 .. code-block:: python
 
