@@ -123,9 +123,9 @@ class Benchmark:
         show_progress : bool, default False
             Enable progress bar.
         normalize_scores : bool, default True
-            Do lp-normalization to make scores comparable.
+            Apply lp-normalization across tokens to make attribution weights comparable across different explainers.
         order : int, default 1
-            Normalization order, as passed to *numpy.linalg.norm*.
+            If *normalize_scores=True*, this is the normalization order, as passed to *numpy.linalg.norm*.
 
         Returns
         -------
@@ -142,6 +142,11 @@ class Benchmark:
         --------
         >>> bench = Benchmark(model, tokenizer)
         >>> explanations = bench.explain("I love your style!", target=2)
+
+        Please note that by default we apply L1 normalization across tokens, to make feature attribution weights comparable among explainers. To turn it off, you should use:
+
+        >>> bench = Benchmark(model, tokenizer)
+        >>> explanations = bench.explain("I love your style!", target=2, normalize_scores=False)
         """
 
         if show_progress:
