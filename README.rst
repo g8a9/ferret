@@ -30,7 +30,7 @@
     :scale: 100%
     :target: https://arxiv.org/abs/2208.01575
     
-.. |downloads badge| image:: https://pepy.tech/badge/ferret-xai
+.. |downloads badge| image:: https://pepy.tech/badge/ferret-xai/month
     :alt: downloads badge
     :scale: 100%
     :target: https://pepy.tech/project/ferret-xai
@@ -39,9 +39,8 @@
 A python package for benchmarking interpretability techniques on Transformers.
 
 * Documentation: https://ferret.readthedocs.io.
-* Paper: https://arxiv.org/abs/2208.01575
 * Demo: https://huggingface.co/spaces/g8a9/ferret
-
+* Paper (accepted at EACL23): https://arxiv.org/abs/2208.01575
 
 Getting Started
 _______________

@@ -176,7 +176,7 @@ class Benchmark:
         Args:
             explanation (Union[Explanation, ExplanationWithRationale]): explanation to evaluate.
             target (int): class label for which the explanation is evaluated
-            human rationale (list): one-hot-encoding indicating if the token is in the human (or ground truth) rationale (1) or not (0)
+            human_rationale (list): list with values 0 or 1. A value of 1 means that the corresponding token is part of the human (or ground truth) rationale, 0 otherwise.  Tokens are indexed by position. The size of the list is the number of tokens.
             class_explanation (list): list of explanations. The explanation in position i is computed using as target class the class label i. The size is #target classes. If available, class-based scores are computed.
             show_progress (bool): enable progress bar
 
