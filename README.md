@@ -5,7 +5,7 @@
 [![arxiv preprint](https://img.shields.io/badge/arXiv-2208.01575-b31b1b.svg)](https://arxiv.org/abs/2208.01575)
 [![downloads badge](https://pepy.tech/badge/ferret-xai)](https://pepy.tech/project/ferret-xai)
 
-![Ferret circular logo with the name to the right](/_static/banner.png)
+![Ferret circular logo with the name to the right](/docs/source/_static/banner.png)
 
 ferret is Python library for benchmarking interpretability techniques on
 Transformers.
