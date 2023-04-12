@@ -1,6 +1,8 @@
-======
-Guides
-======
+.. _notions.benchmarking:
+
+***********************
+Evaluating Explanations
+***********************
 
 Benchmarking Metrics
 ^^^^^^^^^^^^^^^^^^^^

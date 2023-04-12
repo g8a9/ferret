@@ -1,6 +1,3 @@
-ferret
-========
-
 |pypi badge| |docs badge| |demo badge| |youtube badge| |arxiv badge| |downloads badge|
 
 |banner|
@@ -45,6 +42,19 @@ A python package for benchmarking interpretability techniques on Transformers.
 * Demo: https://huggingface.co/spaces/g8a9/ferret
 * Paper (accepted at EACL23): https://arxiv.org/abs/2208.01575
 
+Getting Started
+_______________
+
+Installation
+------------
+
+.. code-block:: bash
+
+    pip install -U ferret-xai
+
+Evaluate Explanations
+---------------------
+
 .. code-block:: python
 
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -60,13 +70,6 @@ A python package for benchmarking interpretability techniques on Transformers.
 
     bench.show_evaluation_table(evaluations)
     
-
-Installation
-____________
-
-.. code-block:: bash
-
-    pip install -U ferret-xai
 
 Features
 --------

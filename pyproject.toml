@@ -1,2 +1,5 @@
+[project]
+name = "ferret"
+
 [tool.isort]
 profile = "black"
