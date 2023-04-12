@@ -13,10 +13,10 @@ ferret is Python library that streamlines the use and benchmarking of interpreta
 - Paper: https://arxiv.org/abs/2208.01575
 - Demo: https://huggingface.co/spaces/g8a9/ferret
 
-ferret is meant to integrate seamlessly with 🤗 transformers models, among which it currently supports text models only.
+**ferret** is meant to integrate seamlessly with 🤗 **transformers** models, among which it currently supports text models only.
 We provide:
-- 🔍 Four established token-level feature attribution explainability techniques. Use these to get quickly token-level importance.
-- ⚖️ Six Faithfulness and Plausibility evaluation protocols. Benchmark any token-level explanation against these tests to guide your choice toward the most reliable explainer.  
+- 🔍 Four established interpretability techniques based on **Token-level Feature Attribution**. Use them to find the most relevant words to your model output quickly.
+- ⚖️ Six **Faithfulness and Plausibility evaluation protocols**. Benchmark any token-level explanation against these tests to guide your choice toward the most reliable explainer.  
 
 **📝 Examples**
 
