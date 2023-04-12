@@ -7,21 +7,40 @@
 
 ![Ferret circular logo with the name to the right](/docs/source/_static/banner.png)
 
-ferret is Python library for benchmarking interpretability techniques on Transformers.
+ferret is Python library that streamlines the use and benchmarking of interpretability techniques on Transformers models.
 
 - Documentation: https://ferret.readthedocs.io
 - Paper: https://arxiv.org/abs/2208.01575
 - Demo: https://huggingface.co/spaces/g8a9/ferret
 
-# Getting Started
+ferret is meant to integrate seamlessly with 🤗 transformers models, among which it currently supports text models only.
+We provide:
+- 🔍 Four established token-level feature attribution explainability techniques. Use these to get quickly token-level importance.
+- ⚖️ Six Faithfulness and Plausibility evaluation protocols. Benchmark any token-level explanation against these tests to guide your choice toward the most reliable explainer.  
 
-## Installation
+**📝 Examples**
+
+Text Classification
+
+- Sentiment Classification on Twitter Data: [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/benchmark.ipynb)
+- Intent Detection with Multilingual XLM RoBERTa: [Colab](https://colab.research.google.com/drive/17AXeA9-u7lOLlE_DWtUixMg7Mi0NFPIp?usp=sharing)
+
+
+## Getting Started
+
+### Installation
 
 ```bash
 pip install -U ferret-xai
 ```
 
-## Evaluate Explanations
+Our main dependencies are 🤗 `tranformers` and `datasets`.
+
+### Explain & Benchmark 
+
+The code below provides a minimal example to run all the feature-attribution explainers supported by ferret and benchmark them on faithfulness metrics.
+
+We start from a common text classification pipeline
 
 ```python
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -30,7 +49,11 @@ from ferret import Benchmark
 name = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
 model = AutoModelForSequenceClassification.from_pretrained(name)
 tokenizer = AutoTokenizer.from_pretrained(name)
+```
 
+Using *ferret* is as simple as: 
+
+```python
 bench = Benchmark(model, tokenizer)
 explanations = bench.explain("You look stunning!", target=1)
 evaluations = bench.evaluate_explanations(explanations, target=1)
@@ -38,27 +61,23 @@ evaluations = bench.evaluate_explanations(explanations, target=1)
 bench.show_evaluation_table(evaluations)
 ```
 
-# Features
+Be sure to run the code in a Jupyter Notebook/Colab: the cell above will produce a nicely-formatted table to analyze the saliency maps.
+
+## Features
 
 **ferret** offers a *painless* integration with Hugging Face models and
 naming conventions. If you are already using the
 [transformers](https://github.com/huggingface/transformers) library, you
 immediately get access to our **Explanation and Evaluation API**.
 
-## Supported Post-hoc Explainers
+### Post-Hoc Explainers
 
-- Gradient (plain gradients or multiplied by input token embeddings)
-    ([Simonyan et al., 2014](https://arxiv.org/abs/1312.6034))
-- Integrated Gradient (plain gradients or multiplied by input token
-    embeddings) ([Sundararajan et al.,
-    2017](http://proceedings.mlr.press/v70/sundararajan17a.html))
-- SHAP (via Partition SHAP approximation of Shapley values) ([Lundberg
-    and Lee,
-    2017](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html))
-- LIME ([Ribeiro et al.,
-    2016](https://dl.acm.org/doi/abs/10.1145/2939672.2939778))
+- Gradient (plain gradients or multiplied by input token embeddings) ([Simonyan et al., 2014](https://arxiv.org/abs/1312.6034))
+- Integrated Gradient (plain gradients or multiplied by input token embeddings) ([Sundararajan et al., 2017](http://proceedings.mlr.press/v70/sundararajan17a.html))
+- SHAP (via Partition SHAP approximation of Shapley values) ([Lundberg and Lee, 2017](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html))
+- LIME ([Ribeiro et al., 2016](https://dl.acm.org/doi/abs/10.1145/2939672.2939778))
 
-## Supported Evaluation Metrics
+### Evaluation Metrics
 
 **Faithfulness** measures:
 
@@ -112,7 +131,7 @@ sample_evaluations =  bench.evaluate_samples(hatexdata, samples)
 bench.show_samples_evaluation_table(sample_evaluations)
 ```
 
-# Planned Developement
+## Planned Developement
 
 See [the changelog file](https://github.com/g8a9/ferret/blob/main/HISTORY.rst) for further
 details.
@@ -129,7 +148,7 @@ details.
 - ⚙️ Support additional form of aggregation over embeddings' hidden dimension.
 
 
-# Authors
+## Authors
 
 - [Giuseppe Attanasio](https://gattanasio.cc)
 - [Eliana Pastor](mailto:eliana.pastor@centai.eu)
