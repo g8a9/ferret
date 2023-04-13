@@ -1,8 +1,18 @@
 [
     {
-        "name": "v0.4.1 (latest)",
+        "name": "latest",
         "version": "0.4.1",
         "url": "https://ferret.readthedocs.io/en/latest/"
+    },
+    {
+        "name": "v0.4.1 (Furo)",
+        "version": "0.4.1",
+        "url": "https://ferret.readthedocs.io/en/v0.4.1/"
+    },
+    {
+        "name": "dev",
+        "version": "dev",
+        "url": "https://ferret.readthedocs.io/en/dev/"
     },
     {
         "name": "v0.3.5",
