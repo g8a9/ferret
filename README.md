@@ -5,7 +5,7 @@
 [![arxiv preprint](https://img.shields.io/badge/arXiv-2208.01575-b31b1b.svg)](https://arxiv.org/abs/2208.01575)
 [![downloads badge](https://pepy.tech/badge/ferret-xai/month)](https://pepy.tech/project/ferret-xai)
 
-![Ferret circular logo with the name to the right](/docs/source/_static/banner.png)
+![Ferret circular logo with the name to the right](/docs/source/_static/banner_v2.png)
 
 ferret is Python library that streamlines the use and benchmarking of interpretability techniques on Transformers models.
 
@@ -18,7 +18,7 @@ We provide:
 - 🔍 Four established interpretability techniques based on **Token-level Feature Attribution**. Use them to find the most relevant words to your model output quickly.
 - ⚖️ Six **Faithfulness and Plausibility evaluation protocols**. Benchmark any token-level explanation against these tests to guide your choice toward the most reliable explainer.  
 
-**📝 Examples**
+### 📝 Examples
 
 Text Classification
 
