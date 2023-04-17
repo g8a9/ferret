@@ -168,10 +168,12 @@ Logo and graphical assets made by [Luca Attanasio](https://www.behance.net/attan
 If you are using *ferret* for your work, please consider citing us!
 
 ```bibtex
-@article{attanasio2022ferret,
-  title={ferret: a Framework for Benchmarking Explainers on Transformers},
-  author={Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora},
-  journal={arXiv preprint arXiv:2208.01575},
-  year={2022}
+@inproceedings{attanasio-etal-2023-ferret,
+    title = "ferret: a Framework for Benchmarking Explainers on Transformers",
+    author = "Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora",
+    booktitle = "Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics: System Demonstrations",
+    month = may,
+    year = "2023",
+    publisher = "Association for Computational Linguistics",
 }
 ```
