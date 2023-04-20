@@ -36,6 +36,15 @@ pip install -U ferret-xai
 
 Our main dependencies are 🤗 `tranformers` and `datasets`.
 
+**Important** Some of our dependencies might use the package name for `scikit-learn` and that breaks ferret installation. \
+If your pip install command fails, try:
+
+```bash
+SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True pip install -U ferret-xai
+```
+
+This is hopefully a temporary situation!
+
 ### Explain & Benchmark 
 
 The code below provides a minimal example to run all the feature-attribution explainers supported by ferret and benchmark them on faithfulness metrics.
