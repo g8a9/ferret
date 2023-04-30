@@ -36,6 +36,15 @@ pip install -U ferret-xai
 
 Our main dependencies are 🤗 `tranformers` and `datasets`.
 
+**Important** Some of our dependencies might use the package name for `scikit-learn` and that breaks ferret installation. \
+If your pip install command fails, try:
+
+```bash
+SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True pip install -U ferret-xai
+```
+
+This is hopefully a temporary situation!
+
 ### Explain & Benchmark 
 
 The code below provides a minimal example to run all the feature-attribution explainers supported by ferret and benchmark them on faithfulness metrics.
@@ -168,10 +177,12 @@ Logo and graphical assets made by [Luca Attanasio](https://www.behance.net/attan
 If you are using *ferret* for your work, please consider citing us!
 
 ```bibtex
-@article{attanasio2022ferret,
-  title={ferret: a Framework for Benchmarking Explainers on Transformers},
-  author={Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora},
-  journal={arXiv preprint arXiv:2208.01575},
-  year={2022}
+@inproceedings{attanasio-etal-2023-ferret,
+    title = "ferret: a Framework for Benchmarking Explainers on Transformers",
+    author = "Attanasio, Giuseppe and Pastor, Eliana and Di Bonaventura, Chiara and Nozza, Debora",
+    booktitle = "Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics: System Demonstrations",
+    month = may,
+    year = "2023",
+    publisher = "Association for Computational Linguistics",
 }
 ```
