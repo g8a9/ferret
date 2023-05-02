@@ -16,8 +16,8 @@ Head to :ref:`quickstart` for a basic example.
     :caption: Using ferret
     :maxdepth: 2
 
-    benchmarking
     explaining
+    benchmarking
     advanced
 
 .. toctree::
