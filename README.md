@@ -154,6 +154,7 @@ details.
 - ⚙️ New evaluation measure: Area Under the Threshold-Performance Curve (AUC-TP) ([Atanasova et al.](https://aclanthology.org/2020.emnlp-main.263/))
 - ⚙️ New explainer: Sampling and Occlusion (SOC) ([Jin et al., 2020](https://arxiv.org/abs/1911.06194))
 - ⚙️ New explainer: Discretized Integrated Gradient (DIG) ([Sanyal and Ren, 2021](https://aclanthology.org/2021.emnlp-main.805/))
+- ⚙️ New explainer: Value Zeroing ([Mohebbi et al, 2023](https://aclanthology.org/2023.eacl-main.245/))
 - ⚙️ Support additional form of aggregation over embeddings' hidden dimension.
 
 
