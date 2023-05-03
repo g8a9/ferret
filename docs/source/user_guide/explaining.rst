@@ -57,7 +57,9 @@ We can explain the the prediction for a given input text with respect to a targe
 
 The **explain** method returns a list of Explanations, one for each explainer. An **Explanation** has the following form.
 
-Explanation\(text='I love your style!', tokens=['<s>', '▁I', '▁love', '▁your', '▁style', '!', '</s>'], scores=array([-6.40356006e-08,  1.44730296e-02,  4.23283947e-01,  2.80506348e-01, 2.20774370e-01,  6.09622411e-02,  0.00000000e+00]), explainer='Partition SHAP',  target=2)
+.. code-block:: python
+    
+    Explanation\(text='I love your style!', tokens=['<s>', '▁I', '▁love', '▁your', '▁style', '!', '</s>'], scores=array([-6.40356006e-08,  1.44730296e-02,  4.23283947e-01,  2.80506348e-01, 2.20774370e-01,  6.09622411e-02,  0.00000000e+00]), explainer='Partition SHAP',  target=2)
 
 It stores the input text, the tokens, the importance **score** for each token, the explainer name and the target class.
 
