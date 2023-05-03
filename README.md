@@ -20,9 +20,10 @@ We provide:
 
 ### 📝 Examples
 
+All around tutorial (to test all explainers, evaluation metrics, and interface with XAI datasets): [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/benchmark.ipynb)
+
 Text Classification
 
-- Sentiment Classification on Twitter Data: [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/benchmark.ipynb)
 - Intent Detection with Multilingual XLM RoBERTa: [Colab](https://colab.research.google.com/drive/17AXeA9-u7lOLlE_DWtUixMg7Mi0NFPIp?usp=sharing)
 
 
