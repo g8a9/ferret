@@ -226,7 +226,9 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             if removal_args["remove_tokens"]:
                 discrete_expl_th_token_ids = sample[id_top]
             else:
-                sample[id_top] = self.tokenizer.mask_token_id
+                mask_not_top = np.ones(sample.size, dtype=bool)
+                mask_not_top[id_top] = False
+                sample[mask_not_top] = self.tokenizer.mask_token_id
                 discrete_expl_th_token_ids = sample
             ##############################################
 
