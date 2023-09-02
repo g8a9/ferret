@@ -1,12 +1,14 @@
-from regex import D
-from .common import *
-from torch.utils.data import DataLoader, Dataset
-import torch
 import csv
-import pandas as pd
 import os
-from transformers import DataCollatorWithPadding
+
+import pandas as pd
+import torch
 from datasets import Dataset, DatasetDict, Value
+from regex import D
+from torch.utils.data import DataLoader, Dataset
+from transformers import DataCollatorWithPadding
+
+from .common import *
 
 
 class Processor:

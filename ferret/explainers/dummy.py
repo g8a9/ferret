@@ -1,8 +1,9 @@
 """Dummy Explainer module"""
-from . import BaseExplainer
-from .utils import parse_explainer_args
-from .explanation import Explanation
 import numpy as np
+
+from . import BaseExplainer
+from .explanation import Explanation
+from .utils import parse_explainer_args
 
 
 class DummyExplainer(BaseExplainer):

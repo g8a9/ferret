@@ -2,9 +2,9 @@
 
 """The setup script."""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
-with open("README.rst") as readme_file:
+with open("README.md") as readme_file:
     readme = readme_file.read()
 
 with open("HISTORY.rst") as history_file:
@@ -26,6 +26,7 @@ requirements = [
     "lime",
     "joblib",
     "pytreebank",
+    "thermostat-datasets",
 ]
 
 test_requirements = []
@@ -54,6 +55,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/g8a9/ferret",
-    version="0.4.0",
+    version="0.4.1",
     zip_safe=False,
 )

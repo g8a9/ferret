@@ -1,6 +1,9 @@
-=====
-Usage
-=====
+.. _advanced:
+
+**************
+Advanced Usage
+**************
+
 
 Inference on GPU
 ^^^^^^^^^^^^^^^^

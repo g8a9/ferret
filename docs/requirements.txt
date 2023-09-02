@@ -9,4 +9,8 @@ scikit-image
 lime
 opencv-python
 pytreebank
-furo
+tqdm
+sphinx-toggleprompt>=0.3.1
+sphinx-copybutton>=0.5.1
+sphinx-favicon>=1.0.1
+pydata_sphinx_theme>=0.12.0

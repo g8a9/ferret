@@ -1,9 +1,11 @@
 from builtins import breakpoint
+
+import numpy as np
 import torch
 from torch import nn
-from torch.nn import functional as F
-import numpy as np
 from torch.distributions import Categorical
+from torch.nn import functional as F
+
 from .layers import *
 
 

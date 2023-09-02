@@ -1,10 +1,12 @@
-import torch
-from .agglomeration import *
-import numpy as np
 import copy
 import pickle
+
+import numpy as np
+import torch
 from skimage import measure
 from torch.nn import functional as F
+
+from .agglomeration import *
 
 
 class DotDict:
