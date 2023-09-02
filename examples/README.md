@@ -6,7 +6,7 @@ to see which task we currently support off-the-shelf (note: **ferret-xai >= 0.5.
 
 | Task                          | G | IG | SHAP | LIME | Tutorial |
 |-------------------------------|:-:|:--:|:----:|:----:|----------|
-| Sentiment Classification      | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/sentiment_classification.ipynb) |
+| Text Classification      | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/sentiment_classification.ipynb) |
 | Natural Language Inference    | ✅ |  ✅ |   ⚙️  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/nli.ipynb) |
 | Zero-Shot Text Classification | ✅ |  ✅ |   ⚙️  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/zeroshot_text_classification.ipynb) |
 | _Masked Language Modeling_    |   |    |      |      |          |

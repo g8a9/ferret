@@ -46,7 +46,15 @@ NONE_RATIONALE = []
 
 
 def lp_normalize(explanations, ord=1):
-    """Run Lp-noramlization of explanation attribution scores"""
+    """Run Lp-noramlization of explanation attribution scores
+
+    Args:
+        explanations (List[Explanation]): list of explanations to normalize
+        ord (int, optional): order of the norm. Defaults to 1.
+
+    Returns:
+        List[Explanation]: list of normalized explanations
+    """
 
     new_exps = list()
     for exp in explanations:
