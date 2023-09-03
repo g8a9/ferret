@@ -1,8 +1,5 @@
 [tool.black]
 line-length = 89
 
-[project]
-name = "ferret"
-
 [tool.isort]
 profile = "black"
