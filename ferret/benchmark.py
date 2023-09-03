@@ -536,20 +536,23 @@ class Benchmark:
     ):
         return show_evaluation_table(explanation_evaluations, style)
 
-    # def show_samples_evaluation_table(
-    #     self,
-    #     evaluation_scores_by_explainer,
-    #     apply_style: bool = True,
-    # ) -> pd.DataFrame:
-    #     """Format average evaluation scores into a colored table.
+    def show_samples_evaluation_table(
+        self,
+        evaluation_scores_by_explainer,
+        apply_style: bool = True,
+    ) -> pd.DataFrame:
+        """Format average evaluation scores into a colored table.
 
-    #     Args:
-    #         evaluation_scores_by_explainer (Dict): the average evaluation scores and their standard deviation for each explainer (output of the evaluate_samples function)
-    #          apply_style (bool): color the table of average evaluation scores
+        Args:
+            evaluation_scores_by_explainer (Dict): the average evaluation scores and their standard deviation for each explainer (output of the evaluate_samples function)
+             apply_style (bool): color the table of average evaluation scores
 
-    #     Returns:
-    #         pd.DataFrame: a colored (styled) pandas dataframe of average evaluation scores of explanations of a sample
-    #     """
+        Returns:
+            pd.DataFrame: a colored (styled) pandas dataframe of average evaluation scores of explanations of a sample
+        """
+        raise NotImplementedError(
+            "We are dropping the support to multi instance evaluation. This feature will be re-introduced in a future release."
+        )
 
     #     # We only vizualize the average
     #     table = pd.DataFrame(
