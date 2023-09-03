@@ -74,6 +74,10 @@ def style_heatmap(df: pd.DataFrame, subsets_info: List[Dict]):
     style = df.style
     for si in subsets_info:
         style = style.background_gradient(**si)
+
+    # Set stick index
+    style = style.set_sticky(axis="index")
+
     return style.format("{:.2f}")
 
 
