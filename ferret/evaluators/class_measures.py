@@ -4,8 +4,8 @@ import numpy as np
 
 from ferret.explainers.explanation import Explanation, ExplanationWithRationale
 
-from ..model_utils import create_helper
-from .evaluation import Evaluation
+from ..modeling import create_helper
+from .evaluation import EvaluationMetricOutput
 from .faithfulness_measures import AOPC_Comprehensiveness_Evaluation
 
 
@@ -15,7 +15,6 @@ class AOPC_Comprehensiveness_Evaluation_by_class:
     # Higher is better
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "class_faithfulness"
-    INIT_VALUE = 0
 
     def __init__(
         self,
@@ -55,7 +54,7 @@ class AOPC_Comprehensiveness_Evaluation_by_class:
                 ).score
             )
         aopc_class_score = np.mean(aopc_values)
-        evaluation_output = Evaluation(self.SHORT_NAME, aopc_class_score)
+        evaluation_output = EvaluationMetricOutput(self.SHORT_NAME, aopc_class_score)
         return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):

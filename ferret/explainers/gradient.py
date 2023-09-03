@@ -122,6 +122,7 @@ class IntegratedGradientExplainer(BaseExplainer):
         baselines = self._generate_baselines(input_len)
 
         attr = dl.attribute(inputs, baselines=baselines, target=target, **kwargs)
+
         attr = attr[0, :input_len, :].detach().cpu()
 
         # pool over hidden size

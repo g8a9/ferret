@@ -8,8 +8,10 @@ import torch
 from tqdm.autonotebook import tqdm
 from transformers.tokenization_utils_base import BatchEncoding
 
+from .base_helpers import BaseTaskHelper
 
-class BaseTaskHelper(ABC):
+
+class BaseTextTaskHelper(BaseTaskHelper):
     """
     Base helper class to handle basic steps of the pipeline (e.g., tokenization, inference).
     """
@@ -18,27 +20,9 @@ class BaseTaskHelper(ABC):
         self.model = model
         self.tokenizer = tokenizer
 
-    @abstractmethod
-    def _check_target(self, target):
-        """Validate the specific target requested for the explanation"""
-        pass
-
-    @abstractmethod
-    def _check_sample(self, input):
-        """Validate the specific input requested for the explanation"""
-        pass
-
-    def _prepare_sample(self, sample):
-        """Format the input before the explanation"""
-        return sample
-
-    def format_target(self, target):
-        """Format the target variable
-
-        In all our current explainers, 'target' must be a positional integer for the
-        logits matrix. Default: leave target unchanged.
-        """
-        return target
+    @property
+    def targets(self) -> List[int]:
+        return self.model.config.id2label
 
     def get_input_embeds(self, text: str) -> torch.Tensor:
         """Extract input embeddings
@@ -149,15 +133,7 @@ class BaseTaskHelper(ABC):
         return outputs, logits
 
 
-def create_helper(model, tokenizer, task_name):
-    helper = SUPPORTED_TASKS_TO_HELPERS.get(task_name, None)
-    if helper is None:
-        raise ValueError(f"Task {task_name} is not supported.")
-    else:
-        return helper(model, tokenizer)
-
-
-class TaskClassificationHelper(BaseTaskHelper):
+class TaskClassificationHelper(BaseTextTaskHelper):
     def _score(self, text: str, return_dict: bool = True):
         """Compute prediction scores for a single query
 
@@ -200,7 +176,7 @@ class TaskClassificationHelper(BaseTaskHelper):
             return text
 
 
-class ZeroShotTextClassificationHelper(BaseTaskHelper):
+class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
     DEFAULT_TEMPLATE = "This is {}"
 
     def _score(
@@ -275,9 +251,3 @@ class ZeroShotTextClassificationHelper(BaseTaskHelper):
         if isinstance(target, str):
             target = self.model.config.label2id[target]
         return target
-
-
-SUPPORTED_TASKS_TO_HELPERS = {
-    "text-classification": TaskClassificationHelper,
-    "zero-shot-text-classification": ZeroShotTextClassificationHelper,
-}

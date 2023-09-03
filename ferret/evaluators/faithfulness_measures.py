@@ -5,10 +5,12 @@ import numpy as np
 from scipy.stats import kendalltau
 
 from ..explainers.explanation import Explanation, ExplanationWithRationale
-from . import BaseEvaluator
-from .evaluation import Evaluation
+from . import BaseEvaluator, EvaluationMetricFamily
+from .evaluation import EvaluationMetricOutput
 from .utils_from_soft_to_discrete import (
-    _check_and_define_get_id_discrete_rationale_function, parse_evaluator_args)
+    _check_and_define_get_id_discrete_rationale_function,
+    parse_evaluator_args,
+)
 
 
 def _compute_aopc(scores):
@@ -20,13 +22,16 @@ def _compute_aopc(scores):
 class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
     NAME = "aopc_comprehensiveness"
     SHORT_NAME = "aopc_compr"
-    # Higher is better
-    BEST_SORTING_ASCENDING = False
-    TYPE_METRIC = "faithfulness"
+
+    LOWER_IS_BETTER = False
+    MIN_VALUE = -1.0
+    MAX_VALUE = 1.0
+    BEST_VALUE = 1.0
+    METRIC_FAMILY = EvaluationMetricFamily.FAITHFULNESS
 
     def compute_evaluation(
         self, explanation: Explanation, target=1, **evaluation_args
-    ) -> Evaluation:
+    ) -> EvaluationMetricOutput:
         """Evaluate an explanation on the AOPC Comprehensiveness metric.
 
         Args:
@@ -116,7 +121,7 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
             discrete_expl_ths.append(discrete_expl_th)
 
         if discrete_expl_ths == []:
-            return Evaluation(self.SHORT_NAME, 0)
+            return EvaluationMetricOutput(self.SHORT_NAME, 0)
 
         # Prediction probability for the target
         _, logits = self.helper._forward(discrete_expl_ths, output_hidden_states=False)
@@ -127,7 +132,7 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
         #  compute AOPC comprehensiveness
         aopc_comprehesiveness = _compute_aopc(removal_importance)
 
-        evaluation_output = Evaluation(self.SHORT_NAME, aopc_comprehesiveness)
+        evaluation_output = EvaluationMetricOutput(self, aopc_comprehesiveness)
         return evaluation_output
 
     # def aggregate_score(self, score, total, **aggregation_args):
@@ -137,13 +142,15 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
 class AOPC_Sufficiency_Evaluation(BaseEvaluator):
     NAME = "aopc_sufficiency"
     SHORT_NAME = "aopc_suff"
-    # Lower is better
-    BEST_SORTING_ASCENDING = True
-    TYPE_METRIC = "faithfulness"
+    LOWER_IS_BETTER = True
+    MIN_VALUE = -1.0
+    MAX_VALUE = 1.0
+    BEST_VALUE = 0.0
+    METRIC_FAMILY = EvaluationMetricFamily.FAITHFULNESS
 
     def compute_evaluation(
         self, explanation: Explanation, target=1, **evaluation_args
-    ) -> Evaluation:
+    ) -> EvaluationMetricOutput:
         """Evaluate an explanation on the AOPC Sufficiency metric.
 
         Args:
@@ -234,7 +241,7 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             discrete_expl_ths.append(discrete_expl_th)
 
         if discrete_expl_ths == []:
-            return Evaluation(self.SHORT_NAME, 1)
+            return EvaluationMetricOutput(self.cls, 1)
 
         # Prediction probability for the target
         _, logits = self.helper._forward(discrete_expl_ths, output_hidden_states=False)
@@ -245,7 +252,7 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
 
         aopc_sufficiency = _compute_aopc(removal_importance)
 
-        evaluation_output = Evaluation(self.SHORT_NAME, aopc_sufficiency)
+        evaluation_output = EvaluationMetricOutput(self, aopc_sufficiency)
         return evaluation_output
 
     # def aggregate_score(self, score, total, **aggregation_args):
@@ -255,8 +262,11 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
 class TauLOO_Evaluation(BaseEvaluator):
     NAME = "tau_leave-one-out_correlation"
     SHORT_NAME = "taucorr_loo"
-    TYPE_METRIC = "faithfulness"
-    BEST_SORTING_ASCENDING = False
+    METRIC_FAMILY = EvaluationMetricFamily.FAITHFULNESS
+    LOWER_IS_BETTER = False
+    MAX_VALUE = 1.0
+    MIN_VALUE = -1.0
+    BEST_VALUE = 1.0
 
     def compute_leave_one_out_occlusion(self, text, target=1, remove_first_last=True):
 
@@ -285,7 +295,7 @@ class TauLOO_Evaluation(BaseEvaluator):
 
     def compute_evaluation(
         self, explanation: Explanation, target=1, **evaluation_args
-    ) -> Evaluation:
+    ) -> EvaluationMetricOutput:
         """Evaluate an explanation on the tau-LOO metric,
         i.e., the Kendall tau correlation between the explanation scores and leave one out (LOO) scores,
         computed by leaving one feature out and computing the change in the prediciton probability
@@ -317,7 +327,7 @@ class TauLOO_Evaluation(BaseEvaluator):
 
         kendalltau_score = kendalltau(loo_scores, score_explanation)[0]
 
-        evaluation_output = Evaluation(self.SHORT_NAME, kendalltau_score)
+        evaluation_output = EvaluationMetricOutput(self, kendalltau_score)
         return evaluation_output
 
     # def aggregate_score(self, score, total, **aggregation_args):

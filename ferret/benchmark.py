@@ -1,28 +1,18 @@
 """Client Interface Module"""
 
 import copy
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import datasets
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import torch
-from joblib import Parallel, delayed
-from torch.nn.functional import softmax
-from tqdm.auto import tqdm
+from tqdm.autonotebook import tqdm
 
-from ferret.datasets import BaseDataset
-
-from . import (
-    GradientExplainer,
-    IntegratedGradientExplainer,
-    LIMEExplainer,
-    SHAPExplainer,
-)
+from .datasets import BaseDataset
 from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
 from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_class
-from .evaluators.evaluation import Evaluation, ExplanationEvaluation
+from .evaluators.evaluation import EvaluationMetricOutput, ExplanationEvaluation
 from .evaluators.faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,
     AOPC_Sufficiency_Evaluation,
@@ -37,11 +27,8 @@ from .explainers.explanation import Explanation, ExplanationWithRationale
 from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
 from .explainers.lime import LIMEExplainer
 from .explainers.shap import SHAPExplainer
-from .model_utils import create_helper
-
-SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
-EVALUATION_PALETTE = sns.light_palette("purple", as_cmap=True)
-EVALUATION_PALETTE_REVERSED = sns.light_palette("purple", as_cmap=True, reverse=True)
+from .modeling import create_helper
+from .visualization import show_evaluation_table, show_table
 
 NONE_RATIONALE = []
 
@@ -123,12 +110,38 @@ class Benchmark:
                 for class_ev in self._used_class_evaluators
             ]
 
+    ############################
+    #  Utilities
+    ############################
+
+    def _forward(self, text):
+        item = self.tokenizer(text, return_tensors="pt")
+        with torch.no_grad():
+            outputs = self.model(**item)
+        return outputs
+
+    def score(self, text: str, return_dict: bool = True, **kwargs):
+        """Compute prediction scores for a single query
+
+        :param text str: query to compute the logits from
+        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
+        """
+        return self.helper._score(text, return_dict, **kwargs)
+
+    @property
+    def targets(self):
+        return self.helper.targets
+
+    ############################
+    #  Interpretability API
+    ############################
+
     def explain(
         self,
         text,
         target=1,
         show_progress: bool = True,
-        normalize_scores: bool = True,
+        normalize_scores: bool = False,
         order: int = 1,
     ) -> List[Explanation]:
         """
@@ -195,6 +208,10 @@ class Benchmark:
             explanations = lp_normalize(explanations, order)
 
         return explanations
+
+    ############################
+    #  Evaluation API
+    ############################
 
     def evaluate_explanation(
         self,
@@ -365,146 +382,9 @@ class Benchmark:
             ]
         return class_explanations_by_explainer
 
-    def _forward(self, text):
-        item = self.tokenizer(text, return_tensors="pt")
-        with torch.no_grad():
-            outputs = self.model(**item)
-        return outputs
-
-    def score(self, text: str, return_dict: bool = True, **kwargs):
-        """Compute prediction scores for a single query
-
-        :param text str: query to compute the logits from
-        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
-        """
-        return self.helper._score(text, return_dict, **kwargs)
-
-    def get_dataframe(self, explanations: List[Explanation]) -> pd.DataFrame:
-        """Convert explanations into a pandas DataFrame.
-
-        Args:
-            explanations (List[Explanation]): list of explanations
-
-        Returns:
-            pd.DataFrame: explanations in table format. The columns are the tokens and the rows are the explanation scores, one for each explainer.
-        """
-        scores = {e.explainer: e.scores for e in explanations}
-        scores["Token"] = explanations[0].tokens
-        table = pd.DataFrame(scores).set_index("Token").T
-        return table
-
-    def show_table(
-        self,
-        explanations: List[Explanation],
-        apply_style: bool = True,
-        remove_first_last: bool = True,
-    ) -> pd.DataFrame:
-        """Format explanation scores into a colored table.
-
-        Args:
-            explanations (List[Explanation]): list of explanations
-            apply_style (bool): apply color to the table of explanation scores
-            remove_first_last (bool): do not visualize the first and last tokens, typically cls and eos tokens
-
-        Returns:
-            pd.DataFrame: a colored (styled) pandas dataframed
-        """
-
-        table = self.get_dataframe(explanations)
-        if remove_first_last:
-            table = table.iloc[:, 1:-1]
-
-        # Rename duplicate columns (tokens) by adding a suffix
-        if sum(table.columns.duplicated().astype(int)) > 0:
-            table.columns = pd.io.parsers.base_parser.ParserBase(
-                {"names": table.columns, "usecols": None}
-            )._maybe_dedup_names(table.columns)
-
-        return (
-            table.style.background_gradient(
-                axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
-            ).format("{:.2f}")
-            if apply_style
-            else table.style.format("{:.2f}")
-        )
-
-    def show_evaluation_table(
-        self,
-        explanation_evaluations: List[ExplanationEvaluation],
-        apply_style: bool = True,
-    ) -> pd.DataFrame:
-        """Format evaluation scores into a colored table.
-
-        Args:
-            explanation_evaluations (List[ExplanationEvaluation]): a list of evaluations of explanations
-            apply_style (bool): color the table of evaluation scores
-
-        Returns:
-            pd.DataFrame: a colored (styled) pandas dataframe of evaluation scores
-        """
-
-        # Get the evaluation scores from the explanation evaluations
-        explainer_scores = {}
-        for explanation_evaluation in explanation_evaluations:
-            explainer_scores[explanation_evaluation.explanation.explainer] = {
-                evaluation.name: evaluation.score
-                for evaluation in explanation_evaluation.evaluation_scores
-            }
-
-        table = pd.DataFrame(explainer_scores).T
-
-        if apply_style:
-            table_style = self._style_evaluation(table)
-            return table_style.format("{:.2f}")
-        else:
-            return table.format("{:.2f}")
-
-    def _style_evaluation(self, table: pd.DataFrame) -> pd.DataFrame:
-
-        """Apply style to evaluation scores.
-
-        Args:
-            table (pd.DataFrame): the evaluation scores as pandas DataFrame
-
-        Returns:
-            pd.io.formats.style.Styler: a colored and styled pandas dataframe of evaluation scores
-        """
-
-        table_style = table.style.background_gradient(
-            axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
-        )
-
-        show_higher_cols, show_lower_cols = list(), list()
-
-        # Color differently the evaluation measures for which "high score is better" or "low score is better"
-        # Darker colors mean better performance
-        for evaluation_measure in self.evaluators + self.class_based_evaluators:
-            if evaluation_measure.SHORT_NAME in table.columns:
-                if evaluation_measure.BEST_SORTING_ASCENDING == False:
-                    # Higher is better
-                    show_higher_cols.append(evaluation_measure.SHORT_NAME)
-                else:
-                    # Lower is better
-                    show_lower_cols.append(evaluation_measure.SHORT_NAME)
-
-        if show_higher_cols:
-            table_style.background_gradient(
-                axis=1,
-                cmap=EVALUATION_PALETTE,
-                vmin=-1,
-                vmax=1,
-                subset=show_higher_cols,
-            )
-
-        if show_lower_cols:
-            table_style.background_gradient(
-                axis=1,
-                cmap=EVALUATION_PALETTE_REVERSED,
-                vmin=-1,
-                vmax=1,
-                subset=show_lower_cols,
-            )
-        return table_style
+    ##############################
+    #  Dataset API
+    ##############################
 
     def load_dataset(self, dataset_name: str, **kwargs):
         if dataset_name == "hatexplain":
@@ -612,7 +492,7 @@ class Benchmark:
                     )
 
                     # We accumulate the results for each explainer
-                    for evaluation_score in evaluation.evaluation_scores:
+                    for evaluation_score in evaluation.evaluation_outputs:
                         evaluation_scores_by_explainer[explanation.explainer][
                             evaluation_score.name
                         ].append(evaluation_score.score)
@@ -637,36 +517,55 @@ class Benchmark:
 
         return evaluation_scores_by_explainer
 
-    def show_samples_evaluation_table(
+    ############################
+    # Visualization API
+    ############################
+
+    def show_table(
         self,
-        evaluation_scores_by_explainer,
-        apply_style: bool = True,
+        explanations: List[Explanation],
+        remove_first_last: bool = False,
+        style: None = "heatmap",
     ) -> pd.DataFrame:
-        """Format average evaluation scores into a colored table.
+        return show_table(explanations, remove_first_last, style)
 
-        Args:
-            evaluation_scores_by_explainer (Dict): the average evaluation scores and their standard deviation for each explainer (output of the evaluate_samples function)
-             apply_style (bool): color the table of average evaluation scores
+    def show_evaluation_table(
+        self,
+        explanation_evaluations: List[ExplanationEvaluation],
+        style: Optional[str] = "heatmap",
+    ):
+        return show_evaluation_table(explanation_evaluations, style)
 
-        Returns:
-            pd.DataFrame: a colored (styled) pandas dataframe of average evaluation scores of explanations of a sample
-        """
+    # def show_samples_evaluation_table(
+    #     self,
+    #     evaluation_scores_by_explainer,
+    #     apply_style: bool = True,
+    # ) -> pd.DataFrame:
+    #     """Format average evaluation scores into a colored table.
 
-        # We only vizualize the average
-        table = pd.DataFrame(
-            {
-                explainer: {
-                    evaluator: mean_std[0] for evaluator, mean_std in inner.items()
-                }
-                for explainer, inner in evaluation_scores_by_explainer.items()
-            }
-        ).T
+    #     Args:
+    #         evaluation_scores_by_explainer (Dict): the average evaluation scores and their standard deviation for each explainer (output of the evaluate_samples function)
+    #          apply_style (bool): color the table of average evaluation scores
 
-        # Avoid visualizing a columns with all nan (default value if plausibility could not computed)
-        table = table.dropna(axis=1, how="all")
+    #     Returns:
+    #         pd.DataFrame: a colored (styled) pandas dataframe of average evaluation scores of explanations of a sample
+    #     """
 
-        if apply_style:
-            table_style = self._style_evaluation(table)
-            return table_style
-        else:
-            return table
+    #     # We only vizualize the average
+    #     table = pd.DataFrame(
+    #         {
+    #             explainer: {
+    #                 evaluator: mean_std[0] for evaluator, mean_std in inner.items()
+    #             }
+    #             for explainer, inner in evaluation_scores_by_explainer.items()
+    #         }
+    #     ).T
+
+    #     # Avoid visualizing a columns with all nan (default value if plausibility could not computed)
+    #     table = table.dropna(axis=1, how="all")
+
+    #     if apply_style:
+    #         table_style = self._style_evaluation(table)
+    #         return table_style
+    #     else:
+    #         return table

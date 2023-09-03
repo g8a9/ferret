@@ -1,20 +1,34 @@
 """Evaluators API"""
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any, List, Union
 
-from ferret.explainers.explanation import Explanation, ExplanationWithRationale
+from ..explainers.explanation import Explanation, ExplanationWithRationale
+from ..modeling import create_helper
 
-from ..model_utils import create_helper
+
+class EvaluationMetricFamily(Enum):
+    """Enum to represent the family of an EvaluationMetric"""
+
+    FAITHFULNESS = "faithfulness"
+    PLAUSIBILITY = "plausibility"
 
 
 class BaseEvaluator(ABC):
-
-    INIT_VALUE = 0
-
     @property
     @abstractmethod
     def NAME(self):
+        pass
+
+    @property
+    @abstractmethod
+    def MIN_VALUE(self):
+        pass
+
+    @property
+    @abstractmethod
+    def MAX_VALUE(self):
         pass
 
     @property
@@ -24,17 +38,25 @@ class BaseEvaluator(ABC):
 
     @property
     @abstractmethod
-    def BEST_SORTING_ASCENDING(self):
-        # True: the lower the better
-        # False: the higher the better
+    def LOWER_IS_BETTER(self):
         pass
 
     @property
     @abstractmethod
-    def TYPE_METRIC(self):
-        # plausibility
-        # faithfulness
+    def METRIC_FAMILY(self) -> EvaluationMetricFamily:
         pass
+
+    def __repr__(self) -> str:
+        return str(
+            dict(
+                NAME=self.NAME,
+                SHORT_NAME=self.SHORT_NAME,
+                MIN_VALUE=self.MIN_VALUE,
+                MAX_VALUE=self.MAX_VALUE,
+                LOWER_IS_BETTER=self.LOWER_IS_BETTER,
+                METRIC_FAMILY=self.METRIC_FAMILY,
+            )
+        )
 
     @property
     def tokenizer(self):
@@ -55,5 +77,5 @@ class BaseEvaluator(ABC):
     ):
         pass
 
-    def aggregate_score(self, score, total, **aggregation_args):
-        return score / total
+    # def aggregate_score(self, score, total, **aggregation_args):
+    #     return score / total

@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from ..model_utils import create_helper
+from ..modeling import create_helper
 
 
 class BaseExplainer(ABC):
