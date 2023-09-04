@@ -1,5 +1,5 @@
 import pdb
-from typing import List
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -17,6 +17,7 @@ class LIMEExplainer(BaseExplainer):
         self,
         text,
         target=1,
+        target_token: Optional[Union[int, str]] = None,
         token_masking_strategy="mask",
         batch_size=8,
         show_progress=True,
@@ -26,8 +27,9 @@ class LIMEExplainer(BaseExplainer):
     ):
         # init_args, call_args = parse_explainer_args(explainer_args)
         # sanity checks
-        target = self.helper._check_target(target)
+        target_pos_idx = self.helper._check_target(target)
         text = self.helper._check_sample(text)
+        target_token_pos_idx = self.helper._check_target_token(text, target_token)
 
         # token_masking_strategy = call_args.pop("token_masking_strategy", "mask")
         # show_progress = call_args.pop("show_progress", False)
@@ -79,6 +81,10 @@ class LIMEExplainer(BaseExplainer):
                 show_progress=show_progress,
                 batch_size=batch_size,
             )
+            logits = self.helper._postprocess_logits(
+                logits, target_token_pos_idx=target_token_pos_idx
+            )
+
             return logits.softmax(-1).detach().cpu().numpy()
 
         # Same word has a different relevance according to its position
@@ -87,15 +93,30 @@ class LIMEExplainer(BaseExplainer):
         expl = lime_explainer.explain_instance(
             " ".join([str(i) for i in token_ids]),
             fn_prediction_token_ids,
-            labels=[target],
+            labels=[target_pos_idx],
             num_features=len(token_ids),
             num_samples=num_samples,
             **kwargs,
         )
 
-        token_scores = np.array([list(dict(sorted(expl.local_exp[target])).values())])
+        token_scores = np.array(
+            [list(dict(sorted(expl.local_exp[target_pos_idx])).values())]
+        )
         token_scores[item["special_tokens_mask"].bool().cpu().numpy()] = 0.0
+
         output = Explanation(
-            text, self.get_tokens(text), token_scores[0], self.NAME, target
+            text=text,
+            tokens=self.get_tokens(text),
+            scores=token_scores[0],
+            explainer=self.NAME,
+            helper_type=self.helper.HELPER_TYPE,
+            target_pos_idx=target_pos_idx,
+            target_token_pos_idx=target_token_pos_idx,
+            target=self.helper.model.config.id2label[target_pos_idx],
+            target_token=self.helper.tokenizer.decode(
+                item["input_ids"][0, target_token_pos_idx].item()
+            )
+            if self.helper.HELPER_TYPE == "token-classification"
+            else None,
         )
         return output

@@ -1,6 +1,7 @@
 """Client Interface Module"""
 
 import copy
+import warnings
 from typing import Dict, List, Optional, Union
 
 import datasets
@@ -78,17 +79,26 @@ class Benchmark:
 
         if not explainers:
             self.explainers = [
-                SHAPExplainer(self.model, self.tokenizer),
-                LIMEExplainer(self.model, self.tokenizer),
-                GradientExplainer(self.model, self.tokenizer, multiply_by_inputs=False),
-                GradientExplainer(self.model, self.tokenizer, multiply_by_inputs=True),
-                IntegratedGradientExplainer(
-                    self.model, self.tokenizer, multiply_by_inputs=False
+                SHAPExplainer(self.model, self.tokenizer, self.helper),
+                LIMEExplainer(self.model, self.tokenizer, self.helper),
+                GradientExplainer(
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=False
+                ),
+                GradientExplainer(
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=True
                 ),
                 IntegratedGradientExplainer(
-                    self.model, self.tokenizer, multiply_by_inputs=True
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=False
+                ),
+                IntegratedGradientExplainer(
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=True
                 ),
             ]
+        else:
+            for explainer in explainers:
+                if explainer.helper is not None:
+                    warnings.warn(f"Overriding helper for explainer {explainer}")
+                explainer.helper = self.helper
 
         if not evaluators:
             self._used_evaluators = [
@@ -143,6 +153,8 @@ class Benchmark:
         show_progress: bool = True,
         normalize_scores: bool = False,
         order: int = 1,
+        target_token: Optional[str] = None,
+        target_option: Optional[str] = None,
     ) -> List[Explanation]:
         """
         Compute explanations using all the explainers stored in the class.
@@ -186,10 +198,13 @@ class Benchmark:
         # here we are assuming the same target format (e.g., positional integer will work
         # for every explanation method. We might need to chage this in the future, when
         # we will add new explanation methods.
-        requested_target = target
         target = self.helper._check_target(target)
+
+        target_token = self.helper._check_target_token(text, target_token)
+
         text = self.helper._check_sample(text)
-        text = self.helper._prepare_sample(text)
+
+        text = self.helper._prepare_sample(text, target_option=target_option)
 
         # we might optimize running the loop in parallel
         explanations = list()
@@ -200,8 +215,7 @@ class Benchmark:
             leave=False,
             disable=not show_progress,
         ):
-            exp = explainer(text, target)
-            exp.requested_target = requested_target
+            exp = explainer(text, target, target_token)
             explanations.append(exp)
 
         if normalize_scores:
@@ -216,7 +230,6 @@ class Benchmark:
     def evaluate_explanation(
         self,
         explanation: Union[Explanation, ExplanationWithRationale],
-        target,
         human_rationale=None,
         class_explanation: List[Union[Explanation, ExplanationWithRationale]] = None,
         show_progress: bool = True,
@@ -253,16 +266,13 @@ class Benchmark:
             else explanation
         )
 
-        target = self.helper._check_target(target)
-
         for evaluator in self.evaluators:
-            evaluation = evaluator.compute_evaluation(
-                explanation, target, **evaluation_args
-            )
+            evaluation = evaluator.compute_evaluation(explanation, **evaluation_args)
             if (
                 evaluation is not None
             ):  # return None for plausibility measure if rationale is not available
                 evaluations.append(evaluation)
+
             if show_progress:
                 pbar.update(1)
 
@@ -284,7 +294,6 @@ class Benchmark:
     def evaluate_explanations(
         self,
         explanations: List[Union[Explanation, ExplanationWithRationale]],
-        target,
         human_rationale=None,
         class_explanations=None,
         show_progress=True,
@@ -320,7 +329,6 @@ class Benchmark:
             explanation_evaluations.append(
                 self.evaluate_explanation(
                     explanation,
-                    target,
                     human_rationale,
                     class_explanation,
                     show_progress=False,

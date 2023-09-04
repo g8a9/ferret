@@ -1,7 +1,6 @@
 import math
 import pdb
-from abc import ABC, abstractmethod
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -23,6 +22,25 @@ class BaseTextTaskHelper(BaseTaskHelper):
     @property
     def targets(self) -> List[int]:
         return self.model.config.id2label
+
+    def list_tokens(self, example: str, as_dict: bool = False) -> List[str]:
+        """List tokens for a given example
+
+        :param example str: the example to tokenize
+        :param as_dict bool: whether to return a dictionary with the relevant information. If True, the dictionary will be in the format {positional_index: (input_id, token)}. Default: False
+        """
+        item = self._tokenize(example)
+        text_tokens = self.tokenizer.convert_ids_to_tokens(item["input_ids"][0])
+
+        if as_dict:
+            return {
+                pos: (iid, token)
+                for pos, (iid, token) in enumerate(
+                    zip(item["input_ids"][0], text_tokens)
+                )
+            }
+        else:
+            return text_tokens
 
     def get_input_embeds(self, text: str) -> torch.Tensor:
         """Extract input embeddings
@@ -132,8 +150,19 @@ class BaseTextTaskHelper(BaseTaskHelper):
         logits = torch.cat([o.logits for o in outputs])
         return outputs, logits
 
+    def _check_target(self, target, **kwargs):
+        return target
 
-class TaskClassificationHelper(BaseTextTaskHelper):
+    def _check_sample(self, input, **kwargs):
+        return input
+
+    def _check_target_token(self, text, target_token, **kwargs):
+        return None
+
+
+class SequenceClassificationHelper(BaseTextTaskHelper):
+    HELPER_TYPE = "sequence-classification"
+
     def _score(self, text: str, return_dict: bool = True):
         """Compute prediction scores for a single query
 
@@ -157,7 +186,7 @@ class TaskClassificationHelper(BaseTextTaskHelper):
             )
         if isinstance(target, int) and target not in self.model.config.id2label:
             raise ValueError(
-                f"Target {target} is not a valid target. Use an integer amond: {list(self.model.config.id2label.keys())}"
+                f"Target {target} is not a valid target. Use an integer among: {list(self.model.config.id2label.keys())}"
             )
 
         if isinstance(target, str):
@@ -177,13 +206,15 @@ class TaskClassificationHelper(BaseTextTaskHelper):
 
 
 class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
+    HELPER_TYPE = "zero-shot-text-classification"
     DEFAULT_TEMPLATE = "This is {}"
 
     def _score(
         self,
         sample,
-        return_dict: bool = True,
-        template=None,
+        return_dict: bool,
+        options: List[str] = None,
+        template: str = None,
         class_label: str = "entailment",
         return_probs: bool = False,
     ):
@@ -193,12 +224,12 @@ class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
         :param return_dict bool: return a dict in the format Class Label -> score.
         Otherwise, return softmaxed logits as torch.Tensor. Default True
         """
-        text_to_classify, options = self._check_sample(sample)
-
         if template is None:
             template = self.DEFAULT_TEMPLATE
 
-        texts = [(text_to_classify, template.format(opt)) for opt in options]
+        texts = [(sample, template.format(opt)) for opt in options]
+
+        # pdb.set_trace()
         _, logits = self._forward(texts, output_hidden_states=False)
         scores = logits.softmax(-1)
 
@@ -212,31 +243,9 @@ class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
             scores = {opt: s.item() for opt, s in zip(options, scores)}
         return scores
 
-    def _check_sample(self, sample: Tuple[str, List[str]]):
-        is_valid = True
-        if not isinstance(sample, tuple):
-            is_valid = False
-        tt_classify, options = sample
-        if not isinstance(tt_classify, str):
-            is_valid = False
-        if not isinstance(options, list):
-            is_valid = False
-        if not all([isinstance(x, str) for x in options]):
-            is_valid = False
-
-        if not is_valid:
-            raise ValueError("Input sample Tuple[str, List[str]]")
-
-        return tt_classify, options
-
-    def _prepare_sample(self, sample, option="most_likely"):
-        ttc, options = sample
-        scores = self._score(sample, return_dict=True)
-        if option == "most_likely":
-            opt_idx = np.array(list(scores.values())).argmax()
-            option = options[opt_idx]
-
-        return (ttc, self.DEFAULT_TEMPLATE.format(option))
+    def _prepare_sample(self, sample, **kwargs):
+        target_option = kwargs["target_option"]
+        return [(sample, self.DEFAULT_TEMPLATE.format(target_option))]
 
     def _check_target(self, target):
         if isinstance(target, str) and target not in self.model.config.label2id:
@@ -251,3 +260,88 @@ class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
         if isinstance(target, str):
             target = self.model.config.label2id[target]
         return target
+
+
+class TokenClassificationHelper(BaseTextTaskHelper):
+    HELPER_TYPE = "token-classification"
+
+    def _score(self, text: str, return_dict: bool = True):
+        """Compute prediction scores for a single query
+
+        :param text str: query to compute the logits from
+        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
+        """
+        _, logits = self._forward(text, output_hidden_states=False)
+        scores = logits[0].softmax(-1)  # sequence length x num_labels
+
+        if return_dict:
+            # TODO We do not perform a clever aggregation here. Might be worth introducing it.
+            tokens_dict = self.list_tokens(text, as_dict=True)
+
+            scores_dict = dict()
+            for pos_idx, (input_id, token) in tokens_dict.items():
+
+                scores_dict[pos_idx] = (
+                    token,
+                    {
+                        self.model.config.id2label[idx]: value.item()
+                        for idx, value in enumerate(scores[pos_idx])
+                    },
+                )
+
+            return scores_dict
+        return scores
+
+    def _check_target(self, target):
+        if isinstance(target, str) and target not in self.model.config.label2id:
+            raise ValueError(
+                f"Target {target} is not a valid target. Use a string among: {list(self.model.config.label2id.keys())}"
+            )
+        if isinstance(target, int) and target not in self.model.config.id2label:
+            raise ValueError(
+                f"Target {target} is not a valid target. Use an integer among: {list(self.model.config.id2label.keys())}"
+            )
+
+        if isinstance(target, str):
+            target = self.model.config.label2id[target]
+        return target
+
+    def _check_sample(self, text):
+        if not any(
+            (isinstance(text, str), isinstance(text, tuple), isinstance(text, list))
+        ):
+            raise ValueError("Input sample type is not supported")
+
+        if isinstance(text, str) or isinstance(text, tuple):
+            return [text]
+        else:
+            return text
+
+    def _check_target_token(
+        self, text: Optional[str] = None, target_token: Optional[str] = None
+    ):
+        if target_token is None:
+            raise ValueError(
+                "Target token must be specified for a TokenClassification task"
+            )
+
+        tokens_list = self.list_tokens(text)
+        if isinstance(target_token, str):
+            try:
+                target_token_idx = tokens_list.index(target_token)
+                return target_token_idx
+            except:
+                raise ValueError(
+                    f"Target token {target_token} is not in tokens {tokens_list}"
+                )
+
+        if isinstance(target_token, int):
+            if target_token >= len(tokens_list):
+                raise ValueError(
+                    f"Target token index {target_token} is out of range of tokens {tokens_list}. (Choose a number between 0 and {len(tokens_list) - 1})"
+                )
+            return target_token
+
+    def _postprocess_logits(self, logits, **kwargs):
+        target_token_pos_idx = kwargs["target_token_pos_idx"]
+        return logits[:, target_token_pos_idx, :]

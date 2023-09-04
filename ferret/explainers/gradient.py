@@ -1,4 +1,5 @@
-from typing import Tuple, Union
+import pdb
+from typing import Optional, Tuple, Union
 
 import torch
 from captum.attr import InputXGradient, IntegratedGradients, Saliency
@@ -16,11 +17,11 @@ class GradientExplainer(BaseExplainer):
         self,
         model,
         tokenizer,
-        task_name: str = "text-classification",
+        model_helper: Optional[str] = None,
         multiply_by_inputs: bool = True,
         **kwargs,
     ):
-        super().__init__(model, tokenizer, task_name, **kwargs)
+        super().__init__(model, tokenizer, model_helper, **kwargs)
 
         self.multiply_by_inputs = multiply_by_inputs
         if self.multiply_by_inputs:
@@ -30,12 +31,14 @@ class GradientExplainer(BaseExplainer):
         self,
         text: Union[str, Tuple[str, str]],
         target: Union[int, str] = 1,
+        target_token: Optional[Union[int, str]] = None,
         **kwargs,
     ):
-        # sanity checks
-        target = self.helper._check_target(target)
+        # Sanity checks
+        # TODO these checks have already been conducted if used within the benchmark class. Remove them here if possible.
+        target_pos_idx = self.helper._check_target(target)
+        target_token_pos_idx = self.helper._check_target_token(text, target_token)
         text = self.helper._check_sample(text)
-
         item = self._tokenize(text)
         item = {k: v.to(self.device) for k, v in item.items()}
         input_len = item["attention_mask"].sum().item()
@@ -44,7 +47,10 @@ class GradientExplainer(BaseExplainer):
             outputs = self.helper.model(
                 inputs_embeds=input_embeds, attention_mask=item["attention_mask"]
             )
-            return outputs.logits
+            logits = self.helper._postprocess_logits(
+                outputs.logits, target_token_pos_idx=target_token_pos_idx
+            )
+            return logits
 
         dl = (
             InputXGradient(func, **self.init_args)
@@ -53,13 +59,28 @@ class GradientExplainer(BaseExplainer):
         )
 
         inputs = self.get_input_embeds(text)
-        attr = dl.attribute(inputs, target=target, **kwargs)
+
+        attr = dl.attribute(inputs, target=target_pos_idx, **kwargs)
         attr = attr[0, :input_len, :].detach().cpu()
 
         # pool over hidden size
         attr = attr.sum(-1).numpy()
 
-        output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
+        output = Explanation(
+            text=text,
+            tokens=self.get_tokens(text),
+            scores=attr,
+            explainer=self.NAME,
+            helper_type=self.helper.HELPER_TYPE,
+            target_pos_idx=target_pos_idx,
+            target_token_pos_idx=target_token_pos_idx,
+            target=self.helper.model.config.id2label[target_pos_idx],
+            target_token=self.helper.tokenizer.decode(
+                item["input_ids"][0, target_token_pos_idx].item()
+            )
+            if self.helper.HELPER_TYPE == "token-classification"
+            else None,
+        )
         return output
 
 
@@ -70,11 +91,11 @@ class IntegratedGradientExplainer(BaseExplainer):
         self,
         model,
         tokenizer,
-        task_name: str = "text-classification",
+        model_helper: Optional[str] = None,
         multiply_by_inputs: bool = True,
         **kwargs,
     ):
-        super().__init__(model, tokenizer, task_name, **kwargs)
+        super().__init__(model, tokenizer, model_helper, **kwargs)
 
         self.multiply_by_inputs = multiply_by_inputs
         if self.multiply_by_inputs:
@@ -95,14 +116,17 @@ class IntegratedGradientExplainer(BaseExplainer):
         self,
         text: Union[str, Tuple[str, str]],
         target: Union[int, str] = 1,
+        target_token: Optional[Union[int, str]] = None,
         show_progress: bool = False,
         **kwargs,
     ):
-        # sanity checks
-        target = self.helper._check_target(target)
+        # Sanity checks
+        # TODO these checks have already been conducted if used within the benchmark class. Remove them here if possible.
+
+        target_pos_idx = self.helper._check_target(target)
+        target_token_pos_idx = self.helper._check_target_token(text, target_token)
         text = self.helper._check_sample(text)
 
-        # init_args, call_args = parse_explainer_args(explainer_args)
         item = self._tokenize(text)
         input_len = item["attention_mask"].sum().item()
 
@@ -113,6 +137,9 @@ class IntegratedGradientExplainer(BaseExplainer):
             _, logits = self.helper._forward_with_input_embeds(
                 input_embeds, attention_mask, show_progress=show_progress
             )
+            logits = self.helper._postprocess_logits(
+                logits, target_token_pos_idx=target_token_pos_idx
+            )
             return logits
 
         dl = IntegratedGradients(
@@ -121,7 +148,7 @@ class IntegratedGradientExplainer(BaseExplainer):
         inputs = self.get_input_embeds(text)
         baselines = self._generate_baselines(input_len)
 
-        attr = dl.attribute(inputs, baselines=baselines, target=target, **kwargs)
+        attr = dl.attribute(inputs, baselines=baselines, target=target_pos_idx, **kwargs)
 
         attr = attr[0, :input_len, :].detach().cpu()
 
@@ -129,5 +156,19 @@ class IntegratedGradientExplainer(BaseExplainer):
         attr = attr.sum(-1).numpy()
 
         # norm_attr = self._normalize_input_attributions(attr.detach())
-        output = Explanation(text, self.get_tokens(text), attr, self.NAME, target)
+        output = Explanation(
+            text=text,
+            tokens=self.get_tokens(text),
+            scores=attr,
+            explainer=self.NAME,
+            helper_type=self.helper.HELPER_TYPE,
+            target_pos_idx=target_pos_idx,
+            target_token_pos_idx=target_token_pos_idx,
+            target=self.helper.model.config.id2label[target_pos_idx],
+            target_token=self.helper.tokenizer.decode(
+                item["input_ids"][0, target_token_pos_idx].item()
+            )
+            if self.helper.HELPER_TYPE == "token-classification"
+            else None,
+        )
         return output

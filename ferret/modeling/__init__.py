@@ -1,9 +1,14 @@
-from .text_helpers import TaskClassificationHelper, ZeroShotTextClassificationHelper
+from .text_helpers import (
+    SequenceClassificationHelper,
+    TokenClassificationHelper,
+    ZeroShotTextClassificationHelper,
+)
 
 SUPPORTED_TASKS_TO_HELPERS = {
-    "text-classification": TaskClassificationHelper,
-    "nli": TaskClassificationHelper,
+    "text-classification": SequenceClassificationHelper,
+    "nli": SequenceClassificationHelper,
     "zero-shot-text-classification": ZeroShotTextClassificationHelper,
+    "ner": TokenClassificationHelper,
 }
 
 
