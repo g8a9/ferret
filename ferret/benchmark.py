@@ -47,10 +47,14 @@ def lp_normalize(explanations, ord=1):
 
     new_exps = list()
     for exp in explanations:
+        if isinstance(exp, tuple): # some explainers might return a tuple to handle the multiple-choice task.
+            exp = exp[0] # the first element of the tuple is still the expected output of the explainer (i.e. the single explanation)
         new_exp = copy.copy(exp)
-        new_exp.scores /= np.linalg.norm(
-            exp.scores, axis=-1, ord=ord
-        )  # L1 normalization
+        if isinstance(new_exp.scores, np.ndarray) and new_exp.scores.size > 0:
+            norm_axis = -1 if new_exp.scores.ndim == 1 else (0, 1) # handle axis correctly
+            norm = np.linalg.norm(new_exp.scores, axis=norm_axis, ord=ord)
+            if norm != 0: # avoid division by zero
+                new_exp.scores /= norm
         new_exps.append(new_exp)
 
     return new_exps
@@ -151,7 +155,7 @@ class Benchmark:
         text,
         target=1,
         show_progress: bool = True,
-        normalize_scores: bool = False,
+        normalize_scores: bool = True,
         order: int = 1,
         target_token: Optional[str] = None,
         target_option: Optional[str] = None,
@@ -532,7 +536,7 @@ class Benchmark:
     def show_table(
         self,
         explanations: List[Explanation],
-        remove_first_last: bool = False,
+        remove_first_last: bool = True,
         style: None = "heatmap",
     ) -> pd.DataFrame:
         return show_table(explanations, remove_first_last, style)

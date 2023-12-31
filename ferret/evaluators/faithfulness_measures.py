@@ -54,12 +54,6 @@ class AOPC_Comprehensiveness_Evaluation(BaseEvaluator):
         remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
             evaluation_args
         )
-        if remove_first_last == True:
-            remove_first_last = False
-            warnings.warn(
-                "Setting remove_first_last to False for AOPC Comprehensiveness evaluation. This argument will be removed in a future version.",
-                DeprecationWarning,
-            )
 
         text = explanation.text
         target_pos_idx = explanation.target_pos_idx
@@ -194,7 +188,6 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
         remove_first_last, only_pos, removal_args, _ = parse_evaluator_args(
             evaluation_args
         )
-        remove_first_last = False
 
         text = explanation.text
         score_explanation = explanation.scores
@@ -285,7 +278,7 @@ class AOPC_Sufficiency_Evaluation(BaseEvaluator):
             discrete_expl_ths.append(discrete_expl_th)
 
         if discrete_expl_ths == []:
-            return EvaluationMetricOutput(self.cls, 1)
+            return EvaluationMetricOutput(self, 1)
 
         # Prediction probability for the target
         _, logits = self.helper._forward(discrete_expl_ths, output_hidden_states=False)
@@ -338,7 +331,6 @@ class TauLOO_Evaluation(BaseEvaluator):
         helper_type = explanation.helper_type
 
         remove_first_last = evaluation_args.get("remove_first_last", True)
-        remove_first_last = False
 
         if remove_first_last:
             if self.tokenizer.cls_token == explanation.tokens[0]:

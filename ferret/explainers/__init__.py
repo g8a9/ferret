@@ -17,6 +17,10 @@ class BaseExplainer(ABC):
     def __init__(
         self, model, tokenizer, model_helper: Optional[BaseTaskHelper] = None, **kwargs
     ):
+        # task_type allows to set the correct helper, depending on the type of task at hand.
+        # In particular, it allows to use the correct helper (TokenClassificationHelper) for Named-Entity Recognition.
+        task_type = kwargs.pop('task_type', 'sequence_classification')
+
         if model is None or tokenizer is None:
             raise ValueError("Please specify a model and a tokenizer.")
 
@@ -27,6 +31,12 @@ class BaseExplainer(ABC):
                 "No helper provided. Using default 'text-classification' helper."
             )
             self.helper = create_helper(model, tokenizer, "text-classification")
+        else:
+            self.helper=model_helper
+        
+        # Initialize the correct helper in case the task at hand is NER.
+        if task_type == "token_classification":
+            self.helper = create_helper(model, tokenizer, "ner")
 
     @property
     def device(self):
@@ -58,7 +68,7 @@ class BaseExplainer(ABC):
     def __call__(
         self,
         text: str,
-        target: int,
+        target: int = 1,
         target_token: Optional[str] = None,
         **explainer_args
     ):

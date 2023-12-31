@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from tqdm.autonotebook import tqdm
 from transformers.tokenization_utils_base import BatchEncoding
 
@@ -61,6 +62,8 @@ class BaseTextTaskHelper(BaseTaskHelper):
 
         :param text str: the string to tokenize
         """
+        if "padding" not in tok_kwargs:
+            tok_kwargs["padding"] = "longest"
         return self.tokenizer(text, return_tensors="pt", truncation=True, **tok_kwargs)
 
     def _get_input_embeds_from_ids(self, ids) -> torch.Tensor:
@@ -124,30 +127,24 @@ class BaseTextTaskHelper(BaseTaskHelper):
         batches = np.array_split(text, n_batches)
 
         outputs = list()
+        max_len = 0
 
-        for batch in tqdm(
-            batches,
-            total=n_batches,
-            desc="Batch",
-            leave=False,
-            disable=not show_progress,
-        ):
-            item = self._tokenize(batch.tolist(), padding="longest", **tok_kwargs)
+        # Process each batch and find the max length of logits
+        for batch in batches:
+            item = self._tokenize(batch.tolist(), **tok_kwargs)
             item = {k: v.to(self.model.device) for k, v in item.items()}
-
             if use_input_embeddings:
                 ids = item.pop("input_ids")  # (B,S,d_model)
                 input_embeddings = self._get_input_embeds_from_ids(ids)
-                out = self.model(
-                    inputs_embeds=input_embeddings,
-                    **item,
-                    output_hidden_states=output_hidden_states,
-                )
+                out = self.model(inputs_embeds=input_embeddings, **item, output_hidden_states=output_hidden_states)
             else:
                 out = self.model(**item, output_hidden_states=output_hidden_states)
             outputs.append(out)
+            max_len = max(max_len, out.logits.shape[1])
 
-        logits = torch.cat([o.logits for o in outputs])
+        # Pad all logits to the max length and concatenate
+        logits = torch.cat([F.pad(o.logits, (0, 0, 0, max_len - o.logits.shape[1])) for o in outputs], dim=0)
+
         return outputs, logits
 
     def _check_target(self, target, **kwargs):

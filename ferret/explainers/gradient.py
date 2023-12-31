@@ -4,6 +4,7 @@ from typing import Optional, Tuple, Union
 import torch
 from captum.attr import InputXGradient, IntegratedGradients, Saliency
 from cv2 import multiply
+import numpy as np
 
 from . import BaseExplainer
 from .explanation import Explanation
@@ -34,15 +35,6 @@ class GradientExplainer(BaseExplainer):
         target_token: Optional[Union[int, str]] = None,
         **kwargs,
     ):
-        # Sanity checks
-        # TODO these checks have already been conducted if used within the benchmark class. Remove them here if possible.
-        target_pos_idx = self.helper._check_target(target)
-        target_token_pos_idx = self.helper._check_target_token(text, target_token)
-        text = self.helper._check_sample(text)
-        item = self._tokenize(text)
-        item = {k: v.to(self.device) for k, v in item.items()}
-        input_len = item["attention_mask"].sum().item()
-
         def func(input_embeds):
             outputs = self.helper.model(
                 inputs_embeds=input_embeds, attention_mask=item["attention_mask"]
@@ -52,6 +44,15 @@ class GradientExplainer(BaseExplainer):
             )
             return logits
 
+        # Sanity checks
+        # TODO these checks have already been conducted if used within the benchmark class. Remove them here if possible.
+        target_pos_idx = self.helper._check_target(target)
+        target_token_pos_idx = self.helper._check_target_token(text, target_token)
+        text = self.helper._check_sample(text)
+
+        item = self._tokenize(text)
+        item = {k: v.to(self.device) for k, v in item.items()}
+        input_len = item["attention_mask"].sum().item()
         dl = (
             InputXGradient(func, **self.init_args)
             if self.multiply_by_inputs
@@ -127,9 +128,6 @@ class IntegratedGradientExplainer(BaseExplainer):
         target_token_pos_idx = self.helper._check_target_token(text, target_token)
         text = self.helper._check_sample(text)
 
-        item = self._tokenize(text)
-        input_len = item["attention_mask"].sum().item()
-
         def func(input_embeds):
             attention_mask = torch.ones(
                 *input_embeds.shape[:2], dtype=torch.uint8, device=self.device
@@ -142,6 +140,8 @@ class IntegratedGradientExplainer(BaseExplainer):
             )
             return logits
 
+        item = self._tokenize(text)
+        input_len = item["attention_mask"].sum().item()
         dl = IntegratedGradients(
             func, multiply_by_inputs=self.multiply_by_inputs, **self.init_args
         )
