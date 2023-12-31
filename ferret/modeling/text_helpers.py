@@ -130,13 +130,24 @@ class BaseTextTaskHelper(BaseTaskHelper):
         max_len = 0
 
         # Process each batch and find the max length of logits
-        for batch in batches:
+        for batch in tqdm(
+            batches,
+            total=n_batches,
+            desc="Batch",
+            leave=False,
+            disable=not show_progress,
+        ):
             item = self._tokenize(batch.tolist(), **tok_kwargs)
             item = {k: v.to(self.model.device) for k, v in item.items()}
+
             if use_input_embeddings:
                 ids = item.pop("input_ids")  # (B,S,d_model)
                 input_embeddings = self._get_input_embeds_from_ids(ids)
-                out = self.model(inputs_embeds=input_embeddings, **item, output_hidden_states=output_hidden_states)
+                out = self.model(
+                    inputs_embeds=input_embeddings,
+                    **item,
+                    output_hidden_states=output_hidden_states,
+                )
             else:
                 out = self.model(**item, output_hidden_states=output_hidden_states)
             outputs.append(out)
