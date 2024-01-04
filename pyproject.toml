@@ -15,22 +15,30 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
 ]
+packages = [
+    { include = "ferret" },
+]
+
 
 [tool.poetry.dependencies]
-python = "^3.7.6"
-transformers = "^4.30.2"
-datasets = "^2.13.2"
+python = "^3.8.1"
+transformers = "^4.36.2"
+datasets = "^2.16.1"
 sentencepiece = "^0.1.99"
 captum = "^0.7.0"
-shap = "^0.42.1"
-seaborn = "^0.12.2"
-matplotlib = "^3.5.3"
-numpy = "^1.21.6"
-pandas = "^1.3.5"
+shap = "^0.44.0"
+seaborn = "^0.13.1"
+matplotlib = "^3.7.4"
+numpy = "^1.24.4"
+pandas = "^2.0.3"
 tqdm = "^4.66.1"
-scikit-image = "^0.19.3"
+scikit-image = "^0.21.0"
 opencv-python = "^4.9.0.80"
 lime = "^0.2.0.1"
 joblib = "^1.3.2"
 pytreebank = "^0.2.7"
-thermostat-datasets = "^1.0.2.1"
+thermostat-datasets = "^1.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
