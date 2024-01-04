@@ -10,26 +10,9 @@ with open("README.md") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-requirements = [
-    "transformers",
-    "datasets",
-    "sentencepiece",
-    "captum",
-    "shap",
-    "seaborn",
-    "matplotlib",
-    "numpy",
-    "pandas",
-    "tqdm",
-    "scikit-image",
-    "opencv-python",
-    "lime",
-    "joblib",
-    "pytreebank",
-    "thermostat-datasets",
-]
+requirements = list()
 
-test_requirements = []
+test_requirements = list()
 
 setup(
     author="Giuseppe Attanasio",
