@@ -80,8 +80,19 @@ class LIMEExplainer(BaseExplainer):
 
             return logits.softmax(-1).detach().cpu().numpy()
 
-        #added run_lime_explainer function to facilitate the handling of multiple-choice task
         def run_lime_explainer(token_ids, target_pos_idx, num_samples, lime_args):
+            """
+            Runs the LIME explainer on a given set of token IDs to obtain feature importance scores.
+
+            Args:
+                token_ids (List[int]): A list of token IDs representing the text to be explained.
+                target_pos_idx (int): The index of the target class for which explanations are being generated.
+                num_samples (int): The number of samples to use in the LIME explanation process.
+                lime_args (Dict): Additional arguments to pass to the LimeTextExplainer.
+
+            Returns:
+                LimeTextExplainer.Explanation: The explanation object from LIME with feature importance scores.
+            """
             explainer_args = {k: v for k, v in self.init_args.items() if k != 'task_type'}
 
             lime_explainer = LimeTextExplainer(bow=False, **explainer_args)
@@ -110,6 +121,10 @@ class LIMEExplainer(BaseExplainer):
         [list(dict(sorted(expl.local_exp[target_pos_idx])).values())]
         )
         token_scores[item["special_tokens_mask"].bool().cpu().numpy()] = 0.0
+        # token_scores is initially created as a 2D array with a single row, where each column 
+        # contains the importance score of each token in the analyzed text. 
+        # By setting token_scores = token_scores[0], we convert it to a 1D array for ease of use, 
+        # as it contains scores for the single text sequence processed by LIME.
         token_scores = token_scores[0]
 
         output = Explanation(

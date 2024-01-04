@@ -24,6 +24,7 @@ class SHAPExplainer(BaseExplainer):
         **kwargs,
     ):
         super().__init__(model, tokenizer, model_helper, **kwargs)
+        # Initializing SHAP-specific arguments
         self.init_args["silent"] = silent
         self.init_args["algorithm"] = algorithm
         self.init_args["seed"] = seed
@@ -40,10 +41,13 @@ class SHAPExplainer(BaseExplainer):
         target_token_pos_idx = self.helper._check_target_token(text, target_token)
         text = self.helper._check_sample(text)
 
+        # Removing 'target_option' if passed as it's not relevant here
         kwargs.pop('target_option', None)
 
+        # Function to compute logits for SHAP explainer
         def func(texts: np.array):
             _, logits = self.helper._forward(texts.tolist())
+            # Adjust logits based on the target token position
             logits = self.helper._postprocess_logits(
                 logits, target_token_pos_idx=target_token_pos_idx
             )
@@ -51,16 +55,13 @@ class SHAPExplainer(BaseExplainer):
 
         masker = TextMasker(self.tokenizer)
         explainer_partition = shap.Explainer(model=func, masker=masker, **self.init_args)
-        full_text = text
-        if isinstance(text, list):
-            if isinstance(text[0], tuple):
-                full_text = list(text[0])
-        shap_values = explainer_partition(full_text, **kwargs)
+        shap_values = explainer_partition(text, **kwargs)
         attr = shap_values.values[0][:, target_pos_idx]
-
-        item = self._tokenize(full_text, return_special_tokens_mask=True)
+        # Tokenize the text for token-level explanation
+        item = self._tokenize(text, return_special_tokens_mask=True)
         token_ids = item['input_ids'][0].tolist()
         token_scores = np.zeros_like(token_ids, dtype=float)
+        # Assigning SHAP values to tokens, ignoring special tokens
         for i, (shap_value, is_special_token) in enumerate(zip(attr, item['special_tokens_mask'][0])):
             if not is_special_token:
                 token_scores[i] = shap_value

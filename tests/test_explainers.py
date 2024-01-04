@@ -53,7 +53,7 @@ class TestExplainers(unittest.TestCase):
     def test_shap_text_classification(self):
         text = "You look stunning!"
         exp = SHAPExplainer(self.model_text_class, self.tokenizer_text_class)
-        explanation = exp(text)
+        explanation = exp(text, target=1)
         self.assertListEqual(
             explanation.tokens, ["[CLS]", "you", "look", "stunning", "!", "[SEP]"]
         )
@@ -89,28 +89,29 @@ class TestExplainers(unittest.TestCase):
     def test_shap_nli(self):
         premise = "A soccer game with multiple males playing."
         hypothesis = "A sports activity."
-        exp = SHAPExplainer(self.model_nli, self.tokenizer_nli)
-        explanation = exp((premise, hypothesis))
+        # adding task_name = "nli" is in this cas optional, as nli uses the default helper SequenceClassificationHelper
+        exp = SHAPExplainer(self.model_nli, self.tokenizer_nli, task_name="nli")
+        explanation = exp((premise, hypothesis), target="contradiction")
         self.assertListEqual(
             explanation.tokens[:5], ["[CLS]", "▁A", "▁soccer", "▁game", "▁with"]
         )
-        self.assertEqual(explanation.target_pos_idx, 1)
+        self.assertEqual(explanation.target_pos_idx, 2)
 
     def test_lime_nli(self):
         premise = "A soccer game with multiple males playing."
         hypothesis = "A sports activity."
         exp = LIMEExplainer(self.model_nli, self.tokenizer_nli)
-        explanation = exp((premise, hypothesis), target=1, num_samples=30, show_progress=True)
+        explanation = exp((premise, hypothesis), target="entailment", num_samples=30, show_progress=True)
         self.assertListEqual(
             explanation.tokens[:5], ["[CLS]", "▁A", "▁soccer", "▁game", "▁with"]
         )
-        self.assertEqual(explanation.target_pos_idx, 1)
+        self.assertEqual(explanation.target_pos_idx, 0)
         
     def test_gradient_nli(self):
         premise = "A soccer game with multiple males playing."
         hypothesis = "A sports activity."
         exp = GradientExplainer(self.model_nli, self.tokenizer_nli)
-        explanation = exp((premise, hypothesis), target=1)
+        explanation = exp((premise, hypothesis), target="neutral")
         self.assertListEqual(
             explanation.tokens[:5], ["[CLS]", "▁A", "▁soccer", "▁game", "▁with"]
         )
@@ -120,11 +121,11 @@ class TestExplainers(unittest.TestCase):
         premise = "A soccer game with multiple males playing."
         hypothesis = "A sports activity."
         exp = IntegratedGradientExplainer(self.model_nli, self.tokenizer_nli)
-        explanation = exp((premise, hypothesis), target=1)
+        explanation = exp((premise, hypothesis), target="contradiction")
         self.assertListEqual(
             explanation.tokens[:5], ["[CLS]", "▁A", "▁soccer", "▁game", "▁with"]
         )
-        self.assertEqual(explanation.target_pos_idx, 1)
+        self.assertEqual(explanation.target_pos_idx, 2)
     
     def test_shap_zero_shot(self):
         bench = Benchmark(self.model_zero_shot, self.tokenizer_zero_shot, task_name="zero-shot-text-classification")
@@ -170,14 +171,14 @@ class TestExplainers(unittest.TestCase):
 
     def test_shap_ner(self):
         text = "My name is John and I live in New York"
-        exp = SHAPExplainer(self.model_ner, self.tokenizer_ner, task_type="token_classification")
+        exp = SHAPExplainer(self.model_ner, self.tokenizer_ner, task_name="ner")
         explanation = exp(text, target="I-LOC", target_token="York")
         self.assertTrue("York" in explanation.tokens)
         self.assertEqual(explanation.target_pos_idx, 6)
 
     def test_lime_ner(self):
         text = "My name is John and I live in New York"
-        exp = LIMEExplainer(self.model_ner, self.tokenizer_ner, task_type="token_classification")
+        exp = LIMEExplainer(self.model_ner, self.tokenizer_ner, task_name="ner")
         exp.helper = TokenClassificationHelper(self.model_ner, self.tokenizer_ner)
         explanation = exp(text, target="I-LOC", target_token="York")
         self.assertTrue("York" in explanation.tokens)
@@ -185,14 +186,14 @@ class TestExplainers(unittest.TestCase):
         
     def test_integrated_gradient_ner(self):
         text = "My name is John and I live in New York"
-        exp = IntegratedGradientExplainer(self.model_ner, self.tokenizer_ner, multiply_by_inputs=True, task_type="token_classification")
+        exp = IntegratedGradientExplainer(self.model_ner, self.tokenizer_ner, multiply_by_inputs=True, task_name="ner")
         explanation = exp(text, target="I-LOC", target_token="York")
         self.assertTrue("york" in [token.lower() for token in explanation.tokens])
         self.assertEqual(explanation.target_pos_idx, 6)
 
     def test_gradient_ner(self):
         text = ["My name is John and I live in New York"]
-        exp = GradientExplainer(self.model_ner, self.tokenizer_ner, multiply_by_inputs=True, task_type="token_classification")
+        exp = GradientExplainer(self.model_ner, self.tokenizer_ner, multiply_by_inputs=True, task_name="ner")
         explanation = exp(text, target="I-LOC", target_token="York")
         self.assertTrue("york" in [token.lower() for token in explanation.tokens])
         self.assertEqual(explanation.target_pos_idx, 6)

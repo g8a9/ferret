@@ -47,8 +47,6 @@ def lp_normalize(explanations, ord=1):
 
     new_exps = list()
     for exp in explanations:
-        if isinstance(exp, tuple): # some explainers might return a tuple to handle the multiple-choice task.
-            exp = exp[0] # the first element of the tuple is still the expected output of the explainer (i.e. the single explanation)
         new_exp = copy.copy(exp)
         if isinstance(new_exp.scores, np.ndarray) and new_exp.scores.size > 0:
             norm_axis = -1 if new_exp.scores.ndim == 1 else (0, 1) # handle axis correctly

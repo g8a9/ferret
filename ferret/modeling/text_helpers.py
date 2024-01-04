@@ -62,8 +62,6 @@ class BaseTextTaskHelper(BaseTaskHelper):
 
         :param text str: the string to tokenize
         """
-        if "padding" not in tok_kwargs:
-            tok_kwargs["padding"] = "longest"
         return self.tokenizer(text, return_tensors="pt", truncation=True, **tok_kwargs)
 
     def _get_input_embeds_from_ids(self, ids) -> torch.Tensor:
@@ -137,7 +135,7 @@ class BaseTextTaskHelper(BaseTaskHelper):
             leave=False,
             disable=not show_progress,
         ):
-            item = self._tokenize(batch.tolist(), **tok_kwargs)
+            item = self._tokenize(batch.tolist(), padding="longest", **tok_kwargs)
             item = {k: v.to(self.model.device) for k, v in item.items()}
 
             if use_input_embeddings:
@@ -207,8 +205,22 @@ class SequenceClassificationHelper(BaseTextTaskHelper):
         ):
             raise ValueError("Input sample type is not supported")
 
-        if isinstance(text, str) or isinstance(text, tuple):
+        if isinstance(text, str):
             return [text]
+        # The SequenceClassificationHelper is only used for the text-classification and Natural Language Inference tasks.
+        # The following condition takes care of the NLI task (which was causing problems) in the SHAP explainer. 
+        # The expected input for the NLI task is constructed as follows:
+
+        # >>> premise = "I first thought that I liked the movie, but upon second thought it was actually disappointing."
+        # >>> hypothesis = "The movie was good."
+        # >>> sample = (premise, hypothesis)
+
+        # where the tuple given by "sample" is indeed the expected text input to the explainer.
+        # As currently designed, the SHAP explainer expects the input instead to be either a string or a list with a single string, 
+        # and *not* a list of a tuple. We her construct the text input for the explainers as "premise [SEP] hypothesis"
+        elif isinstance(text, tuple) and len(text) == 2:
+            if isinstance(text[0], str) and isinstance(text[1], str):
+                return [text[0] + " [SEP] " + text[1]]
         else:
             return text
 
@@ -253,7 +265,8 @@ class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
 
     def _prepare_sample(self, sample, **kwargs):
         target_option = kwargs["target_option"]
-        return [(sample, self.DEFAULT_TEMPLATE.format(target_option))]
+        # Simikarly to what done for the NLI task above we combine sample and target option through a [SEP] token
+        return [sample + " [SEP] " + self.DEFAULT_TEMPLATE.format(target_option)]
 
     def _check_target(self, target):
         if isinstance(target, str) and target not in self.model.config.label2id:

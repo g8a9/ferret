@@ -2,7 +2,7 @@
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Union
 
 from ..modeling import create_helper
 from ..modeling.base_helpers import BaseTaskHelper
@@ -17,26 +17,25 @@ class BaseExplainer(ABC):
     def __init__(
         self, model, tokenizer, model_helper: Optional[BaseTaskHelper] = None, **kwargs
     ):
-        # task_type allows to set the correct helper, depending on the type of task at hand.
-        # In particular, it allows to use the correct helper (TokenClassificationHelper) for Named-Entity Recognition.
-        task_type = kwargs.pop('task_type', 'sequence_classification')
+        # We use the task_name parameter to specify the correct helper via the create_helper() function
+        task_name = kwargs.pop('task_name', None)
 
         if model is None or tokenizer is None:
             raise ValueError("Please specify a model and a tokenizer.")
 
         self.init_args = kwargs
 
+        # The user can now specify the task name even for explainers, and that will set the correct helper
+        # even if no model_helper is specified. If the user does not specify anything, we show the Warning.
         if model_helper is None:
-            warnings.warn(
-                "No helper provided. Using default 'text-classification' helper."
-            )
-            self.helper = create_helper(model, tokenizer, "text-classification")
+            if task_name is None:
+                task_name = "text-classification"
+                warnings.warn(
+                    "No helper provided. Using default 'text-classification' helper."
+                )
+            self.helper = create_helper(model, tokenizer, task_name)
         else:
             self.helper=model_helper
-        
-        # Initialize the correct helper in case the task at hand is NER.
-        if task_type == "token_classification":
-            self.helper = create_helper(model, tokenizer, "ner")
 
     @property
     def device(self):
@@ -68,7 +67,7 @@ class BaseExplainer(ABC):
     def __call__(
         self,
         text: str,
-        target: int = 1,
+        target: Union[str,int],
         target_token: Optional[str] = None,
         **explainer_args
     ):
