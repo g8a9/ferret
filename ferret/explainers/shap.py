@@ -1,5 +1,6 @@
 import pdb
 from typing import Dict, Optional, Text, Union
+import logging
 
 import numpy as np
 import shap
@@ -42,7 +43,9 @@ class SHAPExplainer(BaseExplainer):
         text = self.helper._check_sample(text)
 
         # Removing 'target_option' if passed as it's not relevant here
-        kwargs.pop('target_option', None)
+        if 'target_option' in kwargs:
+            logging.warning("The 'target_option' argument is not used in SHAPExplainer and will be removed.")
+            kwargs.pop('target_option')
 
         # Function to compute logits for SHAP explainer
         def func(texts: np.array):

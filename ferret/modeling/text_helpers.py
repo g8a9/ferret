@@ -1,6 +1,7 @@
 import math
 import pdb
 from typing import List, Optional, Tuple, Union
+import logging
 
 import numpy as np
 import torch
@@ -204,9 +205,11 @@ class SequenceClassificationHelper(BaseTextTaskHelper):
             (isinstance(text, str), isinstance(text, tuple), isinstance(text, list))
         ):
             raise ValueError("Input sample type is not supported")
+        
+        sep_token = self.tokenizer.sep_token if hasattr(self.tokenizer, 'sep_token') else "[SEP]"
+        if sep_token == "[SEP]":
+            logging.warning("Using hardcoded '[SEP]' as separator token.")
 
-        if isinstance(text, str):
-            return [text]
         # The SequenceClassificationHelper is only used for the text-classification and Natural Language Inference tasks.
         # The following condition takes care of the NLI task (which was causing problems) in the SHAP explainer. 
         # The expected input for the NLI task is constructed as follows:
@@ -217,10 +220,12 @@ class SequenceClassificationHelper(BaseTextTaskHelper):
 
         # where the tuple given by "sample" is indeed the expected text input to the explainer.
         # As currently designed, the SHAP explainer expects the input instead to be either a string or a list with a single string, 
-        # and *not* a list of a tuple. We her construct the text input for the explainers as "premise [SEP] hypothesis"
-        elif isinstance(text, tuple) and len(text) == 2:
-            if isinstance(text[0], str) and isinstance(text[1], str):
-                return [text[0] + " [SEP] " + text[1]]
+        # and *not* a list of a tuple. We her construct the text input for the explainers as "premise <separator_token> hypothesis"
+        if isinstance(text, str):
+            return [text]
+        
+        elif isinstance(text, tuple) and len(text) == 2 and all(isinstance(t, str) for t in text):
+            return [text[0] + f" {sep_token} " + text[1]]
         else:
             return text
 
@@ -265,8 +270,11 @@ class ZeroShotTextClassificationHelper(BaseTextTaskHelper):
 
     def _prepare_sample(self, sample, **kwargs):
         target_option = kwargs["target_option"]
-        # Simikarly to what done for the NLI task above we combine sample and target option through a [SEP] token
-        return [sample + " [SEP] " + self.DEFAULT_TEMPLATE.format(target_option)]
+        # Simikarly to what done for the NLI task above we combine sample and target option through a separator token token
+        sep_token = self.tokenizer.sep_token if hasattr(self.tokenizer, 'sep_token') else "[SEP]"
+        if sep_token == "[SEP]":
+            logging.warning("Using hardcoded '[SEP]' as separator token.")
+        return [sample + f" {sep_token} " + self.DEFAULT_TEMPLATE.format(target_option)]
 
     def _check_target(self, target):
         if isinstance(target, str) and target not in self.model.config.label2id:
