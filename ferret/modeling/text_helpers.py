@@ -153,7 +153,7 @@ class BaseTextTaskHelper(BaseTaskHelper):
             max_len = max(max_len, out.logits.shape[1])
 
         # Pad all logits to the max length and concatenate
-        logits = torch.cat([F.pad(o.logits, (0, 0, 0, max_len - o.logits.shape[1])) for o in outputs], dim=0)
+        logits = torch.cat([o.logits for o in outputs], dim=0)
 
         return outputs, logits
 
