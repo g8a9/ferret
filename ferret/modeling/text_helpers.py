@@ -149,7 +149,6 @@ class BaseTextTaskHelper(BaseTaskHelper):
             else:
                 out = self.model(**item, output_hidden_states=output_hidden_states)
             outputs.append(out)
-            # max_len = max(max_len, out.logits.shape[1])
 
         # Concatenate logits
         logits = torch.cat([o.logits for o in outputs], dim=0)
