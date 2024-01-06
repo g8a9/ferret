@@ -126,7 +126,6 @@ class BaseTextTaskHelper(BaseTaskHelper):
         batches = np.array_split(text, n_batches)
 
         outputs = list()
-        max_len = 0
 
         # Process each batch and find the max length of logits
         for batch in tqdm(
@@ -152,7 +151,7 @@ class BaseTextTaskHelper(BaseTaskHelper):
             outputs.append(out)
             max_len = max(max_len, out.logits.shape[1])
 
-        # Pad all logits to the max length and concatenate
+        # Concatenate logits
         logits = torch.cat([o.logits for o in outputs], dim=0)
 
         return outputs, logits
