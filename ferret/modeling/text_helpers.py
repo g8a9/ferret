@@ -127,7 +127,7 @@ class BaseTextTaskHelper(BaseTaskHelper):
 
         outputs = list()
 
-        # Process each batch and find the max length of logits
+        # Process each batch
         for batch in tqdm(
             batches,
             total=n_batches,
@@ -149,7 +149,7 @@ class BaseTextTaskHelper(BaseTaskHelper):
             else:
                 out = self.model(**item, output_hidden_states=output_hidden_states)
             outputs.append(out)
-            max_len = max(max_len, out.logits.shape[1])
+            # max_len = max(max_len, out.logits.shape[1])
 
         # Concatenate logits
         logits = torch.cat([o.logits for o in outputs], dim=0)
