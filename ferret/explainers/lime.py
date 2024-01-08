@@ -35,13 +35,6 @@ class LIMEExplainer(BaseExplainer):
         # show_progress = call_args.pop("show_progress", False)
         # batch_size = call_args.pop("batch_size", 8)
 
-        item = self._tokenize(text, return_special_tokens_mask=True)
-        token_ids = item["input_ids"][0].tolist()
-
-        # handle num_samples which might become a bottleneck
-        # num_samples = call_args.pop("num_samples", None)
-        if num_samples is None:
-            num_samples = min(len(token_ids) ** 2, max_samples)  # powerset size
 
         def fn_prediction_token_ids(token_ids_sentences: List[str]):
             """Run inference on a list of strings made of token ids.
@@ -87,27 +80,57 @@ class LIMEExplainer(BaseExplainer):
 
             return logits.softmax(-1).detach().cpu().numpy()
 
-        # Same word has a different relevance according to its position
-        lime_explainer = LimeTextExplainer(bow=False, **self.init_args)
+        def run_lime_explainer(token_ids, target_pos_idx, num_samples, lime_args):
+            """
+            Runs the LIME explainer on a given set of token IDs to obtain feature importance scores.
 
-        expl = lime_explainer.explain_instance(
-            " ".join([str(i) for i in token_ids]),
-            fn_prediction_token_ids,
-            labels=[target_pos_idx],
-            num_features=len(token_ids),
-            num_samples=num_samples,
-            **kwargs,
-        )
+            Args:
+                token_ids (List[int]): A list of token IDs representing the text to be explained.
+                target_pos_idx (int): The index of the target class for which explanations are being generated.
+                num_samples (int): The number of samples to use in the LIME explanation process.
+                lime_args (Dict): Additional arguments to pass to the LimeTextExplainer.
+
+            Returns:
+                LimeTextExplainer.Explanation: The explanation object from LIME with feature importance scores.
+            """
+            explainer_args = {k: v for k, v in self.init_args.items() if k != 'task_type'}
+
+            lime_explainer = LimeTextExplainer(bow=False, **explainer_args)
+
+            lime_args["num_samples"] = num_samples
+            return lime_explainer.explain_instance(
+                " ".join([str(i) for i in token_ids]),
+                fn_prediction_token_ids,
+                labels=[target_pos_idx],
+                num_features=len(token_ids),
+                **lime_args,
+            )
+
+        
+        lime_args = kwargs.get('call_args', {})
+
+        item = self._tokenize(text, return_special_tokens_mask=True)
+        token_ids = item["input_ids"][0].tolist()
+
+        if num_samples is None:
+            num_samples = min(len(token_ids) ** 2, max_samples)  # powerset size
+        
+        expl = run_lime_explainer(token_ids, target_pos_idx, num_samples, lime_args)
 
         token_scores = np.array(
-            [list(dict(sorted(expl.local_exp[target_pos_idx])).values())]
+        [list(dict(sorted(expl.local_exp[target_pos_idx])).values())]
         )
         token_scores[item["special_tokens_mask"].bool().cpu().numpy()] = 0.0
+        # token_scores is initially created as a 2D array with a single row, where each column 
+        # contains the importance score of each token in the analyzed text. 
+        # By setting token_scores = token_scores[0], we convert it to a 1D array for ease of use, 
+        # as it contains scores for the single text sequence processed by LIME.
+        token_scores = token_scores[0]
 
         output = Explanation(
             text=text,
             tokens=self.get_tokens(text),
-            scores=token_scores[0],
+            scores=token_scores,
             explainer=self.NAME,
             helper_type=self.helper.HELPER_TYPE,
             target_pos_idx=target_pos_idx,
