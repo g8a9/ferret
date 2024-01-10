@@ -7,8 +7,8 @@ to see which task we currently support off-the-shelf (note: **ferret-xai >= 0.5.
 | Task (`HF Class`) | G | IG | SHAP | LIME | Tutorial |
 |-------------------------------|:-:|:--:|:----:|:----:|----------|
 | Sequence Classification (`AutoModelForSequenceClassification`)     | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/sentiment_classification.ipynb) |
-| Natural Language Inference (`AutoModelForSequenceClassification`)   | ✅ |  ✅ |   ⚙️  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/nli.ipynb) |
-| Zero-Shot Text Classification (`AutoModelForSequenceClassification`) | ✅ |  ✅ |   ⚙️  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/zeroshot_text_classification.ipynb) |
+| Natural Language Inference (`AutoModelForSequenceClassification`)   | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/nli.ipynb) |
+| Zero-Shot Text Classification (`AutoModelForSequenceClassification`) | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/zeroshot_text_classification.ipynb) |
 | Named Entity Recognition (`AutoModelForTokenClassification`)  | ✅  |  ✅  |  ✅️  |  ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/ner.ipynb) |
 | _Multiple Choice_    |   |    |      |      |          |
 | _Masked Language Modeling_    |   |    |      |      |          |
