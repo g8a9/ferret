@@ -7,6 +7,7 @@ from matplotlib.colors import LinearSegmentedColormap
 
 from .evaluators.evaluation import ExplanationEvaluation
 from .explainers.explanation import Explanation
+from .evaluators import EvaluationMetricFamily
 
 
 def get_colormap(format):
@@ -138,7 +139,9 @@ def show_evaluation_table(
     for evaluation in explanation_evaluations:
         d = dict()
         d["Explainer"] = evaluation.explanation.explainer
+
         for metric_output in evaluation.evaluation_outputs:
+
             d[metric_output.metric.SHORT_NAME] = metric_output.value
         flat.append(d)
 
@@ -157,7 +160,12 @@ def show_evaluation_table(
 
             vmin = output.metric.MIN_VALUE
             vmax = output.metric.MAX_VALUE
-            best_value = output.metric.BEST_VALUE
+            best_value = (
+                # The BEST_VALUE attribute is defined for the FAITHFULNESS
+                # metric family only.
+                output.metric.BEST_VALUE if output.metric.METRIC_FAMILY == EvaluationMetricFamily.FAITHFULNESS
+                else None
+            )
 
             if vmin == -1 and vmax == 1 and best_value == 0:
                 cmap = get_colormap("white_purple_white")
