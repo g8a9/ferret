@@ -370,12 +370,16 @@ class Benchmark:
         if len(explanation.tokens) != len(rationale):
             raise ValueError()
         return ExplanationWithRationale(
-            explanation.text,
-            explanation.tokens,
-            explanation.scores,
-            explanation.explainer,
-            explanation.target,
-            rationale,
+            text=explanation.text,
+            tokens=explanation.tokens,
+            scores=explanation.scores,
+            explainer=explanation.explainer,
+            target_pos_idx=explanation.target_pos_idx,
+            helper_type=explanation.helper_type,
+            target_token_pos_idx=explanation.target_token_pos_idx,
+            target=explanation.target,
+            target_token=explanation.target_token,
+            rationale=rationale
         )
 
     def _get_class_explanations_by_explainer(self, class_explanations):
@@ -476,7 +480,7 @@ class Benchmark:
         for explainer in name_explainers:
             evaluation_scores_by_explainer[explainer] = {}
             for evaluator in self.evaluators:
-                evaluation_scores_by_explainer[explainer.NAME][evaluator.SHORT_NAME] = []
+                evaluation_scores_by_explainer[explainer][evaluator.SHORT_NAME] = []
 
         if n_workers > 1:
             raise NotImplementedError()
@@ -485,7 +489,7 @@ class Benchmark:
 
             for instance, target in zip(instances, targets):
                 # Generate explanations - list of explanations (one for each explainers)
-                explanations = self.explain(instance["text"], target, progress_bar=False)
+                explanations = self.explain(instance["text"], target, show_progress=False)
                 # If available, we add the human rationale
                 # It will be used in the evaluation of plausibility
                 if "rationale" in instance and len(instance["rationale"]) > target:

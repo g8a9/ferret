@@ -86,7 +86,7 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         """
         Alternative, in the case the rationales are representate by the positional id
         e.g., "i hate you" --> [1,2]
-        
+
         true_expl = set(true_expl)
         pred_expl = set(pred_expl)
 
@@ -240,8 +240,9 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
 
             evaluation_output = EvaluationMetricOutput(self.SHORT_NAME, output_score)
         else:
+
             evaluation_output = EvaluationMetricOutput(
-                self.SHORT_NAME, instance_f1_micro
+                self, instance_f1_micro
             )
 
         return evaluation_output
