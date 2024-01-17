@@ -20,6 +20,8 @@ Sequence Classification is a task that involves categorizing text sequences into
 Usage
 -----
 .. code-block:: python
+
+
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     from ferret import Benchmark
     model = AutoModelForSequenceClassification.from_pretrained("cardiffnlp/twitter-xlm-roberta-base-sentiment")
@@ -29,6 +31,7 @@ Usage
     exp = bench.explain(text, target=1)
     bench.show_table(exp)
     # 'explanation' contains SHAP values for each token in the text.
+
 Natural Language Inference (NLI)
 =================================
 
@@ -41,6 +44,8 @@ Natural Language Inference focuses on determining the relationship between a pre
 Usage
 -----
 .. code-block:: python
+
+
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     from ferret import Benchmark
     model = AutoModelForSequenceClassification.from_pretrained("MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli")
@@ -51,6 +56,7 @@ Usage
     bench = Benchmark(model, tokenizer, task_name="nli")
     exp = bench.explain(sample, target="contradiction")
     bench.show_table(exp)
+
 Zero-Shot Classification
 ========================
 
@@ -63,6 +69,8 @@ Zero-Shot Classification refers to classifying text into categories that were no
 Usage
 -----
 .. code-block:: python
+
+
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     from ferret import Benchmark
     
@@ -76,6 +84,7 @@ Usage
     most_probable_label = max(scores, key=scores.get)
     exp = bench.explain(sequence_to_classify, target="entailment", target_option=most_probable_label)
     # 'explanation' shows how the model associates the text with the categories.
+
 Named Entity Recognition (NER)
 ==============================
 
@@ -88,6 +97,8 @@ Named Entity Recognition involves identifying and categorizing key information (
 Usage
 -----
 .. code-block:: python
+
+
     from transformers import AutoModelForTokenClassification, AutoTokenizer
     from ferret import Benchmark
     tokenizer = AutoTokenizer.from_pretrained("Babelscape/wikineural-multilingual-ner")
