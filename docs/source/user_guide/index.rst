@@ -21,6 +21,12 @@ Head to :ref:`quickstart` for a basic example.
     advanced
 
 .. toctree::
+    :caption: Tasks
+    :maxdepth: 1
+
+    tasks
+    
+.. toctree::
     :caption: Notions
     :maxdepth: 2
 

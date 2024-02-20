@@ -1,7 +1,19 @@
-## Example Notebooks
+# Task Support Matrix
 
-Here you can find all the sample notebooks we built to showcase ferret APIs.
+*ferret* integrates seamlessly with a wide range of tasks. Please refer to the matrix below
+to see which task we currently support off-the-shelf (note: **ferret-xai >= 0.5.0 is required**).
 
-- **benchmark.ipynb**: is an all around tutorial with all the main functionalities in ferret.
-Open it in [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/benchmark.ipynb)
-- **thermostat_integration_example.ipynb**: showcases the integration with [Thermostat](https://github.com/DFKI-NLP/thermostat). Open it in [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/thermostat_integration_example.ipynb)
+
+| Task (`HF Class`) | G | IG | SHAP | LIME | Tutorial |
+|-------------------------------|:-:|:--:|:----:|:----:|----------|
+| Sequence Classification (`AutoModelForSequenceClassification`)     | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/sentiment_classification.ipynb) |
+| Natural Language Inference (`AutoModelForSequenceClassification`)   | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/nli.ipynb) |
+| Zero-Shot Text Classification (`AutoModelForSequenceClassification`) | ✅ |  ✅ |   ✅  |   ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/zeroshot_text_classification.ipynb) |
+| Named Entity Recognition (`AutoModelForTokenClassification`)  | ✅  |  ✅  |  ✅️  |  ✅  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/g8a9/ferret/blob/task-API/examples/ner.ipynb) |
+| _Multiple Choice_    |   |    |      |      |          |
+| _Masked Language Modeling_    |   |    |      |      |          |
+| _Casual Language Modeling_    |   |    |      |      |          |
+
+Where:
+- ✅: we got you covered!
+- ⚙️: working on it...

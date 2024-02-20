@@ -108,3 +108,4 @@ ENV/
 .idea/
 
 tmp/
+.DS_Store

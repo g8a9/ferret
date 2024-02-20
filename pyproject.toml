@@ -42,3 +42,9 @@ thermostat-datasets = "^1.1.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 89
+
+[tool.isort]
+profile = "black"

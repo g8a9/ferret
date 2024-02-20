@@ -2,9 +2,8 @@ import numpy as np
 from sklearn.metrics import auc, precision_recall_curve
 
 from ..explainers.explanation import ExplanationWithRationale
-from ..model_utils import ModelHelper
-from . import BaseEvaluator
-from .evaluation import Evaluation
+from . import BaseEvaluator, EvaluationMetricFamily
+from .evaluation import EvaluationMetricOutput
 from .utils_from_soft_to_discrete import (
     get_discrete_explanation_topK,
     parse_evaluator_args,
@@ -14,9 +13,10 @@ from .utils_from_soft_to_discrete import (
 class AUPRC_PlausibilityEvaluation(BaseEvaluator):
     NAME = "AUPRC_soft_plausibility"
     SHORT_NAME = "auprc_plau"
-    # Higher is better
-    BEST_SORTING_ASCENDING = False
-    TYPE_METRIC = "plausibility"
+    LOWER_IS_BETTER = False
+    MAX_VALUE = 1.0
+    MIN_VALUE = 0.0
+    METRIC_FAMILY = EvaluationMetricFamily.PLAUSIBILITY
 
     def _compute_auprc_soft_scoring(self, true_rationale, soft_scores):
         precision, recall, _ = precision_recall_curve(true_rationale, soft_scores)
@@ -61,17 +61,17 @@ class AUPRC_PlausibilityEvaluation(BaseEvaluator):
         auprc_soft_plausibility = self._compute_auprc_soft_scoring(
             human_rationale, score_explanation
         )
-        evaluation_output = Evaluation(self.SHORT_NAME, auprc_soft_plausibility)
+        evaluation_output = EvaluationMetricOutput(self, auprc_soft_plausibility)
         return evaluation_output
 
 
 class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
     NAME = "token_f1_hard_plausibility"
     SHORT_NAME = "token_f1_plau"
-    # Higher is better
-    BEST_SORTING_ASCENDING = False
-    TYPE_METRIC = "plausibility"
-    INIT_VALUE = np.zeros(6)
+    METRIC_FAMILY = EvaluationMetricFamily.PLAUSIBILITY
+    LOWER_IS_BETTER = False
+    MIN_VALUE = 0.0
+    MAX_VALUE = 1.0
 
     def _instance_tp_pos_pred_pos(self, true_expl, pred_expl):
         true_expl = np.array(true_expl)
@@ -86,7 +86,7 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         """
         Alternative, in the case the rationales are representate by the positional id
         e.g., "i hate you" --> [1,2]
-        
+
         true_expl = set(true_expl)
         pred_expl = set(pred_expl)
 
@@ -218,9 +218,9 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
         if topk_score_explanations is None:
             # Return default scores
             if accumulate_result:
-                return Evaluation(self.SHORT_NAME, [0, 0, 0, 0, 0, 0])
+                return EvaluationMetricOutput(self, [0, 0, 0, 0, 0, 0])
             else:
-                return Evaluation(self.SHORT_NAME, 0)
+                return EvaluationMetricOutput(self, 0)
 
         tp, pos, pred_pos = self._instance_tp_pos_pred_pos(
             human_rationale, topk_score_explanations
@@ -238,9 +238,12 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
                 [tp, pos, pred_pos, instance_prec, instance_rec, instance_f1_micro]
             )
 
-            evaluation_output = Evaluation(self.SHORT_NAME, output_score)
+            evaluation_output = EvaluationMetricOutput(self.SHORT_NAME, output_score)
         else:
-            evaluation_output = Evaluation(self.SHORT_NAME, instance_f1_micro)
+
+            evaluation_output = EvaluationMetricOutput(
+                self, instance_f1_micro
+            )
 
         return evaluation_output
 
@@ -280,9 +283,10 @@ class Tokenf1_PlausibilityEvaluation(BaseEvaluator):
 class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
     NAME = "token_IOU_hard_plausibility"
     SHORT_NAME = "token_iou_plau"
-    # Higher is better
-    BEST_SORTING_ASCENDING = False
-    TYPE_METRIC = "plausibility"
+    METRIC_FAMILY = EvaluationMetricFamily.PLAUSIBILITY
+    LOWER_IS_BETTER = False
+    MIN_VALUE = 0.0
+    MAX_VALUE = 1.0
 
     def _token_iou(self, true_expl, pred_expl):
         """From ERASER
@@ -349,9 +353,9 @@ class TokenIOU_PlausibilityEvaluation(BaseEvaluator):
         )
         if topk_score_explanations is None:
             # Return default scores
-            return Evaluation(self.SHORT_NAME, 0)
+            return EvaluationMetricOutput(self, 0)
 
         token_iou = self._token_iou(human_rationale, topk_score_explanations)
 
-        evaluation_output = Evaluation(self.SHORT_NAME, token_iou)
+        evaluation_output = EvaluationMetricOutput(self, token_iou)
         return evaluation_output

@@ -31,3 +31,4 @@ from .explainers.dummy import DummyExplainer
 from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
 from .explainers.lime import LIMEExplainer
 from .explainers.shap import SHAPExplainer
+from .modeling.text_helpers import TokenClassificationHelper
