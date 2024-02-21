@@ -34,7 +34,7 @@ from .explainers.shap import SHAPExplainer
 from .modeling.text_helpers import TokenClassificationHelper
 
 # Speech-XAI section.
-from .benchmark_speech import Benchmark
+from .benchmark_speech import SpeechBenchmark
 
 # Benchmarking methods
 from .evaluators.faithfulness_measures_speech import (

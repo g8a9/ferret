@@ -25,7 +25,7 @@ USE_ADD_NOISE_TORCHAUDIO = True
 REFERENCE_STR = "-"
 
 
-class Benchmark:
+class SpeechBenchmark:
     def __init__(
         self,
         model,
