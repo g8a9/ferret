@@ -40,7 +40,12 @@ pytreebank = "^0.2.7"
 thermostat-datasets = "^1.1.0"
 # Speech-XAI requirements.
 pydub = "0.25.1"
+audiomentations = "0.34.1"
+audiostretchy = "1.3.5"
+pyroomacoustics = "0.7.3"
+# WhisperX is not on PyPI: install from GitHub repo.
 whisperx = { git = "https://github.com/m-bain/whisperx.git", branch = "main" }
+
 
 [build-system]
 requires = ["poetry-core"]

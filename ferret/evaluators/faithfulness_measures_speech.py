@@ -79,7 +79,7 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
             ground_truth_probs_target = [ground_truth_probs[0][target[0]]]
 
         # Splite the audio into word-level audio segments
-        from speechxai.explainers.loo_speech_explainer import transcribe_audio
+        from ..explainers.explanation_speech.loo_speech_explainer import transcribe_audio
 
         if words_trascript is None:
             text, words_trascript = transcribe_audio(
@@ -196,7 +196,7 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
     NAME = "aopc_sufficiency"
     SHORT_NAME = "aopc_suff"
     LOWER_IS_BETTER = True
-    TYPE_METRIC = EvaluationMetricFamily.FAITHFULNESS
+    METRIC_FAMILY = EvaluationMetricFamily.FAITHFULNESS
 
     def compute_evaluation(
         self,
@@ -256,7 +256,7 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
             ground_truth_probs_target = [ground_truth_probs[0][target[0]]]
 
         # Splite the audio into word-level audio segments
-        from speechxai.explainers.loo_speech_explainer import transcribe_audio
+        from ..explainers.explanation_speech.loo_speech_explainer import transcribe_audio
 
         if words_trascript is None:
             text, words_trascript = transcribe_audio(
