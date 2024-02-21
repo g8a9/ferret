@@ -8,6 +8,7 @@ title: Credits
 -   Eliana Pastor \<<eliana.pastor@centai.eu>\>
 -   Debora Nozza \<<debora.nozza@unibocconi.it>\>
 -   Chiara Di Bonaventura \<<chiara.dibonaventura@studbocconi.it>\>
+-   Emanuele Moscato \<<e.moscato1@gmail.com>\>
 
 # Contributors
 

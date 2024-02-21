@@ -32,3 +32,22 @@ from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
 from .explainers.lime import LIMEExplainer
 from .explainers.shap import SHAPExplainer
 from .modeling.text_helpers import TokenClassificationHelper
+
+# Speech-XAI section.
+from .benchmark_speech import Benchmark
+
+# Benchmarking methods
+from .evaluators.faithfulness_measures_speech import (
+    AOPC_Comprehensiveness_Evaluation_Speech,
+    AOPC_Sufficiency_Evaluation_Speech,
+)
+
+# Explainers
+from .explainers.explanation_speech.paraling_speech_explainer import ParalinguisticSpeechExplainer
+from .explainers.explanation_speech.loo_speech_explainer import LOOSpeechExplainer
+from .explainers.explanation_speech.explanation_speech import ExplanationSpeech
+
+# Model Helpers
+from .modeling.speech_model_helpers.model_helper_er import ModelHelperER
+from .modeling.speech_model_helpers.model_helper_fsc import ModelHelperFSC
+from .modeling.speech_model_helpers.model_helper_italic import ModelHelperITALIC

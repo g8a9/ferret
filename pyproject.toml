@@ -38,6 +38,9 @@ lime = "^0.2.0.1"
 joblib = "^1.3.2"
 pytreebank = "^0.2.7"
 thermostat-datasets = "^1.1.0"
+# Speech-XAI requirements.
+pydub = "0.25.1"
+whisperx = { git = "https://github.com/m-bain/whisperx.git", branch = "main" }
 
 [build-system]
 requires = ["poetry-core"]
