@@ -9,5 +9,7 @@ SpeechXAI provides two new evaluation metrics analogous to some of those already
 # Required actions
 
 - Add mp3 files for white and pink noise into `ferret/explainers/explanation_speech/`. --> DONE
+- Rename SpeechXAI's `Benchmark` objects into `SpeechBenchmark` to distinguish it from Ferret's analogous object (a common abstraction is needed). --> DONE
+- Integrate SpeechXAI's readme into Ferret's one.
 - `ferret/explainers/__init__.py` contains the `BaseExplainer` ABC, which Speech-XAI doesn't seem to have an equivalent for. Should this be included somehow?
 - Check how to make the speech part installable separately from the text part (with options like `pip install ferret[all]`, `pip install ferret[text]` or `pip install ferret [speech]`).
