@@ -150,25 +150,6 @@ class SpeechBenchmark:
 
             explainer = self.explainers[methodology]
 
-            # If word transcripts are not passed in the input, generate them
-            # from the audio file.
-            if words_trascript is None:
-                from .modeling.speech_transcription import SpeechTrancriber
-
-                # Instantiate `SpeechTranscriber` object with sensible
-                # defaults.
-                transcriber = SpeechTrancriber(
-                    asr_model_name='large-v2',
-                    device=self.device.type,
-                    language_code=self.language,
-                    compute_type='float16'
-                )
-
-                # Generate aligned transcriptions.
-                words_trascript = transcriber.align_transcription_from_file(
-                    audio_path
-                )['word_segments']
-
             explanation = explainer.compute_explanation(
                 audio_path=audio_path,
                 target_class=target_class,
