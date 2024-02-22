@@ -38,6 +38,7 @@ class SpeechBenchmark:
         self.feature_extractor = feature_extractor
         self.model.eval()
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        self.language = language
 
         if "superb-ic" in self.model.name_or_path:
             # We are using the FSC model - It has three output classes
@@ -135,7 +136,9 @@ class SpeechBenchmark:
         else:
             if methodology not in self.explainers:
                 raise ValueError(
-                    f'Explainer {methodology} not supported. Choose between "LOO", "Gradient", "GradientXInput", "LIME", "perturb_paraling"'
+                    f'Explainer {methodology} not supported. Choose between '
+                    '"LOO", "Gradient", "GradientXInput", "LIME", '
+                    '"perturb_paraling"'
                 )
             if "LOO" in methodology:
                 explainer_args["removal_type"] = removal_type
@@ -146,6 +149,26 @@ class SpeechBenchmark:
                 explainer_args["aggregation"] = aggregation
 
             explainer = self.explainers[methodology]
+
+            # If word transcripts are not passed in the input, generate them
+            # from the audio file.
+            if words_trascript is None:
+                from .modeling.speech_transcription import SpeechTrancriber
+
+                # Instantiate `SpeechTranscriber` object with sensible
+                # defaults.
+                transcriber = SpeechTrancriber(
+                    asr_model_name='large-v2',
+                    device=self.device.type,
+                    language_code=self.language,
+                    compute_type='float16'
+                )
+
+                # Generate aligned transcriptions.
+                words_trascript = transcriber.align_transcription_from_file(
+                    audio_path
+                )['word_segments']
+
             explanation = explainer.compute_explanation(
                 audio_path=audio_path,
                 target_class=target_class,
