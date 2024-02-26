@@ -31,11 +31,21 @@ Text Classification
 
 ### Installation
 
+For the default installation, which does **not** include the dependencies for the speech XAI functionalities, 
+
 ```bash
 pip install -U ferret-xai
 ```
 
 Our main dependencies are 🤗 `tranformers` and `datasets`.
+
+If the speech XAI functionalities are needed, then
+
+```
+pip install -U ferret-xai[speech]
+```
+
+At the moment, the speech XAI-related dependencies are the only extra ones, so installing with `ferret-xai[speech]` or `ferret-xai[all]` is equivalent.
 
 **Important** Some of our dependencies might use the package name for `scikit-learn` and that breaks ferret installation. \
 If your pip install command fails, try:
