@@ -38,6 +38,30 @@ lime = "^0.2.0.1"
 joblib = "^1.3.2"
 pytreebank = "^0.2.7"
 thermostat-datasets = "^1.1.0"
+# Speech-XAI additional requirements to allow for `pip install ferret[speech]`.
+pydub = { version = "0.25.1", optional = true }
+audiomentations = { version = "0.34.1", optional = true }
+audiostretchy = { version = "1.3.5", optional = true }
+pyroomacoustics = { version = "0.7.3", optional = true }
+# WhisperX is not on PyPI: install from GitHub repo.
+whisperx = { git = "https://github.com/m-bain/whisperx.git", branch = "main", optional = true }
+
+[tool.poetry.extras]
+speech = [
+    "pydub",
+    "audiomentations",
+    "audiostretchy",
+    "pyroomacoustics",
+    "whisperx"
+]
+all = [
+    "pydub",
+    "audiomentations",
+    "audiostretchy",
+    "pyroomacoustics",
+    "whisperx"
+]
+
 
 [build-system]
 requires = ["poetry-core"]
