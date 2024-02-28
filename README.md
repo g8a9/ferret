@@ -10,13 +10,18 @@
 ferret is Python library that streamlines the use and benchmarking of interpretability techniques on Transformers models.
 
 - Documentation: https://ferret.readthedocs.io
-- Paper: https://arxiv.org/abs/2208.01575
+- Paper: https://aclanthology.org/2023.eacl-demo.29/
 - Demo: https://huggingface.co/spaces/g8a9/ferret
 
 **ferret** is meant to integrate seamlessly with 🤗 **transformers** models, among which it currently supports text models only.
 We provide:
 - 🔍 Four established interpretability techniques based on **Token-level Feature Attribution**. Use them to find the most relevant words to your model output quickly.
 - ⚖️ Six **Faithfulness and Plausibility evaluation protocols**. Benchmark any token-level explanation against these tests to guide your choice toward the most reliable explainer.  
+
+ACL Anthology Bibkey:
+```bash
+attanasio-etal-2023-ferret
+```
 
 ### 📝 Examples
 
