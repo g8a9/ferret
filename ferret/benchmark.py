@@ -49,9 +49,11 @@ def lp_normalize(explanations, ord=1):
     for exp in explanations:
         new_exp = copy.copy(exp)
         if isinstance(new_exp.scores, np.ndarray) and new_exp.scores.size > 0:
-            norm_axis = -1 if new_exp.scores.ndim == 1 else (0, 1) # handle axis correctly
+            norm_axis = (
+                -1 if new_exp.scores.ndim == 1 else (0, 1)
+            )  # handle axis correctly
             norm = np.linalg.norm(new_exp.scores, axis=norm_axis, ord=ord)
-            if norm != 0: # avoid division by zero
+            if norm != 0:  # avoid division by zero
                 new_exp.scores /= norm
         new_exps.append(new_exp)
 
@@ -237,7 +239,6 @@ class Benchmark:
         show_progress: bool = True,
         **evaluation_args,
     ) -> ExplanationEvaluation:
-
         """Evaluate an explanation using all the evaluators stored in the class.
 
         Args:
@@ -301,7 +302,6 @@ class Benchmark:
         show_progress=True,
         **evaluation_args,
     ) -> List[ExplanationEvaluation]:
-
         """Evaluate explanations using all the evaluators stored in the class.
 
         Args:
@@ -349,7 +349,6 @@ class Benchmark:
         rationale: List,
         add_first_last=True,
     ) -> ExplanationWithRationale:
-
         """Add the ground truth rationale to the explanation.
 
         Args:
@@ -379,7 +378,7 @@ class Benchmark:
             target_token_pos_idx=explanation.target_token_pos_idx,
             target=explanation.target,
             target_token=explanation.target_token,
-            rationale=rationale
+            rationale=rationale,
         )
 
     def _get_class_explanations_by_explainer(self, class_explanations):
@@ -435,6 +434,9 @@ class Benchmark:
         Returns:
             Dict : the average evaluation scores and their standard deviation for each explainer. The form is the following: {explainer: {"evaluation_measure": (avg_score, std)}
         """
+        raise DeprecationWarning(
+            "This method is deprecated. You can achieve a similar result by computing each individual explanation and evaluation and averaging them."
+        )
 
         #  Use list to index datasets
         if isinstance(sample, int):
@@ -489,7 +491,9 @@ class Benchmark:
 
             for instance, target in zip(instances, targets):
                 # Generate explanations - list of explanations (one for each explainers)
-                explanations = self.explain(instance["text"], target, show_progress=False)
+                explanations = self.explain(
+                    instance["text"], target, show_progress=False
+                )
                 # If available, we add the human rationale
                 # It will be used in the evaluation of plausibility
                 if "rationale" in instance and len(instance["rationale"]) > target:
@@ -564,25 +568,25 @@ class Benchmark:
         Returns:
             pd.DataFrame: a colored (styled) pandas dataframe of average evaluation scores of explanations of a sample
         """
-        raise NotImplementedError(
-            "We are dropping the support to multi instance evaluation. This feature will be re-introduced in a future release."
+        raise DeprecationWarning(
+            "This method has been deprecated. See `show_evaluation_table` for an alternative."
         )
 
-    #     # We only vizualize the average
-    #     table = pd.DataFrame(
-    #         {
-    #             explainer: {
-    #                 evaluator: mean_std[0] for evaluator, mean_std in inner.items()
-    #             }
-    #             for explainer, inner in evaluation_scores_by_explainer.items()
-    #         }
-    #     ).T
+        # We only vizualize the average
+        table = pd.DataFrame(
+            {
+                explainer: {
+                    evaluator: mean_std[0] for evaluator, mean_std in inner.items()
+                }
+                for explainer, inner in evaluation_scores_by_explainer.items()
+            }
+        ).T
 
-    #     # Avoid visualizing a columns with all nan (default value if plausibility could not computed)
-    #     table = table.dropna(axis=1, how="all")
+        # Avoid visualizing a columns with all nan (default value if plausibility could not computed)
+        table = table.dropna(axis=1, how="all")
 
-    #     if apply_style:
-    #         table_style = self._style_evaluation(table)
-    #         return table_style
-    #     else:
-    #         return table
+        if apply_style:
+            table_style = self._style_evaluation(table)
+            return table_style
+        else:
+            return table
