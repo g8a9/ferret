@@ -36,9 +36,6 @@ Transformers.
 
 Use any of the badges above to test our live demo, view a video demonstration, or explore our technical paper in detail. 
 
-.. warning::
-    We are in the process of restructuring and enriching the documentation. As such, you might find WIP pages or missing
-    docstrings. We are sorry for the inconvenience.
 
 Installation
 ------------
