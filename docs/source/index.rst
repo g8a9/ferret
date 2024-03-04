@@ -49,6 +49,7 @@ To install our latest stable release in default mode (which does not include the
 If the speech XAI functionalities are needed, then run:
 
 .. code-block:: console
+
     pip install -U ferret-xai[speech]
 
 At the moment, the speech XAI-related dependencies are the only extra ones, so installing with `ferret-xai[speech]` or `ferret-xai[all]` is equivalent.
