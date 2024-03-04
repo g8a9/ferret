@@ -13,5 +13,6 @@ Concretely, ferret lets you:
 -  visualize and compare Transformers-based models output explanations using state-of-the-art XAI methods
 -  benchmark explanations with ad-hoc XAI metrics for faithfulness and plausibility 
 -  streamline the evaluation on existing XAI corpora
+-  work both on text-based data and audio-based data (speech recognition tasks)
 
 .. _transformers: https://huggingface.co/docs/transformers/index
