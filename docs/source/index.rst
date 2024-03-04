@@ -71,6 +71,21 @@ If you are using ferret for your work, please consider citing us!
         publisher = "Association for Computational Linguistics",
     }
 
+Also, ferret's Speech XAI functionalities are based on
+
+.. code-block:: bibtex
+
+    @misc{pastor2023explaining,
+        title " Explaining Speech Classification Models via Word-Level Audio Segments and Paralinguistic Features",
+        author= "Pastor, Eliana and Koudounas, Alkis and Attanasio, Giuseppe and Hovy, Dirk and Baralis, Elena",
+        month = september,
+        year = "2023",
+        eprint = "2309.07733",
+        archivePrefix = "arXiv",
+        primaryClass = "cs.CL",
+        publisher = "",
+    }
+
 
 .. Indices and tables
 .. ==================
