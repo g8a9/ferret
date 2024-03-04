@@ -40,7 +40,7 @@ Here we derive word-level audio segment explanation via the leave-one-out techni
 
     display(speech_benchmark.show_table(explanation, decimals=3)),
 
-.. image:: ../speechxai_images/example_word-level-audio-segments-loo.png
+.. image:: _speechxai_images/example_word-level-audio-segments-loo.png
   :width: 400
   :alt: Example of word-level audio segment explanation
 
@@ -55,11 +55,11 @@ Here we derive paralinguistic attributions
 
     display(speech_benchmark.show_table(paraling_expl, decimals=2))
 
-.. image:: ../speechxai_images/example_paralinguistic_expl.png
+.. image:: _speechxai_images/example_paralinguistic_expl.png
   :width: 400
   :alt: Example of paralinguistic attribution
 
-  We can also plot the impact on the prediction probability when varying the degree of perturbations of the paralinguistic features:
+We can also plot the impact on the prediction probability when varying the degree of perturbations of the paralinguistic features:
 
 ..  code-block:: python
 
@@ -69,7 +69,7 @@ Here we derive paralinguistic attributions
 
     speech_benchmark.plot_variations(variations_table, show_diff = True);
 
-.. image:: ../speechxai_images/example_paralinguistic_variations.png
+.. image:: _speechxai_images/example_paralinguistic_variations.png
   :width: 400
   :alt: Example of paralinguistic explanation
 
