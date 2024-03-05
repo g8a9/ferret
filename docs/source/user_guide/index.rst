@@ -19,6 +19,7 @@ Head to :ref:`quickstart` for a basic example.
     explaining
     benchmarking
     advanced
+    speechxai
 
 .. toctree::
     :caption: Tasks

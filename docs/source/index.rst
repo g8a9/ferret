@@ -40,13 +40,21 @@ Use any of the badges above to test our live demo, view a video demonstration, o
 Installation
 ------------
 
-To install our latest stable release, run this command in your terminal:
+To install our latest stable release in default mode (which does not include the depenencies for the speech XAI functionalities), run this command in your terminal:
 
 .. code-block:: console
 
     pip install -U ferret-xai
 
-This is the preferred method to install ferret, as it will always install the most recent stable release.
+If the speech XAI functionalities are needed, then run:
+
+.. code-block:: console
+
+    pip install -U ferret-xai[speech]
+
+At the moment, the speech XAI-related dependencies are the only extra ones, so installing with :code:`ferret-xai[speech]` or :code:`ferret-xai[all]` is equivalent.
+
+These are the preferred methods to install ferret, as they will always install the most recent stable release.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -69,6 +77,21 @@ If you are using ferret for your work, please consider citing us!
         month = may,
         year = "2023",
         publisher = "Association for Computational Linguistics",
+    }
+
+Also, ferret's Speech XAI functionalities are based on
+
+.. code-block:: bibtex
+
+    @misc{pastor2023explaining,
+        title " Explaining Speech Classification Models via Word-Level Audio Segments and Paralinguistic Features",
+        author= "Pastor, Eliana and Koudounas, Alkis and Attanasio, Giuseppe and Hovy, Dirk and Baralis, Elena",
+        month = september,
+        year = "2023",
+        eprint = "2309.07733",
+        archivePrefix = "arXiv",
+        primaryClass = "cs.CL",
+        publisher = "",
     }
 
 
