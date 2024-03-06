@@ -7,13 +7,18 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/g8a9/ferret"
 repository = "https://github.com/g8a9/ferret"
+documentation = "https://ferret.readthedocs.io/en/latest/"
+keywords = ["interpretability", "benchmarking", "xai", "nlp", "ml", "ai"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
-    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 packages = [
     { include = "ferret" },
