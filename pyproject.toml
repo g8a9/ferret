@@ -13,7 +13,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
 ]
 packages = [
     { include = "ferret" },
@@ -21,7 +21,7 @@ packages = [
 
 
 [tool.poetry.dependencies]
-python = "^3.8.0"
+python = "^3.9.0"
 transformers = "^4.36.2"
 datasets = "^2.16.1"
 sentencepiece = "^0.1.99"
