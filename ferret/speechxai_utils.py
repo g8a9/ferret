@@ -7,6 +7,52 @@ import pydub
 import torch
 from datasets import Dataset
 from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
+import librosa
+from typing import Union
+
+
+class FerretAudio:
+    """
+    Internal class to handle audio data. We force signal to 1) mono, 2) a sampling rate of 16000, 3) np.float32 (i.e., 4 bytes to represent each sample).
+    We infer the native sampling rate using librosa.
+    """
+
+    def __init__(
+        self, audio_path_or_array: Union[str, np.ndarray], native_sr: int = None
+    ):
+        self.target_sr = 16000
+        self.native_sr = native_sr
+        self.audio_path_or_array = audio_path_or_array
+
+        if isinstance(audio_path_or_array, str):
+            self.native_sr = librosa.get_samplerate(audio_path_or_array)
+            self.array, self.sample_rate = librosa.load(
+                audio_path_or_array, sr=self.target_sr, dtype=np.float32
+            )
+
+        elif isinstance(audio_path_or_array, np.ndarray):
+            if native_sr is None:
+                raise ValueError(
+                    "If audio is provided as a numpy array, native_sr must be provided"
+                )
+            self.array, self.sample_rate = librosa.resample(
+                audio_path_or_array, self.native_sr, self.target_sr
+            )
+
+    @property
+    def normalized_array(self) -> np.ndarray:
+        return self.array / 32768.0
+
+    def to_pydub(self) -> pydub.AudioSegment:
+        """
+        Converts audio to pydub.AudioSegment.
+        """
+        return pydub.AudioSegment(
+            self.array.tobytes(),
+            frame_rate=self.target_sr,
+            sample_width=self.array.dtype.itemsize,
+            channels=1,
+        )
 
 
 def pydub_to_np(audio: pydub.AudioSegment) -> Tuple[np.ndarray, int]:
@@ -23,11 +69,6 @@ def pydub_to_np(audio: pydub.AudioSegment) -> Tuple[np.ndarray, int]:
         / (1 << (8 * audio.sample_width - 1)),
         audio.frame_rate,
     )
-
-
-def print_log(*args):
-    # This is just a wrapper to easily spot the print :) - I use it to debug
-    print(args)
 
 
 def plot_word_importance_summary(
@@ -244,9 +285,7 @@ def load_dataset_and_model(dataset_name, data_dir, model_dir=None, model_name=No
         )
         from datasets import load_dataset
 
-        dataset_da = load_dataset(
-            "RiTA-nlp/ITALIC", "hard_speaker", use_auth_token=True
-        )
+        dataset_da = load_dataset("RiTA-nlp/ITALIC", "hard_speaker", use_auth_token=True)
 
         dataset = pd.DataFrame(
             {

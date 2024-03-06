@@ -6,11 +6,15 @@ import torch
 import seaborn as sns
 from IPython.display import display
 from .explainers.explanation_speech.loo_speech_explainer import LOOSpeechExplainer
-from .explainers.explanation_speech.gradient_speech_explainer import GradientSpeechExplainer
+from .explainers.explanation_speech.gradient_speech_explainer import (
+    GradientSpeechExplainer,
+)
 from .explainers.explanation_speech.lime_speech_explainer import LIMESpeechExplainer
-from .explainers.explanation_speech.paraling_speech_explainer import ParalinguisticSpeechExplainer
+from .explainers.explanation_speech.paraling_speech_explainer import (
+    ParalinguisticSpeechExplainer,
+)
 from .explainers.explanation_speech.explanation_speech import ExplanationSpeech
-from .speechxai_utils import pydub_to_np, print_log
+from .speechxai_utils import pydub_to_np, print_log, FerretAudio
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 
@@ -48,7 +52,9 @@ class SpeechBenchmark:
                 self.model, self.feature_extractor, self.device, "en"
             )
         elif "ITALIC" in self.model.name_or_path:
-            from .modeling.speech_model_helpers.model_helper_italic import ModelHelperITALIC
+            from .modeling.speech_model_helpers.model_helper_italic import (
+                ModelHelperITALIC,
+            )
 
             self.model_helper = ModelHelperITALIC(
                 self.model, self.feature_extractor, self.device, "it"
@@ -88,7 +94,8 @@ class SpeechBenchmark:
 
     def explain(
         self,
-        audio_path: str,
+        audio_path_or_array: Union[str, np.ndarray],
+        native_sr: int = None,
         target_class: str = None,
         methodology: str = "LOO",
         perturbation_types: List[str] = [
@@ -112,8 +119,11 @@ class SpeechBenchmark:
         Explain the prediction of the model.
         Returns the importance of each segment in the audio.
         """
-        explainer_args = {}
+        explainer_args = dict()
         # TODO UNIFY THE INPUT FORMAT
+
+        # First things first. We transform any type of input in a suitable numpy array and we proceed with that on.
+        ferret_audio = FerretAudio(audio_path_or_array, native_sr=native_sr)
 
         ## Get the importance of each class (action, object, location) according to the perturb_paraling type
         if methodology == "perturb_paraling":
@@ -121,7 +131,7 @@ class SpeechBenchmark:
             explainer = self.explainers["perturb_paraling"]
             for perturbation_type in perturbation_types:
                 explanation = explainer.compute_explanation(
-                    audio_path=audio_path,
+                    audio=ferret_audio,
                     target_class=target_class,
                     perturbation_type=perturbation_type,
                     verbose=verbose,
@@ -136,7 +146,7 @@ class SpeechBenchmark:
         else:
             if methodology not in self.explainers:
                 raise ValueError(
-                    f'Explainer {methodology} not supported. Choose between '
+                    f"Explainer {methodology} not supported. Choose between "
                     '"LOO", "Gradient", "GradientXInput", "LIME", '
                     '"perturb_paraling"'
                 )
@@ -151,7 +161,7 @@ class SpeechBenchmark:
             explainer = self.explainers[methodology]
 
             explanation = explainer.compute_explanation(
-                audio_path=audio_path,
+                audio=ferret_audio,
                 target_class=target_class,
                 words_trascript=words_trascript,
                 **explainer_args,
@@ -185,9 +195,7 @@ class SpeechBenchmark:
                     if explanations[i].target != explanations[i + 1].target
                 ] == [], "The explanations must have the same target class"
                 assert [
-                    True
-                    for explanation in explanations
-                    if len(explanation.features) > 1
+                    True for explanation in explanations if len(explanation.features) > 1
                 ] == [], "The explanation feature should only be one"
                 importance_df = pd.DataFrame(
                     [explanation.scores for explanation in explanations]
@@ -240,10 +248,13 @@ class SpeechBenchmark:
             else table.apply(pd.to_numeric).style.format(precision=decimals)
         )
 
-    def explain_variations(self, audio_path, perturbation_types, target_class=None):
-        perturbation_df_by_type = self.explainers[
-            "perturb_paraling"
-        ].explain_variations(audio_path, perturbation_types, target_class)
+    def explain_variations(
+        self, audio_path_or_array, perturbation_types, target_class=None
+    ):
+        # TODO GA: we will probably need to update to the new FerretAudio class here as well
+        perturbation_df_by_type = self.explainers["perturb_paraling"].explain_variations(
+            audio_path_or_array, perturbation_types, target_class
+        )
         return perturbation_df_by_type
 
     def plot_variations(self, perturbation_df_by_type, show_diff=False, figsize=(5, 5)):
@@ -327,9 +338,7 @@ class SpeechBenchmark:
                 ax.set_xlabel(
                     "signal-to-noise ratio (dB)", fontsize=label_size, labelpad=-2
                 )
-            ax.set_xticks(
-                np.arange(len(x_labels)), labels=x_labels, fontsize=label_size
-            )
+            ax.set_xticks(np.arange(len(x_labels)), labels=x_labels, fontsize=label_size)
 
             ax.set_title(perturbation_type, fontsize=label_size)
 

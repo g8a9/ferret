@@ -2,6 +2,7 @@ from pydub import AudioSegment
 import whisperx
 import os
 from typing import Dict, List, Union, Tuple
+from ...speechxai_utils import FerretAudio
 
 
 def remove_specified_words(audio, words, removal_type: str = "nothing"):
@@ -51,7 +52,7 @@ def remove_specified_words(audio, words, removal_type: str = "nothing"):
 
 
 def transcribe_audio(
-    audio_path: str,
+    audio: FerretAudio,
     device: str = "cuda",
     batch_size: int = 2,
     compute_type: str = "float32",
@@ -72,8 +73,10 @@ def transcribe_audio(
     )
 
     ## Transcribe audio
-    audio = whisperx.load_audio(audio_path)
-    result = model_whisperx.transcribe(audio, batch_size=batch_size)
+    # TODO: we are assuming that the array does not come already normalized
+    audio_array = audio.normalized_array
+
+    result = model_whisperx.transcribe(audio_array, batch_size=batch_size)
     model_a, metadata = whisperx.load_align_model(
         language_code=result["language"], device=device
     )
@@ -83,7 +86,7 @@ def transcribe_audio(
         result["segments"],
         model_a,
         metadata,
-        audio,
+        audio_array,
         device,
         return_char_alignments=False,
     )
@@ -169,6 +172,8 @@ def remove_word(audio, word, removal_type: str = "nothing"):
     before_word_audio = audio[: word["start"] * 1000 - a]
     after_word_audio = audio[word["end"] * 1000 + b :]
     word_duration = (word["end"] * 1000 - word["start"] * 1000) + a + b
+
+    # TODO GA: we don't really to use pydub here, we can use numpy directly
 
     if removal_type == "nothing":
         replace_word_audio = AudioSegment.empty()
