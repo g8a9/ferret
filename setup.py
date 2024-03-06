@@ -10,38 +10,21 @@ with open("README.md") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-requirements = [
-    "transformers",
-    "datasets",
-    "sentencepiece",
-    "captum",
-    "shap",
-    "seaborn",
-    "matplotlib",
-    "numpy",
-    "pandas",
-    "tqdm",
-    "scikit-image",
-    "opencv-python",
-    "lime",
-    "joblib",
-    "pytreebank",
-    "thermostat-datasets",
-]
+requirements = list()
 
-test_requirements = []
+test_requirements = list()
 
 setup(
     author="Giuseppe Attanasio",
     author_email="giuseppeattanasio6@gmail.com",
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.8",
     ],
     description="A python package for benchmarking interpretability approaches.",
     install_requires=requirements,

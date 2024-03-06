@@ -1,19 +1,19 @@
 """Client Interface Module"""
 
 import copy
-from typing import Dict, List, Union
+import warnings
+from typing import Dict, List, Optional, Union
 
 import datasets
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import torch
-from tqdm.auto import tqdm
+from tqdm.autonotebook import tqdm
 
 from .datasets import BaseDataset
 from .datasets.datamanagers import HateXplainDataset, MovieReviews, SSTDataset
 from .evaluators.class_measures import AOPC_Comprehensiveness_Evaluation_by_class
-from .evaluators.evaluation import Evaluation, ExplanationEvaluation
+from .evaluators.evaluation import EvaluationMetricOutput, ExplanationEvaluation
 from .evaluators.faithfulness_measures import (
     AOPC_Comprehensiveness_Evaluation,
     AOPC_Sufficiency_Evaluation,
@@ -28,24 +28,33 @@ from .explainers.explanation import Explanation, ExplanationWithRationale
 from .explainers.gradient import GradientExplainer, IntegratedGradientExplainer
 from .explainers.lime import LIMEExplainer
 from .explainers.shap import SHAPExplainer
-from .model_utils import ModelHelper
-
-SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
-EVALUATION_PALETTE = sns.light_palette("purple", as_cmap=True)
-EVALUATION_PALETTE_REVERSED = sns.light_palette("purple", as_cmap=True, reverse=True)
+from .modeling import create_helper
+from .visualization import show_evaluation_table, show_table
 
 NONE_RATIONALE = []
 
 
 def lp_normalize(explanations, ord=1):
-    """Run Lp-noramlization of explanation attribution scores"""
+    """Run Lp-noramlization of explanation attribution scores
+
+    Args:
+        explanations (List[Explanation]): list of explanations to normalize
+        ord (int, optional): order of the norm. Defaults to 1.
+
+    Returns:
+        List[Explanation]: list of normalized explanations
+    """
 
     new_exps = list()
     for exp in explanations:
         new_exp = copy.copy(exp)
-        new_exp.scores /= np.linalg.norm(
-            exp.scores, axis=-1, ord=ord
-        )  # L1 normalization
+        if isinstance(new_exp.scores, np.ndarray) and new_exp.scores.size > 0:
+            norm_axis = (
+                -1 if new_exp.scores.ndim == 1 else (0, 1)
+            )  # handle axis correctly
+            norm = np.linalg.norm(new_exp.scores, axis=norm_axis, ord=ord)
+            if norm != 0:  # avoid division by zero
+                new_exp.scores /= norm
         new_exps.append(new_exp)
 
     return new_exps
@@ -58,13 +67,15 @@ class Benchmark:
         self,
         model,
         tokenizer,
+        task_name: str = "text-classification",
         explainers: List = None,
         evaluators: List = None,
         class_based_evaluators: List = None,
     ):
         self.model = model
         self.tokenizer = tokenizer
-        self.helper = ModelHelper(self.model, self.tokenizer)
+        self.task_name = task_name
+        self.helper = create_helper(self.model, self.tokenizer, self.task_name)
 
         self.explainers = explainers
         self.evaluators = evaluators
@@ -72,17 +83,26 @@ class Benchmark:
 
         if not explainers:
             self.explainers = [
-                SHAPExplainer(self.model, self.tokenizer),
-                LIMEExplainer(self.model, self.tokenizer),
-                GradientExplainer(self.model, self.tokenizer, multiply_by_inputs=False),
-                GradientExplainer(self.model, self.tokenizer, multiply_by_inputs=True),
-                IntegratedGradientExplainer(
-                    self.model, self.tokenizer, multiply_by_inputs=False
+                SHAPExplainer(self.model, self.tokenizer, self.helper),
+                LIMEExplainer(self.model, self.tokenizer, self.helper),
+                GradientExplainer(
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=False
+                ),
+                GradientExplainer(
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=True
                 ),
                 IntegratedGradientExplainer(
-                    self.model, self.tokenizer, multiply_by_inputs=True
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=False
+                ),
+                IntegratedGradientExplainer(
+                    self.model, self.tokenizer, self.helper, multiply_by_inputs=True
                 ),
             ]
+        else:
+            for explainer in explainers:
+                if explainer.helper is not None:
+                    warnings.warn(f"Overriding helper for explainer {explainer}")
+                explainer.helper = self.helper
 
         if not evaluators:
             self._used_evaluators = [
@@ -94,14 +114,41 @@ class Benchmark:
                 TokenIOU_PlausibilityEvaluation,
             ]
             self.evaluators = [
-                ev(self.model, self.tokenizer) for ev in self._used_evaluators
+                ev(self.model, self.tokenizer, self.task_name)
+                for ev in self._used_evaluators
             ]
         if not class_based_evaluators:
             self._used_class_evaluators = [AOPC_Comprehensiveness_Evaluation_by_class]
             self.class_based_evaluators = [
-                class_ev(self.model, self.tokenizer)
+                class_ev(self.model, self.tokenizer, self.task_name)
                 for class_ev in self._used_class_evaluators
             ]
+
+    ############################
+    #  Utilities
+    ############################
+
+    def _forward(self, text):
+        item = self.tokenizer(text, return_tensors="pt")
+        with torch.no_grad():
+            outputs = self.model(**item)
+        return outputs
+
+    def score(self, text: str, return_dict: bool = True, **kwargs):
+        """Compute prediction scores for a single query
+
+        :param text str: query to compute the logits from
+        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
+        """
+        return self.helper._score(text, return_dict, **kwargs)
+
+    @property
+    def targets(self):
+        return self.helper.targets
+
+    ############################
+    #  Interpretability API
+    ############################
 
     def explain(
         self,
@@ -110,6 +157,8 @@ class Benchmark:
         show_progress: bool = True,
         normalize_scores: bool = True,
         order: int = 1,
+        target_token: Optional[str] = None,
+        target_option: Optional[str] = None,
     ) -> List[Explanation]:
         """
         Compute explanations using all the explainers stored in the class.
@@ -149,33 +198,47 @@ class Benchmark:
         >>> explanations = bench.explain("I love your style!", target=2, normalize_scores=False)
         """
 
-        if show_progress:
-            pbar = tqdm(total=len(self.explainers), desc="Explainer", leave=False)
+        # sanity check and transformation to integer targets (if required)
+        # here we are assuming the same target format (e.g., positional integer will work
+        # for every explanation method. We might need to chage this in the future, when
+        # we will add new explanation methods.
+        target = self.helper._check_target(target)
 
+        target_token = self.helper._check_target_token(text, target_token)
+
+        text = self.helper._check_sample(text)
+
+        text = self.helper._prepare_sample(text, target_option=target_option)
+
+        # we might optimize running the loop in parallel
         explanations = list()
-        for exp in self.explainers:
-            explanations.append(exp(text, target))
-            if show_progress:
-                pbar.update(1)
-
-        if show_progress:
-            pbar.close()
+        for explainer in tqdm(
+            self.explainers,
+            total=len(self.explainers),
+            desc="Explainer",
+            leave=False,
+            disable=not show_progress,
+        ):
+            exp = explainer(text, target, target_token)
+            explanations.append(exp)
 
         if normalize_scores:
             explanations = lp_normalize(explanations, order)
 
         return explanations
 
+    ############################
+    #  Evaluation API
+    ############################
+
     def evaluate_explanation(
         self,
         explanation: Union[Explanation, ExplanationWithRationale],
-        target,
         human_rationale=None,
         class_explanation: List[Union[Explanation, ExplanationWithRationale]] = None,
         show_progress: bool = True,
         **evaluation_args,
     ) -> ExplanationEvaluation:
-
         """Evaluate an explanation using all the evaluators stored in the class.
 
         Args:
@@ -207,13 +270,12 @@ class Benchmark:
         )
 
         for evaluator in self.evaluators:
-            evaluation = evaluator.compute_evaluation(
-                explanation, target, **evaluation_args
-            )
+            evaluation = evaluator.compute_evaluation(explanation, **evaluation_args)
             if (
                 evaluation is not None
             ):  # return None for plausibility measure if rationale is not available
                 evaluations.append(evaluation)
+
             if show_progress:
                 pbar.update(1)
 
@@ -235,13 +297,11 @@ class Benchmark:
     def evaluate_explanations(
         self,
         explanations: List[Union[Explanation, ExplanationWithRationale]],
-        target,
         human_rationale=None,
         class_explanations=None,
         show_progress=True,
         **evaluation_args,
     ) -> List[ExplanationEvaluation]:
-
         """Evaluate explanations using all the evaluators stored in the class.
 
         Args:
@@ -271,7 +331,6 @@ class Benchmark:
             explanation_evaluations.append(
                 self.evaluate_explanation(
                     explanation,
-                    target,
                     human_rationale,
                     class_explanation,
                     show_progress=False,
@@ -290,7 +349,6 @@ class Benchmark:
         rationale: List,
         add_first_last=True,
     ) -> ExplanationWithRationale:
-
         """Add the ground truth rationale to the explanation.
 
         Args:
@@ -311,12 +369,16 @@ class Benchmark:
         if len(explanation.tokens) != len(rationale):
             raise ValueError()
         return ExplanationWithRationale(
-            explanation.text,
-            explanation.tokens,
-            explanation.scores,
-            explanation.explainer,
-            explanation.target,
-            rationale,
+            text=explanation.text,
+            tokens=explanation.tokens,
+            scores=explanation.scores,
+            explainer=explanation.explainer,
+            target_pos_idx=explanation.target_pos_idx,
+            helper_type=explanation.helper_type,
+            target_token_pos_idx=explanation.target_token_pos_idx,
+            target=explanation.target,
+            target_token=explanation.target_token,
+            rationale=rationale,
         )
 
     def _get_class_explanations_by_explainer(self, class_explanations):
@@ -333,155 +395,9 @@ class Benchmark:
             ]
         return class_explanations_by_explainer
 
-    def _forward(self, text):
-        item = self.tokenizer(text, return_tensors="pt")
-        with torch.no_grad():
-            outputs = self.model(**item)
-        return outputs
-
-    def score(self, text: str, return_dict: bool = True):
-        """Compute prediction scores for a single query
-
-        :param text str: query to compute the logits from
-        :param return_dict bool: return a dict in the format Class Label -> score. Otherwise, return softmaxed logits as torch.Tensor. Default True
-        """
-
-        _, logits = self.helper._forward(text, output_hidden_states=False)
-        scores = logits[0].softmax(-1)
-
-        if return_dict:
-            scores = {
-                self.model.config.id2label[idx]: value.item()
-                for idx, value in enumerate(scores)
-            }
-        return scores
-
-    def get_dataframe(self, explanations: List[Explanation]) -> pd.DataFrame:
-        """Convert explanations into a pandas DataFrame.
-
-        Args:
-            explanations (List[Explanation]): list of explanations
-
-        Returns:
-            pd.DataFrame: explanations in table format. The columns are the tokens and the rows are the explanation scores, one for each explainer.
-        """
-        scores = {e.explainer: e.scores for e in explanations}
-        scores["Token"] = explanations[0].tokens
-        table = pd.DataFrame(scores).set_index("Token").T
-        return table
-
-    def show_table(
-        self,
-        explanations: List[Explanation],
-        apply_style: bool = True,
-        remove_first_last: bool = True,
-    ) -> pd.DataFrame:
-        """Format explanation scores into a colored table.
-
-        Args:
-            explanations (List[Explanation]): list of explanations
-            apply_style (bool): apply color to the table of explanation scores
-            remove_first_last (bool): do not visualize the first and last tokens, typically cls and eos tokens
-
-        Returns:
-            pd.DataFrame: a colored (styled) pandas dataframed
-        """
-
-        table = self.get_dataframe(explanations)
-        if remove_first_last:
-            table = table.iloc[:, 1:-1]
-
-        # Rename duplicate columns (tokens) by adding a suffix
-        if sum(table.columns.duplicated().astype(int)) > 0:
-            table.columns = pd.io.parsers.base_parser.ParserBase(
-                {"names": table.columns, "usecols": None}
-            )._maybe_dedup_names(table.columns)
-
-        return (
-            table.style.background_gradient(
-                axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
-            ).format("{:.2f}")
-            if apply_style
-            else table.style.format("{:.2f}")
-        )
-
-    def show_evaluation_table(
-        self,
-        explanation_evaluations: List[ExplanationEvaluation],
-        apply_style: bool = True,
-    ) -> pd.DataFrame:
-        """Format evaluation scores into a colored table.
-
-        Args:
-            explanation_evaluations (List[ExplanationEvaluation]): a list of evaluations of explanations
-            apply_style (bool): color the table of evaluation scores
-
-        Returns:
-            pd.DataFrame: a colored (styled) pandas dataframe of evaluation scores
-        """
-
-        # Get the evaluation scores from the explanation evaluations
-        explainer_scores = {}
-        for explanation_evaluation in explanation_evaluations:
-            explainer_scores[explanation_evaluation.explanation.explainer] = {
-                evaluation.name: evaluation.score
-                for evaluation in explanation_evaluation.evaluation_scores
-            }
-
-        table = pd.DataFrame(explainer_scores).T
-
-        if apply_style:
-            table_style = self._style_evaluation(table)
-            return table_style.format("{:.2f}")
-        else:
-            return table.format("{:.2f}")
-
-    def _style_evaluation(self, table: pd.DataFrame) -> pd.DataFrame:
-
-        """Apply style to evaluation scores.
-
-        Args:
-            table (pd.DataFrame): the evaluation scores as pandas DataFrame
-
-        Returns:
-            pd.io.formats.style.Styler: a colored and styled pandas dataframe of evaluation scores
-        """
-
-        table_style = table.style.background_gradient(
-            axis=1, cmap=SCORES_PALETTE, vmin=-1, vmax=1
-        )
-
-        show_higher_cols, show_lower_cols = list(), list()
-
-        # Color differently the evaluation measures for which "high score is better" or "low score is better"
-        # Darker colors mean better performance
-        for evaluation_measure in self.evaluators + self.class_based_evaluators:
-            if evaluation_measure.SHORT_NAME in table.columns:
-                if evaluation_measure.BEST_SORTING_ASCENDING == False:
-                    # Higher is better
-                    show_higher_cols.append(evaluation_measure.SHORT_NAME)
-                else:
-                    # Lower is better
-                    show_lower_cols.append(evaluation_measure.SHORT_NAME)
-
-        if show_higher_cols:
-            table_style.background_gradient(
-                axis=1,
-                cmap=EVALUATION_PALETTE,
-                vmin=-1,
-                vmax=1,
-                subset=show_higher_cols,
-            )
-
-        if show_lower_cols:
-            table_style.background_gradient(
-                axis=1,
-                cmap=EVALUATION_PALETTE_REVERSED,
-                vmin=-1,
-                vmax=1,
-                subset=show_lower_cols,
-            )
-        return table_style
+    ##############################
+    #  Dataset API
+    ##############################
 
     def load_dataset(self, dataset_name: str, **kwargs):
         if dataset_name == "hatexplain":
@@ -518,6 +434,9 @@ class Benchmark:
         Returns:
             Dict : the average evaluation scores and their standard deviation for each explainer. The form is the following: {explainer: {"evaluation_measure": (avg_score, std)}
         """
+        raise DeprecationWarning(
+            "This method is deprecated. You can achieve a similar result by computing each individual explanation and evaluation and averaging them."
+        )
 
         #  Use list to index datasets
         if isinstance(sample, int):
@@ -571,25 +490,18 @@ class Benchmark:
         else:
 
             for instance, target in zip(instances, targets):
-
-                if is_thermostatdata:
-                    # If it is Thermostat instance, explanation are already pre-computed
-                    explanations = instance["explanations"]
-                else:
-                    # We generate explanations - list of explanations (one for each explainers)
-                    explanations = self.explain(
-                        instance["text"], target, show_progress=False
-                    )
-                    # If available, we add the human rationale
-                    # It will be used in the evaluation of plausibility
-                    if "rationale" in instance and len(instance["rationale"]) > target:
-                        # Add the human rationale for the corresponding class
-                        explanations = [
-                            self._add_rationale(
-                                explanation, instance["rationale"][target]
-                            )
-                            for explanation in explanations
-                        ]
+                # Generate explanations - list of explanations (one for each explainers)
+                explanations = self.explain(
+                    instance["text"], target, show_progress=False
+                )
+                # If available, we add the human rationale
+                # It will be used in the evaluation of plausibility
+                if "rationale" in instance and len(instance["rationale"]) > target:
+                    # Add the human rationale for the corresponding class
+                    explanations = [
+                        self._add_rationale(explanation, instance["rationale"][target])
+                        for explanation in explanations
+                    ]
 
                 for explanation in explanations:
                     # We evaluate the explanation and we obtain an ExplanationEvaluation
@@ -598,7 +510,7 @@ class Benchmark:
                     )
 
                     # We accumulate the results for each explainer
-                    for evaluation_score in evaluation.evaluation_scores:
+                    for evaluation_score in evaluation.evaluation_outputs:
                         evaluation_scores_by_explainer[explanation.explainer][
                             evaluation_score.name
                         ].append(evaluation_score.score)
@@ -623,6 +535,25 @@ class Benchmark:
 
         return evaluation_scores_by_explainer
 
+    ############################
+    # Visualization API
+    ############################
+
+    def show_table(
+        self,
+        explanations: List[Explanation],
+        remove_first_last: bool = True,
+        style: None = "heatmap",
+    ) -> pd.DataFrame:
+        return show_table(explanations, remove_first_last, style)
+
+    def show_evaluation_table(
+        self,
+        explanation_evaluations: List[ExplanationEvaluation],
+        style: Optional[str] = "heatmap",
+    ):
+        return show_evaluation_table(explanation_evaluations, style)
+
     def show_samples_evaluation_table(
         self,
         evaluation_scores_by_explainer,
@@ -637,6 +568,9 @@ class Benchmark:
         Returns:
             pd.DataFrame: a colored (styled) pandas dataframe of average evaluation scores of explanations of a sample
         """
+        raise DeprecationWarning(
+            "This method has been deprecated. See `show_evaluation_table` for an alternative."
+        )
 
         # We only vizualize the average
         table = pd.DataFrame(

@@ -16,10 +16,17 @@ Head to :ref:`quickstart` for a basic example.
     :caption: Using ferret
     :maxdepth: 2
 
-    benchmarking
     explaining
+    benchmarking
     advanced
+    speechxai
 
+.. toctree::
+    :caption: Tasks
+    :maxdepth: 1
+
+    tasks
+    
 .. toctree::
     :caption: Notions
     :maxdepth: 2

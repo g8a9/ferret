@@ -10,7 +10,7 @@
 ferret is Python library that streamlines the use and benchmarking of interpretability techniques on Transformers models.
 
 - Documentation: https://ferret.readthedocs.io
-- Paper: https://arxiv.org/abs/2208.01575
+- Paper: https://aclanthology.org/2023.eacl-demo.29/
 - Demo: https://huggingface.co/spaces/g8a9/ferret
 
 **ferret** is meant to integrate seamlessly with 🤗 **transformers** models, among which it currently supports text models only.
@@ -18,11 +18,17 @@ We provide:
 - 🔍 Four established interpretability techniques based on **Token-level Feature Attribution**. Use them to find the most relevant words to your model output quickly.
 - ⚖️ Six **Faithfulness and Plausibility evaluation protocols**. Benchmark any token-level explanation against these tests to guide your choice toward the most reliable explainer.  
 
+ACL Anthology Bibkey:
+```bash
+attanasio-etal-2023-ferret
+```
+
 ### 📝 Examples
+
+All around tutorial (to test all explainers, evaluation metrics, and interface with XAI datasets): [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/benchmark.ipynb)
 
 Text Classification
 
-- Sentiment Classification on Twitter Data: [Colab](https://colab.research.google.com/github/g8a9/ferret/blob/main/examples/benchmark.ipynb)
 - Intent Detection with Multilingual XLM RoBERTa: [Colab](https://colab.research.google.com/drive/17AXeA9-u7lOLlE_DWtUixMg7Mi0NFPIp?usp=sharing)
 
 
@@ -30,11 +36,21 @@ Text Classification
 
 ### Installation
 
+For the default installation, which does **not** include the dependencies for the speech XAI functionalities, 
+
 ```bash
 pip install -U ferret-xai
 ```
 
 Our main dependencies are 🤗 `tranformers` and `datasets`.
+
+If the speech XAI functionalities are needed, then
+
+```
+pip install -U ferret-xai[speech]
+```
+
+At the moment, the speech XAI-related dependencies are the only extra ones, so installing with `ferret-xai[speech]` or `ferret-xai[all]` is equivalent.
 
 **Important** Some of our dependencies might use the package name for `scikit-learn` and that breaks ferret installation. \
 If your pip install command fails, try:
@@ -154,6 +170,7 @@ details.
 - ⚙️ New evaluation measure: Area Under the Threshold-Performance Curve (AUC-TP) ([Atanasova et al.](https://aclanthology.org/2020.emnlp-main.263/))
 - ⚙️ New explainer: Sampling and Occlusion (SOC) ([Jin et al., 2020](https://arxiv.org/abs/1911.06194))
 - ⚙️ New explainer: Discretized Integrated Gradient (DIG) ([Sanyal and Ren, 2021](https://aclanthology.org/2021.emnlp-main.805/))
+- ⚙️ New explainer: Value Zeroing ([Mohebbi et al, 2023](https://aclanthology.org/2023.eacl-main.245/))
 - ⚙️ Support additional form of aggregation over embeddings' hidden dimension.
 
 

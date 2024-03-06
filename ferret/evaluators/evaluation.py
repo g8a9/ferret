@@ -1,17 +1,18 @@
 from dataclasses import dataclass
-from typing import List
-
-import numpy as np
+from enum import Enum
+from typing import List, Tuple
 
 from ferret.explainers.explanation import Explanation
 
+from . import BaseEvaluator
+
 
 @dataclass
-class Evaluation:
-    """Generic class to represent an Evaluation"""
+class EvaluationMetricOutput:
+    """Output to store any metric result."""
 
-    name: str
-    score: float
+    metric: BaseEvaluator
+    value: float
 
 
 @dataclass
@@ -19,4 +20,4 @@ class ExplanationEvaluation:
     """Generic class to represent an Evaluation"""
 
     explanation: Explanation
-    evaluation_scores: List[Evaluation]
+    evaluation_outputs: List[EvaluationMetricOutput]

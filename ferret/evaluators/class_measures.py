@@ -4,7 +4,8 @@ import numpy as np
 
 from ferret.explainers.explanation import Explanation, ExplanationWithRationale
 
-from .evaluation import Evaluation
+from ..modeling import create_helper
+from .evaluation import EvaluationMetricOutput
 from .faithfulness_measures import AOPC_Comprehensiveness_Evaluation
 
 
@@ -14,18 +15,22 @@ class AOPC_Comprehensiveness_Evaluation_by_class:
     # Higher is better
     BEST_SORTING_ASCENDING = False
     TYPE_METRIC = "class_faithfulness"
-    INIT_VALUE = 0
 
     def __init__(
         self,
-        model=None,
-        tokenizer=None,
+        model,
+        tokenizer,
+        task_name,
         aopc_compr_eval: AOPC_Comprehensiveness_Evaluation = None,
     ):
         if aopc_compr_eval is None:
             if model is None or tokenizer is None:
-                raise ValueError("Specify the tokenizer and the model")
-            self.aopc_compr_eval = AOPC_Comprehensiveness_Evaluation(model, tokenizer)
+                raise ValueError("Please specify a model and a tokenizer.")
+
+            self.helper = create_helper(model, tokenizer, task_name)
+            self.aopc_compr_eval = AOPC_Comprehensiveness_Evaluation(
+                model, tokenizer, task_name
+            )
         else:
             self.aopc_compr_eval = aopc_compr_eval
 
@@ -49,7 +54,7 @@ class AOPC_Comprehensiveness_Evaluation_by_class:
                 ).score
             )
         aopc_class_score = np.mean(aopc_values)
-        evaluation_output = Evaluation(self.SHORT_NAME, aopc_class_score)
+        evaluation_output = EvaluationMetricOutput(self.SHORT_NAME, aopc_class_score)
         return evaluation_output
 
     def aggregate_score(self, score, total, **aggregation_args):

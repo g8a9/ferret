@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
     "sphinx_toggleprompt",
+    "sphinx_favicon",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -123,6 +124,33 @@ html_theme_options = {
     },
     "external_links": [
         {"name": "Demo", "url": "https://huggingface.co/spaces/g8a9/ferret"},
+    ],
+    "favicons": [
+        {
+            "rel": "icon",
+            "sizes": "48x48",
+            "href": "favicon.ico",
+        },
+        {
+            "rel": "icon",
+            "sizes": "16x16",
+            "href": "favicon-16x16.png",
+        },
+        {
+            "rel": "icon",
+            "sizes": "32x32",
+            "href": "favicon-32x32.png",
+        },
+        {
+            "rel": "apple-touch-icon",
+            "sizes": "180x180",
+            "href": "apple-touch-icon.png",
+        },
+        {
+            "rel": "android-chrome-192x192",
+            "sizes": "192x192",
+            "href": "android-chrome-192x192.png",
+        },
     ]
     # "logo": {
     #     "image_light": "logo.png",

@@ -10,7 +10,7 @@ TRAIN_SET = "train"
 VALIDATION_SET = "validation"
 TEST_SET = "test"
 
-NONE_RATIONALE = []
+NONE_RATIONALE = list()
 
 
 def check_termostat_config(name):
@@ -56,7 +56,6 @@ class ThermostatDataset(BaseDataset):
     avg_rationale_size = None
 
     def __init__(self, name: str, name_explainers: List = None):
-
         """Load of thermostat dataset(s)
 
         Args:
@@ -124,7 +123,6 @@ class ThermostatDataset(BaseDataset):
         return self.get_instance(idx)
 
     def get_instance(self, idx, normalize_scores: bool = True):
-
         """Get the instance at index idx.
         Args:
             idx (int): the index of the sample
@@ -248,10 +246,16 @@ class ThermostatDataset(BaseDataset):
 
             # Thermostat explanations are in form (token, explanation scores, id).
             # We take only the explanation scores (1)
-            # We keep the importance of CLS and SEP
             scores = [e[1] for e in data[idx].explanation]
 
-            explanation = Explanation(text, tokens, scores, explainer_name, target)
+            explanation = Explanation(
+                text=text,
+                tokens=tokens,
+                scores=scores,
+                explainer=explainer_name,
+                target_pos_idx=target,
+                helper_type="text-classification",  # thermostat supports text classification only
+            )
             explanations.append(explanation)
 
         if normalize_scores:
