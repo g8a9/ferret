@@ -134,7 +134,7 @@ class FerretAudio:
         self.native_sr = native_sr
         self.audio_path_or_array = audio_path_or_array
         self.model_helper = model_helper
-        self._transcribe = None
+        self._transcription = None
 
         if isinstance(audio_path_or_array, str):
             self.native_sr = librosa.get_samplerate(audio_path_or_array)
@@ -164,10 +164,10 @@ class FerretAudio:
             return self.array
 
     @property
-    def transcribe(self):
-        if self._transcribe is None:
+    def transcription(self):
+        if self._transcription is None:
             if self.model_helper and hasattr(self.model_helper, 'device') and hasattr(self.model_helper, 'language'):
-                _ , self._transcribe = transcribe_audio(
+                _ , self._transcription = transcribe_audio(
                     audio=self.normalized_array,        # is normalization needed when transcribing? i am assumimg so
                     device=self.model_helper.device.type,
                     batch_size=2,
@@ -176,7 +176,7 @@ class FerretAudio:
                 )
             else:
                 raise AttributeError("model_helper is not correctly configured")
-        return self._transcribe
+        return self._transcription
     
     def to_pydub(self) -> pydub.AudioSegment:
         """

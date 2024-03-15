@@ -37,7 +37,7 @@ class LOOSpeechExplainer:
         # TODO GA: transcribing audio might be an operation need by other explainers. I suggest we move it into FerretAudio or somewhere else such that can be done once and then shared (e.g., a method in the SpeechBenchmark class)
         # transcription moved to the FerretAudio Class 
         if words_trascript is None:
-            words_trascript = audio.transcribe
+            words_trascript = audio.transcription
 
         ## Load audio as pydub.AudioSegment
         pydub_segment = audio.to_pydub()

@@ -6,7 +6,7 @@ import whisperx
 from pydub import AudioSegment
 from IPython.display import display
 from ..explanation_speech import ExplanationSpeech
-from ....speechxai_utils import pydub_to_np, print_log
+from ....speechxai_utils import pydub_to_np, print_log, FerretAudio
 
 
 def remove_audio_segment(audio, start_s, end_s, removal_type: str = "silence"):
@@ -45,8 +45,6 @@ def remove_audio_segment(audio, start_s, end_s, removal_type: str = "silence"):
 
     audio_removed = before_word_audio + replace_word_audio + after_word_audio
     return audio_removed
-
-
 class LOOSpeechEqualWidthExplainer:
     NAME = "loo_speech_equal_width"
 
@@ -55,7 +53,7 @@ class LOOSpeechEqualWidthExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         target_class=None,
         removal_type: str = "silence",
         num_s_split: float = 0.25,
@@ -65,19 +63,17 @@ class LOOSpeechEqualWidthExplainer:
         Computes the importance of each equal width audio segment in the audio.
         """
 
-        ## Load audio as pydub.AudioSegment
-        audio = AudioSegment.from_wav(audio_path)
-        audio_np = pydub_to_np(audio)[0]
+        audio_array = audio.array
 
         ## Remove word
         audio_remove_segments = []
 
-        duration_s = len(audio) / 1000
+        duration_s = len(audio_array) / audio.sample_rate # finds the duration from the array 
 
         for i in np.arange(0, duration_s, num_s_split):
             start_s = i
             end_s = min(i + num_s_split, duration_s)
-            audio_removed = remove_audio_segment(audio, start_s, end_s, removal_type)
+            audio_removed = remove_audio_segment(audio.to_pydub(), start_s, end_s, removal_type)
 
             audio_remove_segments.append(pydub_to_np(audio_removed)[0])
 
@@ -86,7 +82,7 @@ class LOOSpeechEqualWidthExplainer:
                 display(audio_removed)
 
         # Get original logits
-        logits_original = self.model_helper.predict([audio_np])
+        logits_original = self.model_helper.predict([audio_array])
 
         # Get logits for the modified audio by leaving out the equal width segments
         logits_modified = self.model_helper.predict(audio_remove_segments)
@@ -137,7 +133,7 @@ class LOOSpeechEqualWidthExplainer:
             scores=scores,
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else [targets],
-            audio_path=audio_path,
+            audio=audio,
         )
 
         return explanation

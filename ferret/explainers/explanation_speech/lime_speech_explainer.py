@@ -25,7 +25,7 @@ class LIMESpeechExplainer:
         """
         Compute the word-level explanation for the given audio.
         Args:
-        audio_path: path to the audio file
+        audio: An instance of the FerretAudio class containing the input audio data.
         target_class: target class - int - If None, use the predicted class
         removal_type:
         """
@@ -35,7 +35,6 @@ class LIMESpeechExplainer:
                 "Removal method not supported, choose between 'silence' and 'noise'"
             )
 
-        # Load audio and convert to np.array
         audio_array = audio.array
         # Predict logits/probabilities
         logits_original = self.model_helper.predict([audio_array])
@@ -59,7 +58,7 @@ class LIMESpeechExplainer:
 
         if words_trascript is None:
             # Transcribe audio
-            words_trascript = audio.transcribe
+            words_trascript = audio.transcription
         audio_np = audio_array.reshape(1, -1)
 
         # Get the start and end indexes of the words. These will be used to split the audio and derive LIME interpretable features
@@ -139,7 +138,7 @@ class LIMESpeechExplainer:
             scores=scores,
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio,
+            audio=audio,
         )
 
         return explanation

@@ -3,7 +3,7 @@ from pydub import AudioSegment
 import numpy as np
 from ..lime_timeseries import LimeTimeSeriesExplainer
 from ..explanation_speech import ExplanationSpeech
-from ....speechxai_utils import pydub_to_np
+from ....speechxai_utils import pydub_to_np, FerretAudio
 
 EMPTY_SPAN = "---"
 
@@ -16,7 +16,7 @@ class LIMEEqualWidthSpeechExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         target_class=None,
         removal_type: str = "silence",
         num_samples: int = 1000,
@@ -24,7 +24,7 @@ class LIMEEqualWidthSpeechExplainer:
     ) -> ExplanationSpeech:
         """
         Compute the word-level explanation for the given audio.
-        audio_path: path to the audio file
+        audio: An instance of the FerretAudio class containing the input audio data.
         target_class: target class - int - If None, use the predicted class
         removal_type:
         """
@@ -34,12 +34,10 @@ class LIMEEqualWidthSpeechExplainer:
                 "Removal method not supported, choose between 'silence' and 'noise'"
             )
 
-        # Load audio and convert to np.array
-        audio_as = AudioSegment.from_wav(audio_path)
-        audio = pydub_to_np(audio_as)[0]
+        audio_array = audio.array
 
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio])
+        logits_original = self.model_helper.predict([audio_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -58,13 +56,13 @@ class LIMEEqualWidthSpeechExplainer:
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
 
-        audio_np = audio.reshape(1, -1)
+        audio_np = audio_array.reshape(1, -1)
 
         # Get the start and end indexes of the segments. These will be used to split the audio and derive LIME interpretable features
         sampling_rate = self.model_helper.feature_extractor.sampling_rate
         splits = []
 
-        duration_s = len(audio_as) / 1000
+        duration_s = len(audio_array) / audio.sample_rate # finds the duration from the array 
 
         a, b = 0, 0
         for e, i in enumerate(np.arange(0, duration_s, num_s_split)):
@@ -135,7 +133,7 @@ class LIMEEqualWidthSpeechExplainer:
             scores=scores,
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio_path,
+            audio=audio,
         )
 
         return explanation

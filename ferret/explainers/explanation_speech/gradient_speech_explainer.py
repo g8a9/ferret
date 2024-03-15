@@ -65,7 +65,7 @@ class GradientSpeechExplainer:
         """
         Compute the word-level explanation for the given audio.
         Args:
-        audio_path: path to the audio file
+        audio: An instance of the FerretAudio class containing the input audio data.
         target_class: target class - int - If None, use the predicted class
         no_before_span: if True, it also consider the span before the word. This is because we observe gradient give importance also for the frame just before the word
         aggregation: aggregation method for the frames of the word. Can be "mean" or "max"
@@ -101,7 +101,7 @@ class GradientSpeechExplainer:
 
         if words_trascript is None:
             # Transcribe audio
-            words_trascript = audio.transcribe
+            words_trascript = audio.transcription
 
         # Compute gradient importance for each target label
         # This also handles the multilabel scenario as for FSC
@@ -109,7 +109,7 @@ class GradientSpeechExplainer:
         for target_label, target_class in enumerate(targets):
             # Get gradient importance for each frame
             attr = self._get_gradient_importance_frame_level(
-                audio, target_class, target_label
+                audio_array, target_class, target_label
             )
 
             old_start = 0
@@ -177,7 +177,7 @@ class GradientSpeechExplainer:
             scores=scores,
             explainer=self.NAME + "-" + aggregation,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio,
+            audio=audio,
         )
 
         return explanation
