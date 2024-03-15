@@ -5,7 +5,7 @@ from typing import Dict, List, Union, Tuple
 from pydub import AudioSegment
 from IPython.display import display
 from .explanation_speech import ExplanationSpeech
-from .utils_removal import transcribe_audio, remove_word
+from .utils_removal import remove_word, remove_word_np
 from ...speechxai_utils import pydub_to_np, FerretAudio
 from logging import getLogger
 
@@ -35,14 +35,9 @@ class LOOSpeechExplainer:
 
         ## Transcribe audio
         # TODO GA: transcribing audio might be an operation need by other explainers. I suggest we move it into FerretAudio or somewhere else such that can be done once and then shared (e.g., a method in the SpeechBenchmark class)
+        # transcription moved to the FerretAudio Class 
         if words_trascript is None:
-            text, words_trascript = transcribe_audio(
-                audio=audio,
-                device=self.model_helper.device.type,
-                batch_size=2,
-                compute_type="float32",
-                language=self.model_helper.language,
-            )
+            words_trascript = audio.transcribe
 
         ## Load audio as pydub.AudioSegment
         pydub_segment = audio.to_pydub()
@@ -52,6 +47,10 @@ class LOOSpeechExplainer:
 
         for word in words_trascript:
             audio_removed = remove_word(pydub_segment, word, removal_type)
+
+            # to use remove_word_np after implementing the numpy array version of pink noise and white noise 
+            # audio_removed = remove_word_np(audio.array, audio.sample_rate, word, removal_type )
+            # audio_no_words.append(audio_removed)
 
             audio_no_words.append(pydub_to_np(audio_removed)[0])
 

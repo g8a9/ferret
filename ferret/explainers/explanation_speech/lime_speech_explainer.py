@@ -4,7 +4,7 @@ import numpy as np
 from .lime_timeseries import LimeTimeSeriesExplainer
 from .utils_removal import transcribe_audio
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np
+from ...speechxai_utils import pydub_to_np, FerretAudio
 
 EMPTY_SPAN = "---"
 
@@ -17,7 +17,7 @@ class LIMESpeechExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         target_class=None,
         words_trascript: List = None,
         removal_type: str = "silence",
@@ -37,10 +37,9 @@ class LIMESpeechExplainer:
             )
 
         # Load audio and convert to np.array
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
-
+        audio_array = audio.array
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio])
+        logits_original = self.model_helper.predict([audio_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -61,13 +60,11 @@ class LIMESpeechExplainer:
 
         if words_trascript is None:
             # Transcribe audio
-            _, words_trascript = transcribe_audio(
-                audio_path=audio_path, language=self.model_helper.language
-            )
-        audio_np = audio.reshape(1, -1)
+            words_trascript = audio.transcribe
+        audio_np = audio_array.reshape(1, -1)
 
         # Get the start and end indexes of the words. These will be used to split the audio and derive LIME interpretable features
-        tot_len = audio.shape[0]
+        tot_len = audio_array.shape[0]
         sampling_rate = self.model_helper.feature_extractor.sampling_rate
         splits = []
         old_start = 0
@@ -143,7 +140,7 @@ class LIMESpeechExplainer:
             scores=scores,
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio_path,
+            audio_path=audio,
         )
 
         return explanation

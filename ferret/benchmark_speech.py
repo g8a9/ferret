@@ -123,7 +123,7 @@ class SpeechBenchmark:
         # TODO UNIFY THE INPUT FORMAT
 
         # First things first. We transform any type of input in a suitable numpy array and we proceed with that on.
-        ferret_audio = FerretAudio(audio_path_or_array, native_sr=native_sr)
+        ferret_audio = FerretAudio(audio_path_or_array, native_sr=native_sr, model_helper=self.explainers.model_helper)
 
         ## Get the importance of each class (action, object, location) according to the perturb_paraling type
         if methodology == "perturb_paraling":

@@ -4,10 +4,8 @@ from captum.attr import Saliency, InputXGradient
 import numpy as np
 import torch
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np
+from ...speechxai_utils import pydub_to_np, FerretAudio
 # TODO - include in utils
-from .loo_speech_explainer import transcribe_audio
-
 
 class GradientSpeechExplainer:
     NAME = "Gradient"
@@ -58,7 +56,7 @@ class GradientSpeechExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         target_class=None,
         words_trascript: List = None,
         no_before_span: bool = True,
@@ -79,10 +77,10 @@ class GradientSpeechExplainer:
             )
 
         # Load audio and convert to np.array
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
+        audio_array = audio.array
 
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio])
+        logits_original = self.model_helper.predict([audio_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -103,9 +101,7 @@ class GradientSpeechExplainer:
 
         if words_trascript is None:
             # Transcribe audio
-            _, words_trascript = transcribe_audio(
-                audio_path=audio_path, language=self.model_helper.language
-            )
+            words_trascript = audio.transcribe
 
         # Compute gradient importance for each target label
         # This also handles the multilabel scenario as for FSC
@@ -181,7 +177,7 @@ class GradientSpeechExplainer:
             scores=scores,
             explainer=self.NAME + "-" + aggregation,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio_path,
+            audio_path=audio,
         )
 
         return explanation

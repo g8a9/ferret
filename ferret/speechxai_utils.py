@@ -9,6 +9,7 @@ from datasets import Dataset
 from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
 import librosa
 from typing import Union
+from explainers.explanation_speech.utils_removal import transcribe_audio
 
 
 class FerretAudio:
@@ -18,11 +19,16 @@ class FerretAudio:
     """
 
     def __init__(
-        self, audio_path_or_array: Union[str, np.ndarray], native_sr: int = None
+        self,
+        audio_path_or_array: Union[str, np.ndarray],
+        native_sr: int = None,
+        model_helper=None,
     ):
         self.target_sr = 16000
         self.native_sr = native_sr
         self.audio_path_or_array = audio_path_or_array
+        self.model_helper = model_helper
+        self._transcribe = None
 
         if isinstance(audio_path_or_array, str):
             self.native_sr = librosa.get_samplerate(audio_path_or_array)
@@ -40,9 +46,32 @@ class FerretAudio:
             )
 
     @property
+    def is_normalized(self) -> bool:
+        """Check if the array is already normalized."""
+        return np.max(np.abs(self.array)) <= 1.0
+    
+    @property
     def normalized_array(self) -> np.ndarray:
-        return self.array / 32768.0
+        if not self.is_normalized:
+            return self.array / 32768.0
+        else:
+            return self.array
 
+    @property
+    def transcribe(self):
+        if self._transcribe is None:
+            if self.model_helper and hasattr(self.model_helper, 'device') and hasattr(self.model_helper, 'language'):
+                _ , self._transcribe = transcribe_audio(
+                    audio=self.normalized_array,        # is normalization needed when transcribing? i am assumimg so
+                    device=self.model_helper.device.type,
+                    batch_size=2,
+                    compute_type="float32",
+                    language=self.model_helper.language,
+                )
+            else:
+                raise AttributeError("model_helper is not correctly configured")
+        return self._transcribe
+    
     def to_pydub(self) -> pydub.AudioSegment:
         """
         Converts audio to pydub.AudioSegment.

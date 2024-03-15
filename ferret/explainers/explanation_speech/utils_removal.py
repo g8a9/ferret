@@ -1,6 +1,7 @@
 from pydub import AudioSegment
 import whisperx
 import os
+import numpy as np
 from typing import Dict, List, Union, Tuple
 from ...speechxai_utils import FerretAudio
 
@@ -52,7 +53,7 @@ def remove_specified_words(audio, words, removal_type: str = "nothing"):
 
 
 def transcribe_audio(
-    audio: FerretAudio,
+    audio: np.ndarray,
     device: str = "cuda",
     batch_size: int = 2,
     compute_type: str = "float32",
@@ -74,9 +75,10 @@ def transcribe_audio(
 
     ## Transcribe audio
     # TODO: we are assuming that the array does not come already normalized
-    audio_array = audio.normalized_array
+    # audio_array = audio.normalized_array
+    # The normalization occurs in the FerretAudio Class
 
-    result = model_whisperx.transcribe(audio_array, batch_size=batch_size)
+    result = model_whisperx.transcribe(audio, batch_size=batch_size)
     model_a, metadata = whisperx.load_align_model(
         language_code=result["language"], device=device
     )
@@ -86,7 +88,7 @@ def transcribe_audio(
         result["segments"],
         model_a,
         metadata,
-        audio_array,
+        audio,
         device,
         return_char_alignments=False,
     )
@@ -190,4 +192,45 @@ def remove_word(audio, word, removal_type: str = "nothing"):
         replace_word_audio = AudioSegment.from_mp3(sound_path)[:word_duration]
 
     audio_removed = before_word_audio + replace_word_audio + after_word_audio
+    return audio_removed
+
+
+def remove_word_np(audio_array, sr, word, removal_type: str = "nothing"):
+    """
+    Remove a word from audio as an array, by replacing it with:
+    - nothing
+    - silence
+    - white noise
+    - pink noise
+
+    Args:
+        audio_array (np.ndarray): audio_array
+        sr : sample rate of audio
+        word: word to remove with its start and end times
+        removal_type (str, optional): type of removal. Defaults to "nothing".
+    """
+
+    a, b = 100, 40
+
+    start = int((word["start"] * 1000 - a) * sr / 1000)
+    end = int((word["end"] * 1000 + b) * sr / 1000)
+    before_word_audio = audio_array[:start]
+    after_word_audio = audio_array[end:]
+    word_duration = (end - start) + a + b
+
+    if removal_type == "nothing":
+        replace_word_audio = np.array([], dtype=audio_array.dtype)
+
+    elif removal_type == "silence":
+        replace_word_audio = np.zeros(word_duration, dtype=audio_array.dtype)
+
+    elif removal_type == "pink noise":
+        pass # to change the pink_noise.mp3 to a numpy array 
+
+    elif removal_type == "white noise":
+        pass # to change the white_noise.mp3 tp a numpy array
+
+    audio_removed = np.concatenate(
+        [before_word_audio, replace_word_audio, after_word_audio]
+    )
     return audio_removed
