@@ -78,8 +78,9 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
             # Single probability
             ground_truth_probs_target = [ground_truth_probs[0][target[0]]]
 
-        # Splite the audio into word-level audio segments
-        from ..explainers.explanation_speech.loo_speech_explainer import transcribe_audio
+        # TODO: modify to accept a `FerretAudio` object as input.
+        # Split the audio into word-level audio segments
+        from ..speechxai_utils import transcribe_audio
 
         if words_trascript is None:
             text, words_trascript = transcribe_audio(
@@ -255,8 +256,10 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
             # Single probability
             ground_truth_probs_target = [ground_truth_probs[0][target[0]]]
 
-        # Splite the audio into word-level audio segments
-        from ..explainers.explanation_speech.loo_speech_explainer import transcribe_audio
+        # TODO: as above, probably a `FerretAudio` object should we passed as
+        # input.
+        # Split the audio into word-level audio segments
+        from ..speechxai_utils import transcribe_audio
 
         if words_trascript is None:
             text, words_trascript = transcribe_audio(

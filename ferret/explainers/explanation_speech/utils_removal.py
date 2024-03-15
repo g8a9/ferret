@@ -1,9 +1,6 @@
 from pydub import AudioSegment
-import whisperx
 import os
 import numpy as np
-from typing import Dict, List, Union, Tuple
-from ...speechxai_utils import FerretAudio
 
 
 def remove_specified_words(audio, words, removal_type: str = "nothing"):
@@ -50,109 +47,6 @@ def remove_specified_words(audio, words, removal_type: str = "nothing"):
 
         audio_removed = before_word_audio + replace_word_audio + after_word_audio
     return audio_removed
-
-
-def transcribe_audio(
-    audio: np.ndarray,
-    device: str = "cuda",
-    batch_size: int = 2,
-    compute_type: str = "float32",
-    language: str = "en",
-    model_name_whisper: str = "large-v2",
-) -> Tuple[str, List[Dict[str, Union[str, float]]]]:
-    """
-    Transcribe audio using whisperx,
-    and return the text (transcription) and the words with their start and end times.
-    """
-
-    ## Load whisperx model
-    model_whisperx = whisperx.load_model(
-        model_name_whisper,
-        device,
-        compute_type=compute_type,
-        language=language,
-    )
-
-    ## Transcribe audio
-    # TODO: we are assuming that the array does not come already normalized
-    # audio_array = audio.normalized_array
-    # The normalization occurs in the FerretAudio Class
-
-    result = model_whisperx.transcribe(audio, batch_size=batch_size)
-    model_a, metadata = whisperx.load_align_model(
-        language_code=result["language"], device=device
-    )
-
-    ## Align timestamps
-    result = whisperx.align(
-        result["segments"],
-        model_a,
-        metadata,
-        audio,
-        device,
-        return_char_alignments=False,
-    )
-
-    if result is None or "segments" not in result or len(result["segments"]) == 0:
-        return "", []
-
-    if len(result["segments"]) == 1:
-        text = result["segments"][0]["text"]
-        words = result["segments"][0]["words"]
-    else:
-        text = " ".join(
-            result["segments"][i]["text"] for i in range(len(result["segments"]))
-        )
-        words = [word for segment in result["segments"] for word in segment["words"]]
-
-    # Remove words that are not properly transcribed
-    words = [word for word in words if "start" in word]
-    return text, words
-
-
-def transcribe_audio_given_model(
-    model_whisperx,
-    audio_path: str,
-    batch_size: int = 2,
-    device: str = "cuda",
-) -> Tuple[str, List[Dict[str, Union[str, float]]]]:
-    """
-    Transcribe audio using whisperx,
-    and return the text (transcription) and the words with their start and end times.
-    """
-
-    ## Transcribe audio
-    audio = whisperx.load_audio(audio_path)
-    result = model_whisperx.transcribe(audio, batch_size=batch_size)
-    model_a, metadata = whisperx.load_align_model(
-        language_code=result["language"], device=device
-    )
-
-    ## Align timestamps
-    result = whisperx.align(
-        result["segments"],
-        model_a,
-        metadata,
-        audio,
-        device,
-        return_char_alignments=False,
-    )
-
-    if result is None or "segments" not in result or len(result["segments"]) == 0:
-        return "", []
-
-    if len(result["segments"]) == 1:
-        text = result["segments"][0]["text"]
-        words = result["segments"][0]["words"]
-    else:
-        text = " ".join(
-            result["segments"][i]["text"] for i in range(len(result["segments"]))
-        )
-        words = [word for segment in result["segments"] for word in segment["words"]]
-
-    # Remove words that are not properly transcribed
-    words = [word for word in words if "start" in word]
-    return text, words
 
 
 def remove_word(audio, word, removal_type: str = "nothing"):

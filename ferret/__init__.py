@@ -4,9 +4,16 @@ __author__ = """Giuseppe Attanasio"""
 __email__ = "giuseppeattanasio6@gmail.com"
 __version__ = "0.5.0"
 
-from logging import getLogger
+import logging
 
-logger = getLogger(__name__)
+# create logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 from .benchmark import Benchmark
 
@@ -37,6 +44,18 @@ from .explainers.shap import SHAPExplainer
 from .modeling.text_helpers import TokenClassificationHelper
 
 
+# Check for manual installation of `WhisperX`.
+try:
+    import whisperx
+except ImportError as e:
+    logging.error(
+        'Library whisperx not found. Please install it manually from GitHub: '
+        '`pip install git+https://github.com/m-bain/whisperx.git`'
+    )
+
+    raise e
+
+
 # Conditional imports for speech-related tasks
 try:
     # Explainers
@@ -57,7 +76,12 @@ try:
         AOPC_Comprehensiveness_Evaluation_Speech,
         AOPC_Sufficiency_Evaluation_Speech,
     )
-except ImportError:
-    logger.info(
-        "Speech-related modules could not be imported. It is very likely that ferret was installed in the standard, text-only mode. Run `pip install ferret-xai[speech]` or `pip install ferret-xai[all] to include them."
+except ImportError as e:
+    logger.error(
+        'Speech-related modules could not be imported. It is very likely that'
+        ' ferret was installed in the standard, text-only mode. Run '
+        '`pip install ferret-xai[speech]` or `pip install ferret-xai[all]` to'
+        ' include them'
     )
+
+    raise e

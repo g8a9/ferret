@@ -14,7 +14,7 @@ from audiomentations import (
     PolarityInversion,
 )
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np, print_log
+from ...speechxai_utils import pydub_to_np
 
 
 # If True, We use the audiostretchy library to perform time stretching
@@ -32,13 +32,13 @@ def _tmp_log1(
     n_labels,
 ):
     if n_labels > 1:
-        print_log("Target label: ", verbose_target)
-        print_log("gt", original_gt[verbose_target])
-        print_log("m", modified_trg[verbose_target])
+        print("Target label: ", verbose_target)
+        print("gt", original_gt[verbose_target])
+        print("m", modified_trg[verbose_target])
 
     else:
-        print_log("gt", original_gt)
-        print_log("m", modified_trg)
+        print("gt", original_gt)
+        print("m", modified_trg)
 
 
 def _tmp_log2(

@@ -2,9 +2,8 @@ from typing import List
 from pydub import AudioSegment
 import numpy as np
 from .lime_timeseries import LimeTimeSeriesExplainer
-from .utils_removal import transcribe_audio
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np, FerretAudio
+from ...speechxai_utils import FerretAudio
 
 EMPTY_SPAN = "---"
 

@@ -1,10 +1,8 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Union, Tuple
-from pydub import AudioSegment
+from typing import List, Union, Tuple
 import torch
 import seaborn as sns
-from IPython.display import display
 from .explainers.explanation_speech.loo_speech_explainer import LOOSpeechExplainer
 from .explainers.explanation_speech.gradient_speech_explainer import (
     GradientSpeechExplainer,
@@ -13,8 +11,7 @@ from .explainers.explanation_speech.lime_speech_explainer import LIMESpeechExpla
 from .explainers.explanation_speech.paraling_speech_explainer import (
     ParalinguisticSpeechExplainer,
 )
-from .explainers.explanation_speech.explanation_speech import ExplanationSpeech
-from .speechxai_utils import pydub_to_np, print_log, FerretAudio
+from .speechxai_utils import FerretAudio
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 
@@ -123,7 +120,7 @@ class SpeechBenchmark:
         # TODO UNIFY THE INPUT FORMAT
 
         # First things first. We transform any type of input in a suitable numpy array and we proceed with that on.
-        ferret_audio = FerretAudio(audio_path_or_array, native_sr=native_sr, model_helper=self.explainers.model_helper)
+        ferret_audio = FerretAudio(audio_path_or_array, native_sr=native_sr, model_helper=self.model_helper)
 
         ## Get the importance of each class (action, object, location) according to the perturb_paraling type
         if methodology == "perturb_paraling":

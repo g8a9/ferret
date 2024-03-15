@@ -5,8 +5,6 @@ import numpy as np
 import torch
 from ..explanation_speech import ExplanationSpeech
 from ....speechxai_utils import pydub_to_np
-# TODO - include in utils
-from ..loo_speech_explainer import transcribe_audio
 
 
 class GradientEqualWidthSpeechExplainer:
