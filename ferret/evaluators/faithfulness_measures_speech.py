@@ -57,13 +57,10 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
                 'The "target" argument is deprecated and will be removed in a future version. The explanation target are used as default.'
             )
 
-        audio_path = explanation.audio_path
-
         target = explanation.target
 
-        # Get the audio from audio_path
-        audio = AudioSegment.from_wav(audio_path)
-        audio_np = pydub_to_np(audio)[0]
+        # Get audio as array.
+        audio_np = explanation.audio.array
 
         # Get prediction probability of the input sencence for the target
         ground_truth_probs = self.model_helper.predict([audio_np])
@@ -83,13 +80,7 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
         from ..speechxai_utils import transcribe_audio
 
         if words_trascript is None:
-            text, words_trascript = transcribe_audio(
-                audio_path=audio_path,
-                device=self.model_helper.device.type,
-                batch_size=2,
-                compute_type="float32",
-                language=self.model_helper.language,
-            )
+            words_trascript = explanation.audio.transcription
 
         get_discrete_rationale_function = (
             _check_and_define_get_id_discrete_rationale_function(
@@ -152,7 +143,9 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
                 words_removed = [words_trascript[i] for i in id_top]
 
                 audio_removed = remove_specified_words(
-                    audio, words_removed, removal_type=removal_type
+                    explanation.audio.to_pydub(),
+                    words_removed,
+                    removal_type=removal_type
                 )
 
                 audio_removed_np = pydub_to_np(audio_removed)[0]
@@ -235,13 +228,10 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
                 'The "target" argument is deprecated and will be removed in a future version. The explanation target are used as default.'
             )
 
-        audio_path = explanation.audio_path
-
         target = explanation.target
 
-        # Get the audio from audio_path
-        audio = AudioSegment.from_wav(audio_path)
-        audio_np = pydub_to_np(audio)[0]
+        # Get audio as an array.
+        audio_np = explanation.audio.array
 
         # Get prediction probability of the input sencence for the target
         ground_truth_probs = self.model_helper.predict([audio_np])
@@ -262,13 +252,7 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
         from ..speechxai_utils import transcribe_audio
 
         if words_trascript is None:
-            text, words_trascript = transcribe_audio(
-                audio_path=audio_path,
-                device=self.model_helper.device.type,
-                batch_size=2,
-                compute_type="float32",
-                language=self.model_helper.language,
-            )
+            words_trascript = explanation.audio.transcription
 
         get_discrete_rationale_function = (
             _check_and_define_get_id_discrete_rationale_function(
@@ -335,7 +319,9 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
                 ]
 
                 audio_removed = remove_specified_words(
-                    audio, words_removed, removal_type=removal_type
+                    explanation.audio.to_pydub(),
+                    words_removed,
+                    removal_type=removal_type
                 )
 
                 audio_removed_np = pydub_to_np(audio_removed)[0]
