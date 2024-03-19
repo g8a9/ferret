@@ -138,6 +138,8 @@ class FerretAudio:
 
         if isinstance(audio_path_or_array, str):
             self.native_sr = librosa.get_samplerate(audio_path_or_array)
+
+            # Note: by default, librosa returns an array normalized in [-1,1].
             self.array, self.sample_rate = librosa.load(
                 audio_path_or_array, sr=self.target_sr, dtype=np.float32
             )
@@ -178,14 +180,50 @@ class FerretAudio:
                 raise AttributeError("model_helper is not correctly configured")
         return self._transcription
     
+    @staticmethod
+    def unnormalize_array(arr, dtype=np.int16):
+        """
+        Given a NumPy array normalized in `[-1, 1]`, returns an array rescaled
+        in `[-max, max]`, where `max` is the maximum (in absolute value)
+        (integer) number representable by the selected `dtype`. In practice,
+        we convert a normalized array of dtype `float32` into a normalized
+        one of dtype `int16`, as needed to create a PyDub `AudioSegment`
+        object.
+        """
+        max_val = np.maximum(
+            np.iinfo(dtype).max,
+            np.abs(np.iinfo(dtype).min)
+        )
+
+        return (arr * max_val).astype(dtype)
+
     def to_pydub(self) -> pydub.AudioSegment:
         """
-        Converts audio to pydub.AudioSegment.
+        Converts audio to `pydub.AudioSegment`.
+
+        Notes:
+            * In order to convert to PyDub `AudioSegment` type we need the
+              array to be
+                * of dtype int16,
+                * NOT normalized.
+              Therefore, if the array is normalized, we unnormalize it.
+            * In any case, PyDub only works with unnormalized arrays of dtype
+              int16, so that's what we need to pass as the input to
+              `AudioSegment`.
+            * Because we only manipulate mono audio, the array can either have
+              shape `(n_samples, 1)` or `(n_samples,)` (flat array). Either is
+              fine for PyDub (the extra dimension is taken care of
+              automatically for mono audio).
         """
+        if self.is_normalized:
+            unnormalized_array = self.unnormalize_array(self.array)
+        else:
+            unnormalized_array = self.array
+
         return pydub.AudioSegment(
-            self.array.tobytes(),
+            unnormalized_array.tobytes(),
             frame_rate=self.target_sr,
-            sample_width=self.array.dtype.itemsize,
+            sample_width=unnormalized_array.dtype.itemsize,
             channels=1,
         )
 
