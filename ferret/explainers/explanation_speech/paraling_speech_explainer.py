@@ -37,7 +37,7 @@ REFERENCE_STR = "-"
 
 ENDPOINTS = {
     "WHITE_NOISE": "https://github.com/g8a9/ferret/raw/feat/support-speech-from-array/ferret/explainers/explanation_speech/white_noise.mp3",
-    "PINK_NOISE": "https://github.com/g8a9/ferret/raw/feat/support-speech-from-array/ferret/explainers/explanation_speech/pink_noise.mp3"
+    "PINK_NOISE": "https://github.com/g8a9/ferret/raw/feat/support-speech-from-array/ferret/explainers/explanation_speech/pink_noise.mp3",
 }
 
 
@@ -461,16 +461,16 @@ class ParalinguisticSpeechExplainer:
 
         return explanation
 
-    def explain_variations(self, audio_path, perturbation_types, target_class=None):
+    def explain_variations(
+        self, audio: FerretAudio, perturbation_types: List[int], target_class=None
+    ):
         n_labels = self.model_helper.n_labels
 
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
-
-        original_gt = self.model_helper.get_predicted_probs(audio=audio)
+        audio_array = audio.array
+        original_gt = self.model_helper.get_predicted_probs(audio=audio_array)
 
         if target_class is None:
-            targets = self.model_helper.get_predicted_classes(audio=audio)
-
+            targets = self.model_helper.get_predicted_classes(audio=audio_array)
         else:
             targets = target_class
 
@@ -479,7 +479,7 @@ class ParalinguisticSpeechExplainer:
         perturbation_df_by_type = {}
         for perturbation_type in perturbation_types:
             perturbated_audios, perturbations = self.perturbe_waveform(
-                audio_path, perturbation_type, return_perturbations=True
+                audio, perturbation_type, return_perturbations=True
             )
 
             if "time stretching" in perturbation_type:
@@ -498,7 +498,6 @@ class ParalinguisticSpeechExplainer:
                     prob_variations.append(
                         [probs_modified[i][:, targets[i]][0] for i in range(n_labels)]
                     )
-
                 else:
                     prob_variations.append([probs_modified[:, targets][0]])
 

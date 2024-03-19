@@ -298,11 +298,21 @@ class SpeechBenchmark:
         )
 
     def explain_variations(
-        self, audio_path_or_array, perturbation_types, target_class=None
+        self,
+        audio_path_or_array,
+        current_sr: int,
+        perturbation_types: List[int],
+        target_class=None,
     ):
-        # TODO GA: we will probably need to update to the new FerretAudio class here as well
+        """
+        Explain the variations of the audio.
+        Returns the importance of each perturbation.
+        """
+        audio = FerretAudio(
+            audio_path_or_array=audio_path_or_array, current_sr=current_sr
+        )
         perturbation_df_by_type = self.explainers["perturb_paraling"].explain_variations(
-            audio_path_or_array, perturbation_types, target_class
+            audio, perturbation_types, target_class
         )
         return perturbation_df_by_type
 
