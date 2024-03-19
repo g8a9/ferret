@@ -42,7 +42,7 @@ For the default installation, which does **not** include the dependencies for th
 pip install -U ferret-xai
 ```
 
-Our main dependencies are 🤗 `tranformers` and `datasets`.
+Our main dependencies are 🤗 `transformers` and `datasets`.
 
 ### (Optional) Install XAI Speech functionalities
 
