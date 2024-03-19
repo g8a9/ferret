@@ -17,8 +17,8 @@ class LIMESpeechExplainer:
     def compute_explanation(
         self,
         audio: FerretAudio,
+        word_timestamps: List,
         target_class=None,
-        words_trascript: List = None,
         removal_type: str = "silence",
         num_samples: int = 1000,
     ) -> ExplanationSpeech:
@@ -56,9 +56,9 @@ class LIMESpeechExplainer:
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
 
-        if words_trascript is None:
-            # Transcribe audio
-            words_trascript = audio.transcription
+        # if word_timestamps is None:
+        # Transcribe audio
+        # word_timestamps = audio.transcription
         audio_np = audio_array.reshape(1, -1)
 
         # Get the start and end indexes of the words. These will be used to split the audio and derive LIME interpretable features
@@ -67,7 +67,7 @@ class LIMESpeechExplainer:
         splits = []
         old_start = 0
         a, b = 0, 0
-        for word in words_trascript:
+        for word in word_timestamps:
             start, end = int((word["start"] + a) * sampling_rate), int(
                 (word["end"] + b) * sampling_rate
             )
@@ -108,9 +108,7 @@ class LIMESpeechExplainer:
             map_scores = {k: v for k, v in exp.as_map()[target_class]}
             map_scores = {
                 k: v
-                for k, v in sorted(
-                    map_scores.items(), key=lambda x: x[0], reverse=False
-                )
+                for k, v in sorted(map_scores.items(), key=lambda x: x[0], reverse=False)
             }
 
             # Remove the 'empty' spans, the spans between words
@@ -139,6 +137,7 @@ class LIMESpeechExplainer:
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else targets,
             audio=audio,
+            word_timestamps=word_timestamps,
         )
 
         return explanation

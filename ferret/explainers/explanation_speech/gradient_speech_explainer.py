@@ -5,7 +5,9 @@ import numpy as np
 import torch
 from .explanation_speech import ExplanationSpeech
 from ...speechxai_utils import pydub_to_np, FerretAudio
+
 # TODO - include in utils
+
 
 class GradientSpeechExplainer:
     NAME = "Gradient"
@@ -57,8 +59,8 @@ class GradientSpeechExplainer:
     def compute_explanation(
         self,
         audio: FerretAudio,
+        word_timestamps: List,
         target_class=None,
-        words_trascript: List = None,
         no_before_span: bool = True,
         aggregation: str = "mean",
     ) -> ExplanationSpeech:
@@ -99,9 +101,9 @@ class GradientSpeechExplainer:
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
 
-        if words_trascript is None:
-            # Transcribe audio
-            words_trascript = audio.transcription
+        # if word_timestamps is None:
+        #     # Transcribe audio
+        word_timestamps = audio.transcription
 
         # Compute gradient importance for each target label
         # This also handles the multilabel scenario as for FSC
@@ -118,7 +120,7 @@ class GradientSpeechExplainer:
             importances = []
             a, b = 0, 0  # 50, 20
 
-            for word in words_trascript:
+            for word in word_timestamps:
                 if no_before_span:
                     # We directly consider the transcribed word
                     start_ms = (word["start"] * 1000 - a) / 1000
@@ -170,7 +172,7 @@ class GradientSpeechExplainer:
         else:
             scores = np.array([importances])
 
-        features = [word["word"] for word in words_trascript]
+        features = [word["word"] for word in word_timestamps]
 
         explanation = ExplanationSpeech(
             features=features,
@@ -178,6 +180,7 @@ class GradientSpeechExplainer:
             explainer=self.NAME + "-" + aggregation,
             target=targets if n_labels > 1 else targets,
             audio=audio,
+            word_timestamps=word_timestamps,
         )
 
         return explanation

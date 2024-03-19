@@ -21,8 +21,8 @@ class LOOSpeechExplainer:
     def remove_words(
         self,
         audio: FerretAudio,
+        word_timestamps: List,
         removal_type: str = "nothing",
-        words_trascript: List = None,
         display_audio: bool = False,
     ) -> Tuple[List[AudioSegment], List[Dict[str, Union[str, float]]]]:
         """
@@ -33,22 +33,16 @@ class LOOSpeechExplainer:
         - pink noise
         """
 
-        ## Transcribe audio
-        # TODO GA: transcribing audio might be an operation need by other explainers. I suggest we move it into FerretAudio or somewhere else such that can be done once and then shared (e.g., a method in the SpeechBenchmark class)
-        # transcription moved to the FerretAudio Class 
-        if words_trascript is None:
-            words_trascript = audio.transcription
-
         ## Load audio as pydub.AudioSegment
         pydub_segment = audio.to_pydub()
 
         ## Remove word
         audio_no_words = list()
 
-        for word in words_trascript:
+        for word in word_timestamps:
             audio_removed = remove_word(pydub_segment, word, removal_type)
 
-            # to use remove_word_np after implementing the numpy array version of pink noise and white noise 
+            # to use remove_word_np after implementing the numpy array version of pink noise and white noise
             # audio_removed = remove_word_np(audio.array, audio.sample_rate, word, removal_type )
             # audio_no_words.append(audio_removed)
 
@@ -58,14 +52,14 @@ class LOOSpeechExplainer:
                 print(word["word"])
                 display(audio_removed)
 
-        return audio_no_words, words_trascript
+        return audio_no_words, word_timestamps
 
     def compute_explanation(
         self,
         audio: FerretAudio,
         target_class=None,
         removal_type: str = None,
-        words_trascript: List = None,
+        word_timestamps: List = None,
     ) -> ExplanationSpeech:
         """
         Computes the importance of each word in the audio.
@@ -73,7 +67,7 @@ class LOOSpeechExplainer:
 
         ## Get modified audio by leaving a single word out and the words
         modified_audios, words = self.remove_words(
-            audio, removal_type, words_trascript=words_trascript
+            audio=audio, word_timestamps=word_timestamps, removal_type=removal_type
         )
 
         logits_modified = self.model_helper.predict(modified_audios)
@@ -128,6 +122,7 @@ class LOOSpeechExplainer:
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else [targets],
             audio=audio,  # TODO GA: I don't know if this is something we want to keep
+            word_timestamps=word_timestamps,
         )
 
         return explanation

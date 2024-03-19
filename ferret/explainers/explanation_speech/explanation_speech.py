@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
-from typing import Optional
+from typing import Optional, List, Dict
 from ...speechxai_utils import FerretAudio
 
 
@@ -11,6 +11,7 @@ class ExplanationSpeech:
     explainer: str
     target: list
     audio: FerretAudio
+    word_timestamps: Optional[List[Dict]] = None
 
 
 @dataclass

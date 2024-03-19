@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 import torch
 import seaborn as sns
 from .explainers.explanation_speech.loo_speech_explainer import LOOSpeechExplainer
@@ -11,7 +11,7 @@ from .explainers.explanation_speech.lime_speech_explainer import LIMESpeechExpla
 from .explainers.explanation_speech.paraling_speech_explainer import (
     ParalinguisticSpeechExplainer,
 )
-from .speechxai_utils import FerretAudio
+from .speechxai_utils import FerretAudio, transcribe_audio
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 
@@ -31,14 +31,14 @@ class SpeechBenchmark:
         self,
         model,
         feature_extractor,
-        device: str = "cuda:0",
+        device: str = "cpu",
         language: str = "en",
         explainers=None,
     ):
         self.model = model
         self.feature_extractor = feature_extractor
         self.model.eval()
-        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(device)
         self.language = language
 
         if "superb-ic" in self.model.name_or_path:
@@ -89,10 +89,51 @@ class SpeechBenchmark:
         # Just a wrapper around ModelHelperFSC.predict/ModelHelperFSC.predict_single We use the second to overcome the padding issue
         return self.model_helper.predict(audios)
 
+    def _transcribe(self, **transcription_args):
+        transcription_output = transcribe_audio(**transcription_args)
+        return transcription_output
+
+    def transcribe(
+        self,
+        audio_path_or_array: Union[str, np.ndarray],
+        current_sr: Optional[int] = None,
+        batch_size: Optional[int] = 1,
+        compute_type: Optional[str] = "float32",
+        model_name_whisper: Optional[str] = "large-v2",
+    ):
+        """
+        Transcribe the audio and return the transcription.
+
+        Args:
+            audio_path_or_array: path to the audio file or numpy array with the audio data.
+            language: language of the audio
+            current_sr: current sample rate of the audio
+            batch_size: batch size for the transcription
+            compute_type: the type of the input data for the model
+            model_name_whisper: the name of the model to use for the transcription
+
+        Returns:
+            (text, word_transcripts)
+        """
+        # we do this to introduce sanity checks on the audio
+        audio = FerretAudio(audio_path_or_array, current_sr=current_sr)
+        if audio.current_sr != 16_000:
+            audio.resample(16_000)  # this is required by WhisperX
+
+        transcription_output = self._transcribe(
+            audio=audio.normalized_array,
+            language=self.language,
+            batch_size=batch_size,
+            compute_type=compute_type,
+            model_name_whisper=model_name_whisper,
+            device=self.device,
+        )
+        return transcription_output
+
     def explain(
         self,
         audio_path_or_array: Union[str, np.ndarray],
-        native_sr: int = None,
+        current_sr: int = None,
         target_class: str = None,
         methodology: str = "LOO",
         perturbation_types: List[str] = [
@@ -108,7 +149,7 @@ class SpeechBenchmark:
         removal_type: str = "silence",  # Used only for LOO and LIME - explainer_args TODO
         aggregation: str = "mean",  # Used only for Gradient and GradientXInput - explainer_args TODO
         num_samples: int = 1000,  # Used only for LIME - explainer_args TODO
-        words_trascript: List = None,
+        word_timestamps: List = None,
         verbose: bool = False,
         verbose_target: int = 0,
     ):
@@ -119,8 +160,16 @@ class SpeechBenchmark:
         explainer_args = dict()
         # TODO UNIFY THE INPUT FORMAT
 
-        # First things first. We transform any type of input in a suitable numpy array and we proceed with that on.
-        ferret_audio = FerretAudio(audio_path_or_array, native_sr=native_sr, model_helper=self.model_helper)
+        # 1. Run sanity checks
+        ferret_audio = FerretAudio(audio_path_or_array, current_sr=current_sr)
+
+        # 2. We will need word level transcripts, let's force generate them if not provided
+        if word_timestamps is None:
+            print("Transcribing audio to get word level timestamps...")
+            text, word_timestamps = self.transcribe(
+                audio_path_or_array=audio_path_or_array, current_sr=current_sr
+            )
+            print(f"Transcribed audio with whisperX into: {text}")
 
         ## Get the importance of each class (action, object, location) according to the perturb_paraling type
         if methodology == "perturb_paraling":
@@ -160,7 +209,7 @@ class SpeechBenchmark:
             explanation = explainer.compute_explanation(
                 audio=ferret_audio,
                 target_class=target_class,
-                words_trascript=words_trascript,
+                word_timestamps=word_timestamps,
                 **explainer_args,
             )
             explanations = explanation
