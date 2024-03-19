@@ -12,6 +12,7 @@ from .explainers.explanation_speech.paraling_speech_explainer import (
     ParalinguisticSpeechExplainer,
 )
 from .speechxai_utils import FerretAudio, transcribe_audio
+from tqdm.autonotebook import tqdm
 
 SCORES_PALETTE = sns.diverging_palette(240, 10, as_cmap=True)
 
@@ -163,19 +164,11 @@ class SpeechBenchmark:
         # 1. Run sanity checks
         ferret_audio = FerretAudio(audio_path_or_array, current_sr=current_sr)
 
-        # 2. We will need word level transcripts, let's force generate them if not provided
-        if word_timestamps is None:
-            print("Transcribing audio to get word level timestamps...")
-            text, word_timestamps = self.transcribe(
-                audio_path_or_array=audio_path_or_array, current_sr=current_sr
-            )
-            print(f"Transcribed audio with whisperX into: {text}")
-
         ## Get the importance of each class (action, object, location) according to the perturb_paraling type
         if methodology == "perturb_paraling":
             explanations = []
             explainer = self.explainers["perturb_paraling"]
-            for perturbation_type in perturbation_types:
+            for perturbation_type in tqdm(perturbation_types, desc="Perturbation type"):
                 explanation = explainer.compute_explanation(
                     audio=ferret_audio,
                     target_class=target_class,
@@ -190,12 +183,22 @@ class SpeechBenchmark:
         # elif:
 
         else:
+
             if methodology not in self.explainers:
                 raise ValueError(
                     f"Explainer {methodology} not supported. Choose between "
                     '"LOO", "Gradient", "GradientXInput", "LIME", '
                     '"perturb_paraling"'
                 )
+
+            # 2. We will need word level transcripts, let's force generate them if not provided
+            if word_timestamps is None:
+                print("Transcribing audio to get word level timestamps...")
+                text, word_timestamps = self.transcribe(
+                    audio_path_or_array=audio_path_or_array, current_sr=current_sr
+                )
+                print(f"Transcribed audio with whisperX into: {text}")
+
             if "LOO" in methodology:
                 explainer_args["removal_type"] = removal_type
             elif "LIME" in methodology:
