@@ -42,7 +42,14 @@ For the default installation, which does **not** include the dependencies for th
 pip install -U ferret-xai
 ```
 
-Our main dependencies are 🤗 `transformers` and `datasets`.
+**Troubleshoothing**
+
+Some of our dependencies might use the package name for `scikit-learn` and that breaks ferret installation. \
+If your pip install command fails, try:
+
+```bash
+SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True pip install -U ferret-xai
+```
 
 ### (Optional) Install XAI Speech functionalities
 
@@ -52,14 +59,6 @@ If the speech XAI functionalities are needed, then follow these steps:
 2. install whisperX with `pip install git+https://github.com/m-bain/whisperx.git`
 3. install system-wide [ffmpeg](https://ffmpeg.org/download.html). If you have no sudo rights, you can try with `conda install conda-forge::ffmpeg`
 
-**Troubleshoothing**
-
-Some of our dependencies might use the package name for `scikit-learn` and that breaks ferret installation. \
-If your pip install command fails, try:
-
-```bash
-SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True pip install -U ferret-xai
-```
 
 ### Explain & Benchmark 
 
