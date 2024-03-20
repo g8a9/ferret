@@ -5,7 +5,7 @@ from typing import Dict, List, Union, Tuple
 from pydub import AudioSegment
 from IPython.display import display
 from .explanation_speech import ExplanationSpeech
-from .utils_removal import remove_word, remove_word_np
+from .utils_removal import remove_word
 from ...speechxai_utils import pydub_to_np, FerretAudio
 from logging import getLogger
 
@@ -41,11 +41,6 @@ class LOOSpeechExplainer:
 
         for word in word_timestamps:
             audio_removed = remove_word(pydub_segment, word, removal_type)
-
-            # to use remove_word_np after implementing the numpy array version of pink noise and white noise
-            # audio_removed = remove_word_np(audio.array, audio.sample_rate, word, removal_type )
-            # audio_no_words.append(audio_removed)
-
             audio_no_words.append(pydub_to_np(audio_removed)[0])
 
             if display_audio:
