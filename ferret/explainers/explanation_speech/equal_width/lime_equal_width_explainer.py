@@ -3,7 +3,7 @@ from pydub import AudioSegment
 import numpy as np
 from ..lime_timeseries import LimeTimeSeriesExplainer
 from ..explanation_speech import ExplanationSpeech
-from ....speechxai_utils import pydub_to_np, FerretAudio
+from ....speechxai_utils import FerretAudio
 
 EMPTY_SPAN = "---"
 
@@ -34,10 +34,10 @@ class LIMEEqualWidthSpeechExplainer:
                 "Removal method not supported, choose between 'silence' and 'noise'"
             )
 
-        audio_array = audio.array
+        audio_np = audio.array
 
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio_array])
+        logits_original = self.model_helper.predict([audio_np])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -56,13 +56,13 @@ class LIMEEqualWidthSpeechExplainer:
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
 
-        audio_np = audio_array.reshape(1, -1)
+        # GG: removed the reshaping since it is already done in FerretAudio
 
         # Get the start and end indexes of the segments. These will be used to split the audio and derive LIME interpretable features
         sampling_rate = self.model_helper.feature_extractor.sampling_rate
         splits = []
 
-        duration_s = len(audio_array) / audio.sample_rate # finds the duration from the array 
+        duration_s = len(audio_np) / audio.sample_rate 
 
         a, b = 0, 0
         for e, i in enumerate(np.arange(0, duration_s, num_s_split)):

@@ -4,7 +4,7 @@ from captum.attr import Saliency, InputXGradient
 import numpy as np
 import torch
 from ..explanation_speech import ExplanationSpeech
-from ....speechxai_utils import pydub_to_np, FerretAudio
+from ....speechxai_utils import FerretAudio
 
 
 class GradientEqualWidthSpeechExplainer:
@@ -76,10 +76,10 @@ class GradientEqualWidthSpeechExplainer:
                 "Aggregation method not supported, choose between 'mean' and 'max'"
             )
 
-        audio_array = audio.array
+        audio_np = audio.array
 
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio_array])
+        logits_original = self.model_helper.predict([audio_np])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -104,7 +104,7 @@ class GradientEqualWidthSpeechExplainer:
         for target_label, target_class in enumerate(targets):
             # Get gradient importance for each frame
             attr = self._get_gradient_importance_frame_level(
-                audio_array, target_class, target_label
+                audio_np, target_class, target_label
             )
 
             old_start = 0
@@ -113,7 +113,9 @@ class GradientEqualWidthSpeechExplainer:
             importances = []
             a, b = 0, 0  # 50, 20
 
-            duration_s = len(audio_array) / audio.sample_rate # finds the duration from the array 
+            duration_s = len(audio_np) / audio.sample_rate 
+            # no need to use the duration on the pydub version since 
+            # the pydub audio segment is not even used here
 
             a, b = 0, 0
             for e, i in enumerate(np.arange(0, duration_s, num_s_split)):
