@@ -62,7 +62,7 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
         target = explanation.target
 
         # Get audio as array.
-        audio_np = explanation.audio.array
+        audio_np = explanation.audio.normalized_array
 
         # Get prediction probability of the input sencence for the target
         ground_truth_probs = self.model_helper.predict([audio_np])
@@ -233,7 +233,7 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
         target = explanation.target
 
         # Get audio as an array.
-        audio_np = explanation.audio.array
+        audio_np = explanation.audio.normalized_array
 
         # Get prediction probability of the input sencence for the target
         ground_truth_probs = self.model_helper.predict([audio_np])
