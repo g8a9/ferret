@@ -550,7 +550,7 @@ class ParalinguisticSpeechExplainer:
 
         # Note that in a single label scenario, verbose_target is ignored (always 0)
 
-        print_log(perturbation_type, perturbation_value)
+        print(perturbation_type, perturbation_value)
         # Prediction probability
         predictions = self.model_helper.predict([perturbated_audio])
 
@@ -561,22 +561,22 @@ class ParalinguisticSpeechExplainer:
         preds = self.model_helper.get_text_labels(predicted_labels)
 
         if self.model_helper.n_labels > 1:
-            print_log(f"Target label: {verbose_target}")
-            print_log(
+            print(f"Target label: {verbose_target}")
+            print(
                 f"Predicted probs:",
                 np.round(predictions[verbose_target], 3),
             )
-            print_log(
+            print(
                 "Predicted class: ",
                 preds[verbose_target],
                 f"id: {predicted_labels[verbose_target]}",
             )
         else:
-            print_log(
+            print(
                 f"Predicted probs: ",
                 np.round(predictions[0], 3),
             )
-            print_log(
+            print(
                 "Predicted class: ",
                 preds,
                 f"id: {predicted_labels[0]}",
