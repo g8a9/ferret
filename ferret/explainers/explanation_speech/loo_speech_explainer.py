@@ -41,6 +41,9 @@ class LOOSpeechExplainer:
 
         for word in word_timestamps:
             audio_removed = remove_word(pydub_segment, word, removal_type)
+
+            # Note: we might potentially put `audio_removed` into a
+            #       `FerretAudio` object, but it'd be an additional step.
             audio_no_words.append(pydub_to_np(audio_removed)[0])
 
             if display_audio:
@@ -67,9 +70,10 @@ class LOOSpeechExplainer:
 
         logits_modified = self.model_helper.predict(modified_audios)
 
-        # GA: we don't need this conversion as we already have the numpy audio array in FerretAudio
-        # audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
-        audio_array = audio.array
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        audio_array = audio.normalized_array
 
         logits_original = self.model_helper.predict([audio_array])
 

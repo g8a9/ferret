@@ -238,7 +238,7 @@ class ParalinguisticSpeechExplainer:
         return_perturbations=False,
         verbose: bool = False,
         verbose_target: int = 0,
-    ):  # -> List[np.ndarray]:
+    ):
         """
         Perturbate audio using pydub, by adding:
         - pitch shifting
@@ -331,7 +331,7 @@ class ParalinguisticSpeechExplainer:
             )
 
         pydub_segment = audio.to_pydub()
-        audio_array = audio.array
+
         for perturbation_value in perturbations:
             if "time stretching" in perturbation_type:
                 if USE_AUDIOSTRETCH:
@@ -346,15 +346,20 @@ class ParalinguisticSpeechExplainer:
                 # perturbated_audio = self.pitch_shifting_augmentation(
                 #    audio_as, perturbation_value
                 # )
+
+
+                # Note: here we assume frame rate and sample rate are the
+                #       same, which is always true for single-channel (mono)
+                #       audio.
                 perturbated_audio = self.change_pitch_torchaudio(
-                    audio.array,
+                    audio.normalized_array,
                     audio.current_sr,
-                    perturbation_value,  # TODO: Assuming frame rate == sampling rate
+                    perturbation_value,
                 )
 
             elif perturbation_type == "noise" and USE_ADD_NOISE_TORCHAUDIO:
                 perturbated_audio = self.add_white_noise_torchaudio(
-                    audio.array, perturbation_value
+                    audio.normalized_array, perturbation_value
                 )
             else:
                 augment = self.augmentation(
@@ -362,7 +367,8 @@ class ParalinguisticSpeechExplainer:
                     perturbation_type=perturbation_type,
                 )
                 perturbated_audio = augment(
-                    samples=audio.array.squeeze(), sample_rate=audio.current_sr
+                    samples=audio.normalized_array.squeeze(),
+                    sample_rate=audio.current_sr
                 )
 
             if verbose:
@@ -403,7 +409,10 @@ class ParalinguisticSpeechExplainer:
 
         logits_modified = self.model_helper.predict(modified_audios)
 
-        logits_original = self.model_helper.predict([audio.array])
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        logits_original = self.model_helper.predict([audio.normalized_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -466,7 +475,8 @@ class ParalinguisticSpeechExplainer:
     ):
         n_labels = self.model_helper.n_labels
 
-        audio_array = audio.array
+        audio_array = audio.normalized_array
+
         original_gt = self.model_helper.get_predicted_probs(audio=audio_array)
 
         if target_class is None:

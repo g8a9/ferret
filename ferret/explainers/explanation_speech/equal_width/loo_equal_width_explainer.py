@@ -45,6 +45,8 @@ def remove_audio_segment(audio, start_s, end_s, removal_type: str = "silence"):
 
     audio_removed = before_word_audio + replace_word_audio + after_word_audio
     return audio_removed
+
+
 class LOOSpeechEqualWidthExplainer:
     NAME = "loo_speech_equal_width"
 
@@ -65,7 +67,7 @@ class LOOSpeechEqualWidthExplainer:
 
         ## Load audio as pydub.AudioSegment
         audio_as = audio.to_pydub()
-        audio_np = audio.array
+        audio_np = audio.normalized_array
 
         ## Remove word
         audio_remove_segments = []
@@ -77,6 +79,8 @@ class LOOSpeechEqualWidthExplainer:
             end_s = min(i + num_s_split, duration_s)
             audio_removed = remove_audio_segment(audio_as, start_s, end_s, removal_type)
 
+            # Using `pydub_to_np` to avoid converting to a `FerretAudio`
+            # instance with no real need for it.
             audio_remove_segments.append(pydub_to_np(audio_removed)[0])
 
             if display_audio:

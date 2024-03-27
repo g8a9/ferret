@@ -60,20 +60,6 @@ class FerretAudio:
     def normalized_array(self) -> np.ndarray:
         return self.array / 32768.0 if not self._is_normalized else self.array
 
-    # @property
-    # def transcription(self):
-    #     if self._transcription is None:
-    #         if (
-    #         ):
-    #             _, self._transcription = transcribe_audio(
-    #                 audio=self.normalized_array,  # is normalization needed when transcribing? i am assumimg so
-    #                 device="cuda",
-    #                 batch_size=2,
-    #                 compute_type="float32",
-    #             )
-    #         else:
-    #     return self._transcription
-
     def resample(self, target_sr: int):
         """
         Resample the audio to the target sampling rate. In place operation.

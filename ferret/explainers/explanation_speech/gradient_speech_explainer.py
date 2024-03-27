@@ -79,7 +79,10 @@ class GradientSpeechExplainer:
             )
 
         # Load audio and convert to np.array
-        audio_array = audio.array
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        audio_array = audio.normalized_array
 
         # Predict logits/probabilities
         logits_original = self.model_helper.predict([audio_array])

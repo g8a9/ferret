@@ -69,8 +69,6 @@ def remove_word(audio, word, removal_type: str = "nothing"):
     after_word_audio = audio[word["end"] * 1000 + b :]
     word_duration = (word["end"] * 1000 - word["start"] * 1000) + a + b
 
-    # TODO GA: we don't really to use pydub here, we can use numpy directly
-
     if removal_type == "nothing":
         replace_word_audio = AudioSegment.empty()
     elif removal_type == "silence":

@@ -76,7 +76,7 @@ class GradientEqualWidthSpeechExplainer:
                 "Aggregation method not supported, choose between 'mean' and 'max'"
             )
 
-        audio_np = audio.array
+        audio_np = audio.normalized_array
 
         # Predict logits/probabilities
         logits_original = self.model_helper.predict([audio_np])
@@ -113,9 +113,9 @@ class GradientEqualWidthSpeechExplainer:
             importances = []
             a, b = 0, 0  # 50, 20
 
-            duration_s = len(audio_np) / audio.sample_rate 
-            # no need to use the duration on the pydub version since 
-            # the pydub audio segment is not even used here
+            # Note: assuming mono audio here ([duration in s] = [n samples] /
+            #       [sample rate]).
+            duration_s = len(audio_np) / audio.sample_rate
 
             a, b = 0, 0
             for e, i in enumerate(np.arange(0, duration_s, num_s_split)):

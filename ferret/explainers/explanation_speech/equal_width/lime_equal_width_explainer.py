@@ -34,7 +34,7 @@ class LIMEEqualWidthSpeechExplainer:
                 "Removal method not supported, choose between 'silence' and 'noise'"
             )
 
-        audio_np = audio.array
+        audio_np = audio.normalized_array
 
         # Predict logits/probabilities
         logits_original = self.model_helper.predict([audio_np])
@@ -55,8 +55,6 @@ class LIMEEqualWidthSpeechExplainer:
                 ]
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
-
-        # GG: removed the reshaping since it is already done in FerretAudio
 
         # Get the start and end indexes of the segments. These will be used to split the audio and derive LIME interpretable features
         sampling_rate = self.model_helper.feature_extractor.sampling_rate
@@ -89,7 +87,10 @@ class LIMEEqualWidthSpeechExplainer:
                 predict_proba_function = self.model_helper.predict
             from copy import deepcopy
 
-            input_audio = deepcopy(audio_np)
+            # WARNING: this is the original reshaping, which assumes that
+            #          `LimeTimeSeriesExplainer` accepts an array with shape
+            #           (1, n_samples).
+            input_audio = deepcopy(audio_np.reshape(1, -1))
 
             # Explain the instance using the splits as interpretable features
             exp = lime_explainer.explain_instance(

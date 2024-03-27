@@ -54,7 +54,7 @@ audio-effects = { version = "0.22", optional = true }
 # so the dependency needs to be installed from the GitHub repo, which in turns
 # prevents it from being used among the extras in pyproject.toml. Until a
 # working version of WhisperX is released, the users are required to install
-# it from the repo manually.
+# it from the repo manually with: `pip install git+https://github.com/m-bain/whisperx.git`
 # whisperx = { version = "3.1.2", optional = true }
 
 [tool.poetry.extras]

@@ -35,7 +35,11 @@ class LIMESpeechExplainer:
                 "Removal method not supported, choose between 'silence' and 'noise'"
             )
 
-        audio_array = audio.array
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        audio_array = audio.normalized_array
+
         # Predict logits/probabilities
         logits_original = self.model_helper.predict([audio_array])
 
@@ -55,11 +59,6 @@ class LIMESpeechExplainer:
                 ]
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
-
-        # if word_timestamps is None:
-        # Transcribe audio
-        # word_timestamps = audio.transcription
-        audio_np = audio_array.reshape(1, -1)
 
         # Get the start and end indexes of the words. These will be used to split the audio and derive LIME interpretable features
         tot_len = audio_array.shape[0]
@@ -91,7 +90,7 @@ class LIMESpeechExplainer:
                 predict_proba_function = self.model_helper.predict
             from copy import deepcopy
 
-            input_audio = deepcopy(audio_np)
+            input_audio = deepcopy(audio_array.reshape(1, -1))
 
             # Explain the instance using the splits as interpretable features
             exp = lime_explainer.explain_instance(
