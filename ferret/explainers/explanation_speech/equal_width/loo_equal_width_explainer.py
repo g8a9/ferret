@@ -6,7 +6,7 @@ import whisperx
 from pydub import AudioSegment
 from IPython.display import display
 from ..explanation_speech import ExplanationSpeech
-from ....speechxai_utils import pydub_to_np, print_log
+from ....speechxai_utils import pydub_to_np, print_log, FerretAudio
 
 
 def remove_audio_segment(audio, start_s, end_s, removal_type: str = "silence"):
@@ -41,7 +41,7 @@ def remove_audio_segment(audio, start_s, end_s, removal_type: str = "silence"):
         # display(audio_removed)
     elif removal_type == "pink noise":
         sounds_path = (os.path.join(os.path.dirname(__file__), "pink_noise.mp3"),)
-        replace_word_audio = AudioSegment.from_mp3(sound_path)[:word_duration]
+        replace_word_audio = AudioSegment.from_mp3(sounds_path)[:word_duration]
 
     audio_removed = before_word_audio + replace_word_audio + after_word_audio
     return audio_removed
@@ -55,7 +55,7 @@ class LOOSpeechEqualWidthExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         target_class=None,
         removal_type: str = "silence",
         num_s_split: float = 0.25,
@@ -66,19 +66,21 @@ class LOOSpeechEqualWidthExplainer:
         """
 
         ## Load audio as pydub.AudioSegment
-        audio = AudioSegment.from_wav(audio_path)
-        audio_np = pydub_to_np(audio)[0]
+        audio_as = audio.to_pydub()
+        audio_np = audio.normalized_array
 
         ## Remove word
         audio_remove_segments = []
 
-        duration_s = len(audio) / 1000
+        duration_s = len(audio_as) / 1000
 
         for i in np.arange(0, duration_s, num_s_split):
             start_s = i
             end_s = min(i + num_s_split, duration_s)
-            audio_removed = remove_audio_segment(audio, start_s, end_s, removal_type)
+            audio_removed = remove_audio_segment(audio_as, start_s, end_s, removal_type)
 
+            # Using `pydub_to_np` to avoid converting to a `FerretAudio`
+            # instance with no real need for it.
             audio_remove_segments.append(pydub_to_np(audio_removed)[0])
 
             if display_audio:
@@ -137,7 +139,7 @@ class LOOSpeechEqualWidthExplainer:
             scores=scores,
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else [targets],
-            audio_path=audio_path,
+            audio=audio,
         )
 
         return explanation
