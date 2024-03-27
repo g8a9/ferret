@@ -30,6 +30,7 @@ jobs:
         python -m pip install flake8 pytest poetry
         # poetry install --all-extras
         pip install -e .[all]
+        pip install git+https://github.com/m-bain/whisperx.git
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
