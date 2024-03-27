@@ -2,9 +2,8 @@ from typing import List
 from pydub import AudioSegment
 import numpy as np
 from .lime_timeseries import LimeTimeSeriesExplainer
-from .utils_removal import transcribe_audio
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np
+from ...speechxai_utils import FerretAudio
 
 EMPTY_SPAN = "---"
 
@@ -17,16 +16,16 @@ class LIMESpeechExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
+        word_timestamps: List,
         target_class=None,
-        words_trascript: List = None,
         removal_type: str = "silence",
         num_samples: int = 1000,
     ) -> ExplanationSpeech:
         """
         Compute the word-level explanation for the given audio.
         Args:
-        audio_path: path to the audio file
+        audio: An instance of the FerretAudio class containing the input audio data.
         target_class: target class - int - If None, use the predicted class
         removal_type:
         """
@@ -36,11 +35,13 @@ class LIMESpeechExplainer:
                 "Removal method not supported, choose between 'silence' and 'noise'"
             )
 
-        # Load audio and convert to np.array
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        audio_array = audio.normalized_array
 
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio])
+        logits_original = self.model_helper.predict([audio_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -59,20 +60,13 @@ class LIMESpeechExplainer:
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
 
-        if words_trascript is None:
-            # Transcribe audio
-            _, words_trascript = transcribe_audio(
-                audio_path=audio_path, language=self.model_helper.language
-            )
-        audio_np = audio.reshape(1, -1)
-
         # Get the start and end indexes of the words. These will be used to split the audio and derive LIME interpretable features
-        tot_len = audio.shape[0]
+        tot_len = audio_array.shape[0]
         sampling_rate = self.model_helper.feature_extractor.sampling_rate
         splits = []
         old_start = 0
         a, b = 0, 0
-        for word in words_trascript:
+        for word in word_timestamps:
             start, end = int((word["start"] + a) * sampling_rate), int(
                 (word["end"] + b) * sampling_rate
             )
@@ -96,7 +90,7 @@ class LIMESpeechExplainer:
                 predict_proba_function = self.model_helper.predict
             from copy import deepcopy
 
-            input_audio = deepcopy(audio_np)
+            input_audio = deepcopy(audio_array.reshape(1, -1))
 
             # Explain the instance using the splits as interpretable features
             exp = lime_explainer.explain_instance(
@@ -113,9 +107,7 @@ class LIMESpeechExplainer:
             map_scores = {k: v for k, v in exp.as_map()[target_class]}
             map_scores = {
                 k: v
-                for k, v in sorted(
-                    map_scores.items(), key=lambda x: x[0], reverse=False
-                )
+                for k, v in sorted(map_scores.items(), key=lambda x: x[0], reverse=False)
             }
 
             # Remove the 'empty' spans, the spans between words
@@ -143,7 +135,8 @@ class LIMESpeechExplainer:
             scores=scores,
             explainer=self.NAME + "+" + removal_type,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio_path,
+            audio=audio,
+            word_timestamps=word_timestamps,
         )
 
         return explanation

@@ -7,6 +7,220 @@ import pydub
 import torch
 from datasets import Dataset
 from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
+import librosa
+import whisperx
+from typing import Dict, List, Union, Tuple, Optional
+
+
+class FerretAudio:
+    """
+    Internal class to handle audio data. We force signal to be mono and of type np.float32 (i.e., 4 bytes to represent each sample).
+    """
+
+    def __init__(
+        self,
+        audio_path_or_array: Union[str, np.ndarray],
+        current_sr: Optional[int] = None,
+    ):
+        self.audio_path_or_array = audio_path_or_array
+        self.current_sr = current_sr
+        self._transcription = None
+
+        if isinstance(audio_path_or_array, str):
+            self.array, self.current_sr = librosa.load(
+                audio_path_or_array, sr=None, dtype=np.float32
+            )
+        elif isinstance(audio_path_or_array, np.ndarray):
+            if current_sr is None:
+                raise ValueError(
+                    "If audio is provided as a numpy array, the native sampling rate (native_sr arg) must be provided"
+                )
+            self.array = audio_path_or_array
+        else:
+            raise ValueError(
+                "audio_path_or_array must be a string (path to audio file) or a numpy array"
+            )
+
+        # check dimentions and channels
+        if self.array.ndim > 2 or (self.array.ndim == 2 and self.array.shape[1] != 1):
+            raise ValueError(
+                "Audio must be mono in either the format (n_samples,) or (n_samples, 1)"
+            )
+
+        # reshape to (n_samples, 1) if needed
+        # TODO: is this needed?
+        self.array = self.array.reshape(-1, 1)
+
+    @property
+    def _is_normalized(self) -> bool:
+        """Check if the array is already normalized."""
+        return np.max(np.abs(self.array)) <= 1.0
+
+    @property
+    def normalized_array(self) -> np.ndarray:
+        return self.array / 32768.0 if not self._is_normalized else self.array
+
+    def resample(self, target_sr: int):
+        """
+        Resample the audio to the target sampling rate. In place operation.
+        """
+        self.array = librosa.resample(
+            self.array, orig_sr=self.current_sr, target_sr=target_sr
+        )
+        self.current_sr = target_sr
+
+    @staticmethod
+    def unnormalize_array(arr, dtype=np.int16):
+        """
+        Given a NumPy array normalized in `[-1, 1]`, returns an array rescaled
+        in `[-max, max]`, where `max` is the maximum (in absolute value)
+        (integer) number representable by the selected `dtype`. In practice,
+        we convert a normalized array of dtype `float32` into a normalized
+        one of dtype `int16`, as needed to create a PyDub `AudioSegment`
+        object.
+        """
+        max_val = np.maximum(np.iinfo(dtype).max, np.abs(np.iinfo(dtype).min))
+
+        return (arr * max_val).astype(dtype)
+
+    def to_pydub(self) -> pydub.AudioSegment:
+        """
+        Converts audio to `pydub.AudioSegment`.
+
+        Notes:
+            * In order to convert to PyDub `AudioSegment` type we need the
+              array to be
+                * of dtype int16,
+                * NOT normalized.
+              Therefore, if the array is normalized, we unnormalize it.
+            * In any case, PyDub only works with unnormalized arrays of dtype
+              int16, so that's what we need to pass as the input to
+              `AudioSegment`.
+            * Because we only manipulate mono audio, the array can either have
+              shape `(n_samples, 1)` or `(n_samples,)` (flat array). Either is
+              fine for PyDub (the extra dimension is taken care of
+              automatically for mono audio).
+        """
+        if self._is_normalized:
+            unnormalized_array = self.unnormalize_array(self.array)
+        else:
+            unnormalized_array = self.array
+
+        return pydub.AudioSegment(
+            unnormalized_array.tobytes(),
+            frame_rate=self.current_sr,
+            sample_width=unnormalized_array.dtype.itemsize,
+            channels=1,
+        )
+
+
+def transcribe_audio(
+    audio: np.ndarray,
+    # native_sr: int,
+    device,
+    batch_size: int,
+    compute_type: str,
+    language: str,
+    model_name_whisper: str,
+) -> Tuple[str, List[Dict[str, Union[str, float]]]]:
+    """
+    Transcribe audio using WhisperX, and return the text (transcription) and the words with their start and end times.
+    """
+
+    ## Load whisperx model. TODO: we should definitely avoid loading the model for *every* sample to subscribe
+
+    device_type = device.type
+    device_index = device.index
+
+    model_whisperx = whisperx.load_model(
+        model_name_whisper,
+        device=device_type,
+        device_index=device_index,
+        compute_type=compute_type,
+        language=language,
+    )
+
+    # required by whisperx
+    audio = audio.reshape(
+        -1,
+    ).astype(np.float32)
+
+    result = model_whisperx.transcribe(audio, batch_size=batch_size)
+    model_a, metadata = whisperx.load_align_model(
+        language_code=result["language"], device=device_type
+    )
+    model_a.to(device)
+
+    ## Align timestamps
+    result = whisperx.align(
+        result["segments"],
+        model_a,
+        metadata,
+        audio,
+        device,
+        return_char_alignments=False,
+    )
+
+    if result is None or "segments" not in result or len(result["segments"]) == 0:
+        return "", []
+
+    if len(result["segments"]) == 1:
+        text = result["segments"][0]["text"]
+        words = result["segments"][0]["words"]
+    else:
+        text = " ".join(
+            result["segments"][i]["text"] for i in range(len(result["segments"]))
+        )
+        words = [word for segment in result["segments"] for word in segment["words"]]
+
+    # Remove words that are not properly transcribed
+    words = [word for word in words if "start" in word]
+    return text, words
+
+
+def transcribe_audio_given_model(
+    model_whisperx,
+    audio_path: str,
+    batch_size: int = 2,
+    device: str = "cuda",
+) -> Tuple[str, List[Dict[str, Union[str, float]]]]:
+    """
+    Transcribe audio using whisperx,
+    and return the text (transcription) and the words with their start and end times.
+    """
+
+    ## Transcribe audio
+    audio = whisperx.load_audio(audio_path)
+    result = model_whisperx.transcribe(audio, batch_size=batch_size)
+    model_a, metadata = whisperx.load_align_model(
+        language_code=result["language"], device=device
+    )
+
+    ## Align timestamps
+    result = whisperx.align(
+        result["segments"],
+        model_a,
+        metadata,
+        audio,
+        device,
+        return_char_alignments=False,
+    )
+
+    if result is None or "segments" not in result or len(result["segments"]) == 0:
+        return "", []
+
+    if len(result["segments"]) == 1:
+        text = result["segments"][0]["text"]
+        words = result["segments"][0]["words"]
+    else:
+        text = " ".join(
+            result["segments"][i]["text"] for i in range(len(result["segments"]))
+        )
+        words = [word for segment in result["segments"] for word in segment["words"]]
+
+    # Remove words that are not properly transcribed
+    words = [word for word in words if "start" in word]
+    return text, words
 
 
 def pydub_to_np(audio: pydub.AudioSegment) -> Tuple[np.ndarray, int]:
@@ -23,11 +237,6 @@ def pydub_to_np(audio: pydub.AudioSegment) -> Tuple[np.ndarray, int]:
         / (1 << (8 * audio.sample_width - 1)),
         audio.frame_rate,
     )
-
-
-def print_log(*args):
-    # This is just a wrapper to easily spot the print :) - I use it to debug
-    print(args)
 
 
 def plot_word_importance_summary(
@@ -244,9 +453,7 @@ def load_dataset_and_model(dataset_name, data_dir, model_dir=None, model_name=No
         )
         from datasets import load_dataset
 
-        dataset_da = load_dataset(
-            "RiTA-nlp/ITALIC", "hard_speaker", use_auth_token=True
-        )
+        dataset_da = load_dataset("RiTA-nlp/ITALIC", "hard_speaker", use_auth_token=True)
 
         dataset = pd.DataFrame(
             {

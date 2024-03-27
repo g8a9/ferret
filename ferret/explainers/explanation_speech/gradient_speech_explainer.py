@@ -4,9 +4,9 @@ from captum.attr import Saliency, InputXGradient
 import numpy as np
 import torch
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np
+from ...speechxai_utils import pydub_to_np, FerretAudio
+
 # TODO - include in utils
-from .loo_speech_explainer import transcribe_audio
 
 
 class GradientSpeechExplainer:
@@ -58,16 +58,16 @@ class GradientSpeechExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
+        word_timestamps: List,
         target_class=None,
-        words_trascript: List = None,
         no_before_span: bool = True,
         aggregation: str = "mean",
     ) -> ExplanationSpeech:
         """
         Compute the word-level explanation for the given audio.
         Args:
-        audio_path: path to the audio file
+        audio: An instance of the FerretAudio class containing the input audio data.
         target_class: target class - int - If None, use the predicted class
         no_before_span: if True, it also consider the span before the word. This is because we observe gradient give importance also for the frame just before the word
         aggregation: aggregation method for the frames of the word. Can be "mean" or "max"
@@ -79,10 +79,13 @@ class GradientSpeechExplainer:
             )
 
         # Load audio and convert to np.array
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        audio_array = audio.normalized_array
 
         # Predict logits/probabilities
-        logits_original = self.model_helper.predict([audio])
+        logits_original = self.model_helper.predict([audio_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -101,11 +104,9 @@ class GradientSpeechExplainer:
             else:
                 targets = [int(np.argmax(logits_original, axis=1)[0])]
 
-        if words_trascript is None:
-            # Transcribe audio
-            _, words_trascript = transcribe_audio(
-                audio_path=audio_path, language=self.model_helper.language
-            )
+        # if word_timestamps is None:
+        #     # Transcribe audio
+        word_timestamps = audio.transcription
 
         # Compute gradient importance for each target label
         # This also handles the multilabel scenario as for FSC
@@ -113,7 +114,7 @@ class GradientSpeechExplainer:
         for target_label, target_class in enumerate(targets):
             # Get gradient importance for each frame
             attr = self._get_gradient_importance_frame_level(
-                audio, target_class, target_label
+                audio_array, target_class, target_label
             )
 
             old_start = 0
@@ -122,7 +123,7 @@ class GradientSpeechExplainer:
             importances = []
             a, b = 0, 0  # 50, 20
 
-            for word in words_trascript:
+            for word in word_timestamps:
                 if no_before_span:
                     # We directly consider the transcribed word
                     start_ms = (word["start"] * 1000 - a) / 1000
@@ -174,14 +175,15 @@ class GradientSpeechExplainer:
         else:
             scores = np.array([importances])
 
-        features = [word["word"] for word in words_trascript]
+        features = [word["word"] for word in word_timestamps]
 
         explanation = ExplanationSpeech(
             features=features,
             scores=scores,
             explainer=self.NAME + "-" + aggregation,
             target=targets if n_labels > 1 else targets,
-            audio_path=audio_path,
+            audio=audio,
+            word_timestamps=word_timestamps,
         )
 
         return explanation

@@ -10,7 +10,9 @@ from ..evaluators.utils_from_soft_to_discrete import (
 )
 from ..evaluators.faithfulness_measures import _compute_aopc
 from ..explainers.explanation_speech.explanation_speech import (
-    ExplanationSpeech, EvaluationSpeech)
+    ExplanationSpeech,
+    EvaluationSpeech,
+)
 from ..explainers.explanation_speech.utils_removal import remove_specified_words
 from ..speechxai_utils import pydub_to_np
 
@@ -25,7 +27,7 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
         self,
         explanation: ExplanationSpeech,
         target=None,
-        words_trascript: List = None,
+        # word_timestamps: List = None,
         **evaluation_args,
     ) -> EvaluationSpeech:
         """Evaluate an explanation on the AOPC Comprehensiveness metric.
@@ -57,13 +59,10 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
                 'The "target" argument is deprecated and will be removed in a future version. The explanation target are used as default.'
             )
 
-        audio_path = explanation.audio_path
-
         target = explanation.target
 
-        # Get the audio from audio_path
-        audio = AudioSegment.from_wav(audio_path)
-        audio_np = pydub_to_np(audio)[0]
+        # Get audio as array.
+        audio_np = explanation.audio.normalized_array
 
         # Get prediction probability of the input sencence for the target
         ground_truth_probs = self.model_helper.predict([audio_np])
@@ -78,17 +77,12 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
             # Single probability
             ground_truth_probs_target = [ground_truth_probs[0][target[0]]]
 
-        # Splite the audio into word-level audio segments
-        from ..explainers.explanation_speech.loo_speech_explainer import transcribe_audio
+        # TODO: modify to accept a `FerretAudio` object as input.
+        # Split the audio into word-level audio segments
+        from ..speechxai_utils import transcribe_audio
 
-        if words_trascript is None:
-            text, words_trascript = transcribe_audio(
-                audio_path=audio_path,
-                device=self.model_helper.device.type,
-                batch_size=2,
-                compute_type="float32",
-                language=self.model_helper.language,
-            )
+        # if word_timestamps is None:
+        word_timestamps = explanation.word_timestamps
 
         get_discrete_rationale_function = (
             _check_and_define_get_id_discrete_rationale_function(
@@ -148,10 +142,12 @@ class AOPC_Comprehensiveness_Evaluation_Speech(SpeechBaseEvaluator):
 
                 # For the comprehensiveness: we remove the terms in the discrete rationale.
 
-                words_removed = [words_trascript[i] for i in id_top]
+                words_removed = [word_timestamps[i] for i in id_top]
 
                 audio_removed = remove_specified_words(
-                    audio, words_removed, removal_type=removal_type
+                    explanation.audio.to_pydub(),
+                    words_removed,
+                    removal_type=removal_type,
                 )
 
                 audio_removed_np = pydub_to_np(audio_removed)[0]
@@ -202,7 +198,7 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
         self,
         explanation: ExplanationSpeech,
         target: List = None,
-        words_trascript: List = None,
+        # words_trascript: List = None,
         **evaluation_args,
     ) -> EvaluationSpeech:
         """Evaluate an explanation on the AOPC Sufficiency metric.
@@ -234,13 +230,10 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
                 'The "target" argument is deprecated and will be removed in a future version. The explanation target are used as default.'
             )
 
-        audio_path = explanation.audio_path
-
         target = explanation.target
 
-        # Get the audio from audio_path
-        audio = AudioSegment.from_wav(audio_path)
-        audio_np = pydub_to_np(audio)[0]
+        # Get audio as an array.
+        audio_np = explanation.audio.normalized_array
 
         # Get prediction probability of the input sencence for the target
         ground_truth_probs = self.model_helper.predict([audio_np])
@@ -255,17 +248,9 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
             # Single probability
             ground_truth_probs_target = [ground_truth_probs[0][target[0]]]
 
-        # Splite the audio into word-level audio segments
-        from ..explainers.explanation_speech.loo_speech_explainer import transcribe_audio
-
-        if words_trascript is None:
-            text, words_trascript = transcribe_audio(
-                audio_path=audio_path,
-                device=self.model_helper.device.type,
-                batch_size=2,
-                compute_type="float32",
-                language=self.model_helper.language,
-            )
+        # Split the audio into word-level audio segments
+        # if words_trascript is None:
+        words_trascript = explanation.word_timestamps
 
         get_discrete_rationale_function = (
             _check_and_define_get_id_discrete_rationale_function(
@@ -332,7 +317,9 @@ class AOPC_Sufficiency_Evaluation_Speech(SpeechBaseEvaluator):
                 ]
 
                 audio_removed = remove_specified_words(
-                    audio, words_removed, removal_type=removal_type
+                    explanation.audio.to_pydub(),
+                    words_removed,
+                    removal_type=removal_type,
                 )
 
                 audio_removed_np = pydub_to_np(audio_removed)[0]

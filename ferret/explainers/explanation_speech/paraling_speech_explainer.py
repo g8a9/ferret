@@ -1,4 +1,5 @@
 """Paralinguistic Speech Explainer module"""
+
 import os
 import numpy as np
 import pandas as pd
@@ -14,7 +15,16 @@ from audiomentations import (
     PolarityInversion,
 )
 from .explanation_speech import ExplanationSpeech
-from ...speechxai_utils import pydub_to_np, print_log
+from ...speechxai_utils import pydub_to_np, FerretAudio
+import torchaudio.functional as F
+import torch
+from audiostretchy.stretch import AudioStretch
+import audio_effects
+import tempfile
+from io import BytesIO
+import requests
+
+from copy import deepcopy
 
 
 # If True, We use the audiostretchy library to perform time stretching
@@ -25,6 +35,12 @@ USE_ADD_NOISE_TORCHAUDIO = True
 REFERENCE_STR = "-"
 
 
+ENDPOINTS = {
+    "WHITE_NOISE": "https://github.com/g8a9/ferret/raw/feat/support-speech-from-array/ferret/explainers/explanation_speech/white_noise.mp3",
+    "PINK_NOISE": "https://github.com/g8a9/ferret/raw/feat/support-speech-from-array/ferret/explainers/explanation_speech/pink_noise.mp3",
+}
+
+
 def _tmp_log1(
     verbose_target,
     original_gt,
@@ -32,31 +48,31 @@ def _tmp_log1(
     n_labels,
 ):
     if n_labels > 1:
-        print_log("Target label: ", verbose_target)
-        print_log("gt", original_gt[verbose_target])
-        print_log("m", modified_trg[verbose_target])
+        print("Target label: ", verbose_target)
+        print("gt", original_gt[verbose_target])
+        print("m", modified_trg[verbose_target])
 
     else:
-        print_log("gt", original_gt)
-        print_log("m", modified_trg)
+        print("gt", original_gt)
+        print("m", modified_trg)
 
 
-def _tmp_log2(
-    verbose_target,
-    original_gt,
-    modified_trg,
-    n_labels,
-):
-    if n_labels > 1:
-        print_log(
-            [
-                original_gt[verbose_target] - modified_trg[verbose_target][i]
-                for i in range(modified_trg[verbose_target].shape[0])
-            ]
-        )
+# def _tmp_log2(
+#     verbose_target,
+#     original_gt,
+#     modified_trg,
+#     n_labels,
+# ):
+#     if n_labels > 1:
+#         print_log(
+#             [
+#                 original_gt[verbose_target] - modified_trg[verbose_target][i]
+#                 for i in range(modified_trg[verbose_target].shape[0])
+#             ]
+#         )
 
-    else:
-        print_log([original_gt - modified_trg[i] for i in range(modified_trg.shape[0])])
+#     else:
+#         print_log([original_gt - modified_trg[i] for i in range(modified_trg.shape[0])])
 
 
 class ParalinguisticSpeechExplainer:
@@ -131,7 +147,6 @@ class ParalinguisticSpeechExplainer:
     def time_stretching_augmentation(
         self, audio_as: AudioSegment, perturbation_value: float
     ):
-        import audio_effects
 
         if perturbation_value < 1:
             perturbed_audio_as = audio_effects.speed_down(audio_as, perturbation_value)
@@ -141,14 +156,19 @@ class ParalinguisticSpeechExplainer:
         return perturbed_audio.squeeze()
 
     def time_stretching_augmentation_AudioStretch(
-        self, audio_path: str, perturbation_value: float
+        self, audio: FerretAudio, perturbation_value: float
     ):
-        from audiostretchy.stretch import AudioStretch
 
+        pydub_segment = audio.to_pydub()
         audio_stretch = AudioStretch()
-        audio_stretch.open(audio_path)
-        audio_stretch.stretch(ratio=perturbation_value)
-        perturbated_audio_samples = np.array(audio_stretch.samples, dtype=np.float32)
+        with tempfile.NamedTemporaryFile(suffix=".wav") as temp_audio:
+            pydub_segment.export(temp_audio.name, format="wav")
+            temp_audio.seek(0)
+
+            audio_stretch.open(temp_audio.name)
+            audio_stretch.stretch(ratio=perturbation_value)
+            perturbated_audio_samples = np.array(audio_stretch.samples, dtype=np.float32)
+
         return perturbated_audio_samples
 
     def pitch_shifting_augmentation(
@@ -172,13 +192,11 @@ class ParalinguisticSpeechExplainer:
         noise_rate: signal-to-noise ratios in dB
         """
 
-        import torchaudio.functional as F
-        from copy import deepcopy
-        import torch
+        # WHITE_NOISE = os.path.join(os.path.dirname(__file__), "white_noise.mp3")
+        # noise_as = AudioSegment.from_mp3(WHITE_NOISE)
 
-        WHITE_NOISE = os.path.join(os.path.dirname(__file__), "white_noise.mp3")
-
-        noise_as = AudioSegment.from_mp3(WHITE_NOISE)
+        res = requests.get(ENDPOINTS["WHITE_NOISE"])
+        noise_as = AudioSegment.from_file(BytesIO(res.content), "mp3")
         noise, frame_rate = pydub_to_np(noise_as)
 
         # Reshape and convert to torch tensor
@@ -205,9 +223,6 @@ class ParalinguisticSpeechExplainer:
         perturbation_value:
         """
 
-        import torchaudio.functional as F
-        import torch
-
         # Reshape and convert to torch tensor
         audio_t = torch.tensor(original_speech.reshape(1, -1))
         perturbated_audio = F.pitch_shift(
@@ -218,12 +233,12 @@ class ParalinguisticSpeechExplainer:
 
     def perturbe_waveform(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         perturbation_type: str,
         return_perturbations=False,
         verbose: bool = False,
         verbose_target: int = 0,
-    ):  # -> List[np.ndarray]:
+    ):
         """
         Perturbate audio using pydub, by adding:
         - pitch shifting
@@ -233,8 +248,8 @@ class ParalinguisticSpeechExplainer:
         """
 
         ## Load audio as pydub.AudioSegment
-        audio_as = AudioSegment.from_wav(audio_path)
-        audio, frame_rate = pydub_to_np(audio_as)
+        # audio_as = AudioSegment.from_wav(audio_path)
+        # audio, frame_rate = pydub_to_np(audio_as)
 
         ## Perturbate audio
         perturbated_audios = []
@@ -306,9 +321,7 @@ class ParalinguisticSpeechExplainer:
             raise ValueError(f"Perturbation '{perturbation_type}' is not available")
 
         if verbose:
-            from IPython.display import Audio
 
-            print_log("Original audio")
             # Display the original audio and show its info for a single class
             self._tmp_log_show_info(
                 "Original audio",
@@ -317,27 +330,36 @@ class ParalinguisticSpeechExplainer:
                 verbose_target,
             )
 
+        pydub_segment = audio.to_pydub()
+
         for perturbation_value in perturbations:
             if "time stretching" in perturbation_type:
                 if USE_AUDIOSTRETCH:
                     perturbated_audio = self.time_stretching_augmentation_AudioStretch(
-                        audio_path, perturbation_value
+                        audio=audio, perturbation_value=perturbation_value
                     )
                 else:
                     perturbated_audio = self.time_stretching_augmentation(
-                        audio_as, perturbation_value
+                        pydub_segment, perturbation_value
                     )
             elif "pitch shifting" in perturbation_type:
                 # perturbated_audio = self.pitch_shifting_augmentation(
                 #    audio_as, perturbation_value
                 # )
+
+
+                # Note: here we assume frame rate and sample rate are the
+                #       same, which is always true for single-channel (mono)
+                #       audio.
                 perturbated_audio = self.change_pitch_torchaudio(
-                    audio, frame_rate, perturbation_value
+                    audio.normalized_array,
+                    audio.current_sr,
+                    perturbation_value,
                 )
 
             elif perturbation_type == "noise" and USE_ADD_NOISE_TORCHAUDIO:
                 perturbated_audio = self.add_white_noise_torchaudio(
-                    audio, perturbation_value
+                    audio.normalized_array, perturbation_value
                 )
             else:
                 augment = self.augmentation(
@@ -345,7 +367,8 @@ class ParalinguisticSpeechExplainer:
                     perturbation_type=perturbation_type,
                 )
                 perturbated_audio = augment(
-                    samples=audio.squeeze(), sample_rate=frame_rate
+                    samples=audio.normalized_array.squeeze(),
+                    sample_rate=audio.current_sr
                 )
 
             if verbose:
@@ -365,7 +388,7 @@ class ParalinguisticSpeechExplainer:
 
     def compute_explanation(
         self,
-        audio_path: str,
+        audio: FerretAudio,
         target_class=None,
         perturbation_type: str = None,
         verbose: bool = False,
@@ -376,7 +399,7 @@ class ParalinguisticSpeechExplainer:
         """
 
         modified_audios = self.perturbe_waveform(
-            audio_path,
+            audio,
             perturbation_type,
             verbose=verbose,
             verbose_target=verbose_target,
@@ -386,9 +409,10 @@ class ParalinguisticSpeechExplainer:
 
         logits_modified = self.model_helper.predict(modified_audios)
 
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
-
-        logits_original = self.model_helper.predict([audio])
+        # Note: we use the normalized array for consistency with the original
+        #       SpeechXAI code (it used to come from the `pydub_to_np`
+        #       function).
+        logits_original = self.model_helper.predict([audio.normalized_array])
 
         # Check if single label or multilabel scenario as for FSC
         n_labels = self.model_helper.n_labels
@@ -411,9 +435,7 @@ class ParalinguisticSpeechExplainer:
         if n_labels > 1:
             # Multilabel scenario as for FSC
             modified_trg = [logits_modified[i][:, targets[i]] for i in range(n_labels)]
-            original_gt = [
-                logits_original[i][:, targets[i]][0] for i in range(n_labels)
-            ]
+            original_gt = [logits_original[i][:, targets[i]][0] for i in range(n_labels)]
 
         else:
             modified_trg = logits_modified[:, targets]
@@ -421,8 +443,7 @@ class ParalinguisticSpeechExplainer:
 
         if verbose:
             _tmp_log1(verbose_target, original_gt, modified_trg, n_labels)
-
-            _tmp_log2(verbose_target, original_gt, modified_trg, n_labels)
+            # _tmp_log2(verbose_target, original_gt, modified_trg, n_labels)
 
         ## Compute the difference between the ground truth and the modified audio
         # prediction_diff = original_gt - np.mean(modified_trg)
@@ -444,21 +465,22 @@ class ParalinguisticSpeechExplainer:
             scores=scores,
             explainer=self.NAME,
             target=targets if n_labels > 1 else [targets],
-            audio_path=audio_path,
+            audio=audio,
         )
 
         return explanation
 
-    def explain_variations(self, audio_path, perturbation_types, target_class=None):
+    def explain_variations(
+        self, audio: FerretAudio, perturbation_types: List[int], target_class=None
+    ):
         n_labels = self.model_helper.n_labels
 
-        audio = pydub_to_np(AudioSegment.from_wav(audio_path))[0]
+        audio_array = audio.normalized_array
 
-        original_gt = self.model_helper.get_predicted_probs(audio=audio)
+        original_gt = self.model_helper.get_predicted_probs(audio=audio_array)
 
         if target_class is None:
-            targets = self.model_helper.get_predicted_classes(audio=audio)
-
+            targets = self.model_helper.get_predicted_classes(audio=audio_array)
         else:
             targets = target_class
 
@@ -467,7 +489,7 @@ class ParalinguisticSpeechExplainer:
         perturbation_df_by_type = {}
         for perturbation_type in perturbation_types:
             perturbated_audios, perturbations = self.perturbe_waveform(
-                audio_path, perturbation_type, return_perturbations=True
+                audio, perturbation_type, return_perturbations=True
             )
 
             if "time stretching" in perturbation_type:
@@ -486,7 +508,6 @@ class ParalinguisticSpeechExplainer:
                     prob_variations.append(
                         [probs_modified[i][:, targets[i]][0] for i in range(n_labels)]
                     )
-
                 else:
                     prob_variations.append([probs_modified[:, targets][0]])
 
@@ -529,7 +550,7 @@ class ParalinguisticSpeechExplainer:
 
         # Note that in a single label scenario, verbose_target is ignored (always 0)
 
-        print_log(perturbation_type, perturbation_value)
+        print(perturbation_type, perturbation_value)
         # Prediction probability
         predictions = self.model_helper.predict([perturbated_audio])
 
@@ -540,22 +561,22 @@ class ParalinguisticSpeechExplainer:
         preds = self.model_helper.get_text_labels(predicted_labels)
 
         if self.model_helper.n_labels > 1:
-            print_log(f"Target label: {verbose_target}")
-            print_log(
+            print(f"Target label: {verbose_target}")
+            print(
                 f"Predicted probs:",
                 np.round(predictions[verbose_target], 3),
             )
-            print_log(
+            print(
                 "Predicted class: ",
                 preds[verbose_target],
                 f"id: {predicted_labels[verbose_target]}",
             )
         else:
-            print_log(
+            print(
                 f"Predicted probs: ",
                 np.round(predictions[0], 3),
             )
-            print_log(
+            print(
                 "Predicted class: ",
                 preds,
                 f"id: {predicted_labels[0]}",
