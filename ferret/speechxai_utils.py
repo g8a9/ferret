@@ -130,7 +130,7 @@ def transcribe_audio(
     ## Load whisperx model. TODO: we should definitely avoid loading the model for *every* sample to subscribe
 
     device_type = device.type
-    device_index = device.index
+    device_index = device.index if device.index is not None else 0
 
     model_whisperx = whisperx.load_model(
         model_name_whisper,
