@@ -106,7 +106,7 @@ class GradientSpeechExplainer:
 
         # if word_timestamps is None:
         #     # Transcribe audio
-        word_timestamps = audio.transcription
+        # word_timestamps = audio.transcription
 
         # Compute gradient importance for each target label
         # This also handles the multilabel scenario as for FSC

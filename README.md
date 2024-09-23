@@ -59,6 +59,9 @@ If the speech XAI functionalities are needed, then follow these steps:
 2. install whisperX with `pip install git+https://github.com/m-bain/whisperx.git`
 3. install system-wide [ffmpeg](https://ffmpeg.org/download.html). If you have no sudo rights, you can try with `conda install conda-forge::ffmpeg`
 
+### Testing 
+For detailed instructions on setting up your environment and running tests, please see our [Testing Guidelines](TESTING.md).
+
 
 ### Explain & Benchmark 
 
