@@ -54,8 +54,21 @@ class ModelHelperER:
 
         ## Predict logits
         with torch.no_grad():
+            # Some feature encoders return the input tensor(s) under the
+            # `input_values` key, other under the `input_features` one.
+            if 'input_values' in inputs.keys():
+                input_features = inputs['input_values'].to(self.device)
+            elif 'input_features' in inputs.keys():
+                input_features = inputs['input_features'].to(self.device)
+            else:
+                raise Exception(
+                    'Input features not found in inputs dict neither under'
+                    ' the `input_values` key, nor under the `input_features`'
+                    ' one'
+                )
+
             logits = (
-                self.model(inputs.input_values.to(self.device))
+                self.model(input_features)
                 .logits.detach()
                 .cpu()
                 # .numpy()

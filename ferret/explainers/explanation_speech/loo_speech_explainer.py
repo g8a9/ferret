@@ -31,6 +31,9 @@ class LOOSpeechExplainer:
         - silence
         - white noise
         - pink noise
+
+        Note: in all the manipulations, the sample rate remains that of
+              the input `audio`!
         """
 
         ## Load audio as pydub.AudioSegment
@@ -61,6 +64,8 @@ class LOOSpeechExplainer:
     ) -> ExplanationSpeech:
         """
         Computes the importance of each word in the audio.
+
+        `target` class should be an integer identifying the class ID.
         """
 
         ## Get modified audio by leaving a single word out and the words
@@ -86,6 +91,8 @@ class LOOSpeechExplainer:
             targets = target_class
 
         else:
+            # If no target class is passed, the explanation is computed for
+            # the predicted class.
             if n_labels > 1:
                 # Multilabel scenario as for FSC
                 targets = [

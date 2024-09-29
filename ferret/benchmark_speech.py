@@ -157,6 +157,9 @@ class SpeechBenchmark:
         """
         Explain the prediction of the model.
         Returns the importance of each segment in the audio.
+
+        Note: the `target_class` argument specifies the ID of the target
+              class.
         """
         explainer_args = dict()
         # TODO UNIFY THE INPUT FORMAT

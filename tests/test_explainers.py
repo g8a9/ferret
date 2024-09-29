@@ -197,3 +197,6 @@ class TestExplainers(unittest.TestCase):
         explanation = exp(text, target="I-LOC", target_token="York")
         self.assertTrue("york" in [token.lower() for token in explanation.tokens])
         self.assertEqual(explanation.target_pos_idx, 6)
+
+if __name__ == '__main__':
+    unittest.main()
